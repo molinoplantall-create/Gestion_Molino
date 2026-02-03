@@ -1,0 +1,29 @@
+﻿src/components/layout/Header.tsx(80,74): error TS2551: Property 'rol' does not exist on type 'User'. Did you mean 'role'?
+src/pages/Mantenimiento.tsx(282,7): error TS2322: Type '"PREVENTIVO" | "CORRECTIVO" | "PREDICTIVO" | "EMERGENCIA"' is not assignable to type '"PREVENTIVO"'.
+  Type '"CORRECTIVO"' is not assignable to type '"PREVENTIVO"'.
+src/pages/Mantenimiento.tsx(285,7): error TS2322: Type '"BAJA" | "MEDIA" | "ALTA" | "CRITICA"' is not assignable to type '"MEDIA"'.
+  Type '"BAJA"' is not assignable to type '"MEDIA"'.
+src/pages/Mantenimiento.tsx(926,71): error TS2322: Type '{ className: string; size: number; "md:size": number; }' is not assignable to type 'IntrinsicAttributes & LucideProps'.
+  Property 'md:size' does not exist on type 'IntrinsicAttributes & LucideProps'.
+src/pages/Reportes.tsx(212,62): error TS2322: Type '{ className: string; size: number; "md:size": number; }' is not assignable to type 'IntrinsicAttributes & LucideProps'.
+  Property 'md:size' does not exist on type 'IntrinsicAttributes & LucideProps'.
+src/pages/Reportes.tsx(229,62): error TS2322: Type '{ className: string; size: number; "md:size": number; }' is not assignable to type 'IntrinsicAttributes & LucideProps'.
+  Property 'md:size' does not exist on type 'IntrinsicAttributes & LucideProps'.
+src/pages/Reportes.tsx(246,65): error TS2322: Type '{ className: string; size: number; "md:size": number; }' is not assignable to type 'IntrinsicAttributes & LucideProps'.
+  Property 'md:size' does not exist on type 'IntrinsicAttributes & LucideProps'.
+src/pages/Reportes.tsx(263,63): error TS2322: Type '{ className: string; size: number; "md:size": number; }' is not assignable to type 'IntrinsicAttributes & LucideProps'.
+  Property 'md:size' does not exist on type 'IntrinsicAttributes & LucideProps'.
+src/pages/Reportes.tsx(278,63): error TS2322: Type '{ className: string; size: number; "md:size": number; }' is not assignable to type 'IntrinsicAttributes & LucideProps'.
+  Property 'md:size' does not exist on type 'IntrinsicAttributes & LucideProps'.
+src/pages/Reportes.tsx(313,62): error TS2322: Type '{ className: string; size: number; "md:size": number; }' is not assignable to type 'IntrinsicAttributes & LucideProps'.
+  Property 'md:size' does not exist on type 'IntrinsicAttributes & LucideProps'.
+src/pages/Reportes.tsx(403,69): error TS2322: Type '{ className: string; size: number; "md:size": number; }' is not assignable to type 'IntrinsicAttributes & LucideProps'.
+  Property 'md:size' does not exist on type 'IntrinsicAttributes & LucideProps'.
+src/pages/Stock.tsx(215,22): error TS2339: Property 'total' does not exist on type '{ fechaRecepcion: string; tipoCliente: string; clienteId: string; zona: string; mineral: string; cuarzo: number; llampo: number; transportista: string; placaCamion: string; observaciones: string; }'.
+src/pages/Stock.tsx(230,70): error TS2339: Property 'clienteNombre' does not exist on type '{ fechaRecepcion: string; tipoCliente: string; clienteId: string; zona: string; mineral: string; cuarzo: number; llampo: number; transportista: string; placaCamion: string; observaciones: string; }'.
+src/pages/Stock.tsx(235,31): error TS2339: Property 'total' does not exist on type '{ fechaRecepcion: string; tipoCliente: string; clienteId: string; zona: string; mineral: string; cuarzo: number; llampo: number; transportista: string; placaCamion: string; observaciones: string; }'.
+src/pages/Stock.tsx(253,29): error TS2339: Property 'total' does not exist on type '{ fechaRecepcion: string; tipoCliente: string; clienteId: string; zona: string; mineral: string; cuarzo: number; llampo: number; transportista: string; placaCamion: string; observaciones: string; }'.
+src/pages/Stock.tsx(766,38): error TS2339: Property 'total' does not exist on type '{ fechaRecepcion: string; tipoCliente: string; clienteId: string; zona: string; mineral: string; cuarzo: number; llampo: number; transportista: string; placaCamion: string; observaciones: string; }'.
+src/services/supabase.ts(3,33): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/services/supabase.ts(4,37): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/store/appStore.ts(22,54): error TS2739: Type '{ sidebarOpen: false; setSidebarOpen: (open: boolean) => void; }' is missing the following properties from type 'AppStore': notifications, addNotification, markNotificationAsRead, clearAllNotifications

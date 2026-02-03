@@ -1,65 +1,325 @@
 import React from 'react';
-import { Clock, Wrench, CheckCircle, AlertTriangle } from 'lucide-react';
-import { Mill } from '@/types';
-import { MILL_STATUS_CONFIG } from '@/constants';
+import {
+  Clock,
+  Wrench,
+  CheckCircle,
+  User,
+  Package,
+  Droplets,
+  AlertTriangle,
+  PlayCircle,
+  PauseCircle,
+  AlertCircle
+} from 'lucide-react';
 
 interface MillCardProps {
-  mill: Mill;
+  mill: any;
 }
 
 const MillCard: React.FC<MillCardProps> = ({ mill }) => {
-  const getStatusIcon = () => {
-    switch (mill.estado) {
-      case 'LIBRE': return <CheckCircle size={20} className="text-green-500" />;
-      case 'OCUPADO': return <Clock size={20} className="text-orange-500" />;
-      case 'MANTENIMIENTO': return <Wrench size={20} className="text-red-500" />;
-      default: return <AlertTriangle size={20} className="text-gray-500" />;
+  // Normalizar datos
+  const normalizedMill = {
+    id: mill?.id || '1',
+    nombre: mill?.nombre || mill?.name || 'Molino I',
+    estado: mill?.estado || mill?.status || 'LIBRE',
+
+    // Datos operativos (SOLO informativos, no editables)
+    clienteActual: mill?.clienteActual || mill?.current_client || null,
+    sacosProcesando: mill?.sacosProcesando || mill?.sacks_processing || 0,
+    capacidad: mill?.capacidad || mill?.capacity || 150,
+
+    // Horarios
+    horaInicio: mill?.horaInicio || mill?.start_time || null,
+    horaFinEstimada: mill?.horaFinEstimada || mill?.estimated_end || null,
+    horasTrabajadas: mill?.horasTrabajadas || mill?.total_hours_worked || 0,
+
+    // Mantenimiento
+    horasParaCambioAceite: mill?.horasParaCambioAceite || mill?.hours_to_oil_change || 500,
+    ultimoMantenimiento: mill?.ultimoMantenimiento || mill?.last_maintenance || '2024-01-15',
+    proximoMantenimiento: mill?.proximoMantenimiento || mill?.next_maintenance || '2024-02-15',
+
+    // Información adicional del sistema
+    operativo: mill?.operativo !== false, // true por defecto
+    necesitaMantenimiento: mill?.necesitaMantenimiento || false
+  };
+
+  // Determinar estado REAL (no mostrar "sacos procesando" si está en mantenimiento)
+  const getEstadoReal = () => {
+    const estado = normalizedMill.estado.toString().toUpperCase();
+
+    if (estado === 'MANTENIMIENTO' || estado === 'MAINTENANCE') {
+      return 'mantenimiento';
+    }
+
+    if (!normalizedMill.operativo) {
+      return 'no_operativo';
+    }
+
+    if (normalizedMill.clienteActual && normalizedMill.sacosProcesando > 0) {
+      return 'ocupado';
+    }
+
+    if (normalizedMill.necesitaMantenimiento) {
+      return 'necesita_mantenimiento';
+    }
+
+    return 'libre';
+  };
+
+  const estadoReal = getEstadoReal();
+
+  // Configuración visual por estado
+  const getConfig = () => {
+    switch (estadoReal) {
+      case 'ocupado':
+        return {
+          color: 'bg-orange-50 border-orange-200',
+          icon: <PlayCircle className="text-orange-600" size={20} />,
+          label: 'Ocupado',
+          badge: 'bg-orange-100 text-orange-800',
+          description: 'Procesando mineral'
+        };
+      case 'mantenimiento':
+        return {
+          color: 'bg-red-50 border-red-200',
+          icon: <Wrench className="text-red-600" size={20} />,
+          label: 'En Mantenimiento',
+          badge: 'bg-red-100 text-red-800',
+          description: 'No disponible'
+        };
+      case 'necesita_mantenimiento':
+        return {
+          color: 'bg-amber-50 border-amber-200',
+          icon: <AlertCircle className="text-amber-600" size={20} />,
+          label: 'Necesita Mantenimiento',
+          badge: 'bg-amber-100 text-amber-800',
+          description: 'Próximo a revisión'
+        };
+      case 'no_operativo':
+        return {
+          color: 'bg-gray-100 border-gray-300',
+          icon: <PauseCircle className="text-gray-600" size={20} />,
+          label: 'No Operativo',
+          badge: 'bg-gray-200 text-gray-700',
+          description: 'Fuera de servicio'
+        };
+      default: // libre
+        return {
+          color: 'bg-green-50 border-green-200',
+          icon: <CheckCircle className="text-green-600" size={20} />,
+          label: 'Libre',
+          badge: 'bg-green-100 text-green-800',
+          description: 'Disponible'
+        };
     }
   };
 
-  const getStatusColor = () => {
-    switch (mill.estado) {
-      case 'LIBRE': return 'border-green-200 bg-green-50';
-      case 'OCUPADO': return 'border-orange-200 bg-orange-50';
-      case 'MANTENIMIENTO': return 'border-red-200 bg-red-50';
-      default: return 'border-gray-200 bg-gray-50';
+  const config = getConfig();
+
+  // Calcular progreso para cambio de aceite
+  const calcularProgresoAceite = () => {
+    const maxHoras = 500; // Cambio de aceite cada 500 horas
+    const horasUsadas = normalizedMill.horasTrabajadas % maxHoras;
+    const progreso = (horasUsadas / maxHoras) * 100;
+    const horasRestantes = maxHoras - horasUsadas;
+
+    return {
+      progreso: Math.min(progreso, 100),
+      horasRestantes,
+      necesitaCambio: horasRestantes < 50
+    };
+  };
+
+  const aceiteInfo = calcularProgresoAceite();
+
+  // Formatear horas
+  const formatTime = (timeString: string | null) => {
+    if (!timeString) return '--:--';
+    try {
+      return new Date(timeString).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '--:--';
     }
   };
+
+  // Calcular tiempo restante si está ocupado
+  const calcularTiempoRestante = () => {
+    if (!normalizedMill.horaFinEstimada || estadoReal !== 'ocupado') return null;
+
+    try {
+      const fin = new Date(normalizedMill.horaFinEstimada);
+      const ahora = new Date();
+      const diffMs = fin.getTime() - ahora.getTime();
+
+      if (diffMs <= 0) return 'Completado';
+
+      const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffMinutos = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+      return `${diffHoras}h ${diffMinutos}m`;
+    } catch {
+      return null;
+    }
+  };
+
+  const tiempoRestante = calcularTiempoRestante();
 
   return (
-    <div className={`card-hover border rounded-2xl p-5 ${getStatusColor()}`}>
-      <div className="flex items-start justify-between mb-4">
+    <div className={`card-hover border rounded-xl p-5 ${config.color} h-full flex flex-col transition-all hover:shadow-sm`}>
+      {/* HEADER: Nombre y Estado */}
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border">
-            <span className="text-xl">⚙️</span>
+          <div className={`p-2.5 rounded-lg ${config.badge} mr-3`}>
+            {React.cloneElement(config.icon as React.ReactElement, { strokeWidth: 1.5 })}
           </div>
-          <div className="ml-3">
-            <h3 className="font-bold text-gray-900">{mill.nombre}</h3>
+          <div>
+            <h3 className="font-bold text-slate-900 text-lg">{normalizedMill.nombre}</h3>
             <div className="flex items-center mt-1">
-              {getStatusIcon()}
-              <span className="ml-2 font-medium capitalize">
-                {MILL_STATUS_CONFIG[mill.estado]?.label || mill.estado.toLowerCase()}
+              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${config.badge}`}>
+                {config.label}
               </span>
             </div>
           </div>
         </div>
+
+        {/* Indicador de capacidad */}
         <div className="text-right">
-          <div className="text-2xl font-bold text-gray-900">{mill.sacosProcesados.toLocaleString()}</div>
-          <div className="text-sm text-gray-500">sacos</div>
+          <div className="text-xl font-bold text-slate-900">{normalizedMill.capacidad}</div>
+          <div className="text-xs text-slate-500">sacos/h</div>
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex justify-between pt-3 border-t border-gray-200">
-          <div className="text-center">
-            <div className="text-lg font-bold text-gray-900">{mill.horasTrabajadas}</div>
-            <div className="text-xs text-gray-500">horas</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-bold text-gray-900">
-              {Math.round(mill.horasTrabajadas / 50)}
+      {/* SECCIÓN 1: INFORMACIÓN OPERATIVA */}
+      <div className="space-y-3 mb-4">
+        {/* Cliente actual (SOLO si está ocupado) */}
+        {estadoReal === 'ocupado' && normalizedMill.clienteActual && (
+          <div className="flex items-center p-3 bg-white/50 rounded-lg border border-slate-200/50">
+            <User className="text-slate-400 mr-3" size={16} strokeWidth={1.5} />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-slate-900 truncate" title={normalizedMill.clienteActual}>
+                {normalizedMill.clienteActual}
+              </div>
+              <div className="text-xs text-slate-500">Cliente actual</div>
             </div>
-            <div className="text-xs text-gray-500">mant.</div>
+          </div>
+        )}
+
+        {/* Sacos procesando (SOLO si está ocupado y NO en mantenimiento) */}
+        {estadoReal === 'ocupado' && normalizedMill.sacosProcesando > 0 && (
+          <div className="flex items-center justify-between p-3 bg-white/50 rounded-lg border border-slate-200/50">
+            <div className="flex items-center">
+              <Package className="text-slate-400 mr-3" size={16} strokeWidth={1.5} />
+              <div>
+                <div className="text-sm text-slate-700">Sacos procesando</div>
+                <div className="text-xs text-slate-500">
+                  {normalizedMill.capacidad * 8} max/día
+                </div>
+              </div>
+            </div>
+            <div className="font-bold text-lg text-slate-900">
+              {normalizedMill.sacosProcesando}
+            </div>
+          </div>
+        )}
+
+        {/* Horarios si está ocupado */}
+        {estadoReal === 'ocupado' && (
+          <div className="grid grid-cols-2 gap-3 bg-white/50 p-3 rounded-lg border border-slate-200/50">
+            <div>
+              <div className="text-xs text-slate-500">Inicio</div>
+              <div className="text-sm font-semibold text-slate-900">
+                {formatTime(normalizedMill.horaInicio)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">
+                {tiempoRestante ? 'Finaliza en' : 'Fin estimado'}
+              </div>
+              <div className="text-sm font-semibold text-slate-900">
+                {tiempoRestante || formatTime(normalizedMill.horaFinEstimada)}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mensaje especial para mantenimiento */}
+        {estadoReal === 'mantenimiento' && (
+          <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
+            <div className="flex items-center">
+              <Wrench size={16} strokeWidth={1.5} className="text-red-500 mr-2" />
+              <div className="text-sm text-red-700">
+                En proceso de mantenimiento preventivo/correctivo
+              </div>
+            </div>
+            <div className="text-xs text-red-600 mt-1">
+              Próximo disponible: {normalizedMill.proximoMantenimiento}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SECCIÓN 2: MANTENIMIENTO Y HORAS (SIEMPRE visible) */}
+      <div className="pt-4 border-t border-slate-200/50 mt-auto">
+        {/* Horas trabajadas acumuladas */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center">
+            <Clock className="text-slate-400 mr-2" size={16} strokeWidth={1.5} />
+            <span className="text-sm text-slate-700">Horas totales:</span>
+          </div>
+          <div className="font-bold text-slate-900">{normalizedMill.horasTrabajadas}h</div>
+        </div>
+
+        {/* Progreso cambio de aceite */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-sm mb-2">
+            <div className="flex items-center">
+              <Droplets className="text-blue-500 mr-2" size={14} strokeWidth={1.5} />
+              <span className="text-slate-700">Cambio de aceite:</span>
+            </div>
+            <span className={`font-semibold ${aceiteInfo.necesitaCambio ? 'text-red-600' : 'text-slate-700'}`}>
+              {aceiteInfo.horasRestantes}h
+            </span>
+          </div>
+
+          {/* Barra de progreso */}
+          <div className="w-full bg-slate-200 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full transition-all ${aceiteInfo.necesitaCambio ? 'bg-red-500' : 'bg-blue-500'
+                }`}
+              style={{ width: `${aceiteInfo.progreso}%` }}
+            ></div>
+          </div>
+
+          {aceiteInfo.necesitaCambio && (
+            <div className="flex items-center mt-2 text-xs">
+              <AlertTriangle className="text-red-500 mr-1" size={12} strokeWidth={1.5} />
+              <span className="text-red-600 font-medium">Próximo cambio requerido</span>
+            </div>
+          )}
+        </div>
+
+        {/* Último mantenimiento */}
+        <div className="text-xs text-slate-500 flex justify-between items-center pt-2 border-t border-slate-100">
+          <span>Último mantenimiento:</span>
+          <span className="font-medium text-slate-700">{normalizedMill.ultimoMantenimiento}</span>
+        </div>
+      </div>
+
+      {/* BADGE de estado operativo */}
+      <div className="mt-4 pt-3 border-t border-slate-200/50">
+        <div className="flex justify-between items-center">
+          <div className="text-xs text-slate-500">
+            Estado operativo:
+            <span className={`ml-1 font-medium ${normalizedMill.operativo ? 'text-emerald-600' : 'text-red-600'
+              }`}>
+              {normalizedMill.operativo ? 'Operativo' : 'No Operativo'}
+            </span>
+          </div>
+          <div className="text-xs text-slate-400">
+            ID: {normalizedMill.id.substring(0, 6)}...
           </div>
         </div>
       </div>

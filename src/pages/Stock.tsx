@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Edit, 
-  Trash2, 
-  Package, 
-  Download, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Edit,
+  Trash2,
+  Package,
+  Download,
   Truck,
   User,
   Calendar,
@@ -14,11 +14,11 @@ import {
   CheckCircle,
   RefreshCw
 } from 'lucide-react';
-import { 
-  TIPO_CLIENTE, 
-  MINERAL_TYPES_STOCK, 
+import {
+  TIPO_CLIENTE,
+  MINERAL_TYPES_STOCK,
   SUBMINERAL_TYPES_STOCK,
-  MOCK_CLIENTES 
+  MOCK_CLIENTES
 } from '../constants';
 import { useAuthStore } from '../store/authStore';
 
@@ -49,7 +49,7 @@ const Stock: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  
+
   // Estado para nuevo ingreso - ACTUALIZADO con zona
   const [nuevoIngreso, setNuevoIngreso] = useState({
     fechaRecepcion: new Date().toISOString().slice(0, 10),
@@ -59,6 +59,8 @@ const Stock: React.FC = () => {
     mineral: '',
     cuarzo: 0,
     llampo: 0,
+    total: 0,
+    clienteNombre: '',
     transportista: '',
     placaCamion: '',
     observaciones: ''
@@ -138,9 +140,9 @@ const Stock: React.FC = () => {
   // Filtrar datos
   const filteredData = stockData.filter(item => {
     const matchesSearch = item.clienteNombre.toLowerCase().includes(search.toLowerCase()) ||
-                         (item.transportista?.toLowerCase() || '').includes(search.toLowerCase()) ||
-                         (item.placaCamion?.toLowerCase() || '').includes(search.toLowerCase()) ||
-                         (item.zona?.toLowerCase() || '').includes(search.toLowerCase());
+      (item.transportista?.toLowerCase() || '').includes(search.toLowerCase()) ||
+      (item.placaCamion?.toLowerCase() || '').includes(search.toLowerCase()) ||
+      (item.zona?.toLowerCase() || '').includes(search.toLowerCase());
     const matchesTipo = filterTipo === 'all' || item.tipoCliente === filterTipo;
     const matchesMineral = filterMineral === 'all' || item.mineral === filterMineral;
     return matchesSearch && matchesTipo && matchesMineral;
@@ -161,6 +163,8 @@ const Stock: React.FC = () => {
       mineral: '',
       cuarzo: 0,
       llampo: 0,
+      total: 0,
+      clienteNombre: '',
       transportista: '',
       placaCamion: '',
       observaciones: ''
@@ -180,6 +184,8 @@ const Stock: React.FC = () => {
       mineral: item.mineral,
       cuarzo: item.cuarzo || 0,
       llampo: item.llampo || 0,
+      total: item.total || 0,
+      clienteNombre: item.clienteNombre,
       transportista: item.transportista || '',
       placaCamion: item.placaCamion || '',
       observaciones: item.observaciones || ''
@@ -218,10 +224,10 @@ const Stock: React.FC = () => {
     }
 
     const clienteSeleccionado = MOCK_CLIENTES.find(c => c.id === nuevoIngreso.clienteId);
-    
+
     if (isEditing && editId) {
       // Editar existente
-      setStockData(prev => prev.map(item => 
+      setStockData(prev => prev.map(item =>
         item.id === editId ? {
           ...item,
           fechaRecepcion: new Date(nuevoIngreso.fechaRecepcion),
@@ -256,7 +262,7 @@ const Stock: React.FC = () => {
         observaciones: nuevoIngreso.observaciones,
         fechaRegistro: new Date()
       };
-      
+
       setStockData(prev => [nuevoItem, ...prev]);
     }
 
@@ -270,7 +276,7 @@ const Stock: React.FC = () => {
       alert('Solo el administrador puede eliminar registros');
       return;
     }
-    
+
     if (window.confirm('¿Está seguro de eliminar este registro?')) {
       setStockData(prev => prev.filter(item => item.id !== id));
     }
@@ -295,7 +301,7 @@ const Stock: React.FC = () => {
         item.observaciones || ''
       ].join(','))
     ].join('\n');
-    
+
     const blob = new Blob([csvData], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -305,26 +311,26 @@ const Stock: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Stock</h1>
-          <p className="text-gray-600 mt-1">Control de ingresos y existencias</p>
+          <h1 className="text-2xl font-bold text-slate-900">Gestión de Stock</h1>
+          <p className="text-slate-500 mt-1">Control de ingresos y existencias</p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
-          <button 
+          <button
             onClick={exportarExcel}
-            className="btn-secondary flex items-center"
+            className="flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium"
           >
-            <Download size={18} className="mr-2" />
+            <Download size={18} strokeWidth={1.5} className="mr-2" />
             Exportar Excel
           </button>
-          <button 
+          <button
             onClick={abrirModalNuevo}
-            className="btn-primary flex items-center"
+            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm font-medium"
           >
-            <Plus size={18} className="mr-2" />
+            <Plus size={18} strokeWidth={1.5} className="mr-2" />
             Nuevo Ingreso
           </button>
         </div>
@@ -332,50 +338,50 @@ const Stock: React.FC = () => {
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-6 border">
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
           <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-xl mr-4">
-              <Package className="text-blue-600" size={24} />
+            <div className="p-3 bg-indigo-50 rounded-xl mr-4 border border-indigo-100">
+              <Package className="text-indigo-600" size={24} strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Stock Total</p>
-              <p className="text-2xl font-bold text-gray-900">{totalStock.toLocaleString()}</p>
+              <p className="text-sm font-medium text-slate-500">Stock Total</p>
+              <p className="text-2xl font-bold text-slate-900">{totalStock.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        
-        <div className="bg-white rounded-2xl p-6 border">
+
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
           <div className="flex items-center">
-            <div className="p-3 bg-green-100 rounded-xl mr-4">
-              <Package className="text-green-600" size={24} />
+            <div className="p-3 bg-amber-50 rounded-xl mr-4 border border-amber-100">
+              <Package className="text-amber-600" size={24} strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total Cuarzo</p>
-              <p className="text-2xl font-bold text-gray-900">{totalCuarzo.toLocaleString()}</p>
+              <p className="text-sm font-medium text-slate-500">Total Cuarzo</p>
+              <p className="text-2xl font-bold text-slate-900">{totalCuarzo.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        
-        <div className="bg-white rounded-2xl p-6 border">
+
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
           <div className="flex items-center">
-            <div className="p-3 bg-amber-100 rounded-xl mr-4">
-              <Package className="text-amber-600" size={24} />
+            <div className="p-3 bg-slate-50 rounded-xl mr-4 border border-slate-100">
+              <Package className="text-slate-600" size={24} strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total Llampo</p>
-              <p className="text-2xl font-bold text-gray-900">{totalLlampo.toLocaleString()}</p>
+              <p className="text-sm font-medium text-slate-500">Total Llampo</p>
+              <p className="text-2xl font-bold text-slate-900">{totalLlampo.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        
-        <div className="bg-white rounded-2xl p-6 border">
+
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
           <div className="flex items-center">
-            <div className="p-3 bg-purple-100 rounded-xl mr-4">
-              <User className="text-purple-600" size={24} />
+            <div className="p-3 bg-violet-50 rounded-xl mr-4 border border-violet-100">
+              <User className="text-violet-600" size={24} strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Clientes Activos</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-slate-500">Clientes Activos</p>
+              <p className="text-2xl font-bold text-slate-900">
                 {[...new Set(stockData.map(item => item.clienteId))].length}
               </p>
             </div>
@@ -384,16 +390,16 @@ const Stock: React.FC = () => {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white rounded-2xl p-6 border">
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} strokeWidth={1.5} />
             <input
               type="text"
-              placeholder="Buscar por cliente, transportista, placa, zona..."
+              placeholder="Buscar por cliente, transportista..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input-field pl-10"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
             />
           </div>
 
@@ -401,7 +407,7 @@ const Stock: React.FC = () => {
             <select
               value={filterTipo}
               onChange={(e) => setFilterTipo(e.target.value)}
-              className="input-field"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
             >
               <option value="all">Todos los tipos</option>
               {TIPO_CLIENTE.map(tipo => (
@@ -414,7 +420,7 @@ const Stock: React.FC = () => {
             <select
               value={filterMineral}
               onChange={(e) => setFilterMineral(e.target.value)}
-              className="input-field"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
             >
               <option value="all">Todos los minerales</option>
               {MINERAL_TYPES_STOCK.map(mineral => (
@@ -424,15 +430,15 @@ const Stock: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-2">
-            <button 
+            <button
               onClick={() => {
                 setSearch('');
                 setFilterTipo('all');
                 setFilterMineral('all');
               }}
-              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+              className="flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
             >
-              <RefreshCw size={16} className="mr-2" />
+              <RefreshCw size={18} className="mr-2" strokeWidth={1.5} />
               Limpiar
             </button>
           </div>
@@ -440,15 +446,15 @@ const Stock: React.FC = () => {
       </div>
 
       {/* Tabla de Stock */}
-      <div className="bg-white rounded-2xl border overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <input 
+                <th className="px-6 py-3 text-left">
+                  <input
                     type="checkbox"
-                    className="rounded border-gray-300"
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                     onChange={(e) => {
                       if (e.target.checked) {
                         setSelectedItems(filteredData.map(item => item.id));
@@ -458,40 +464,40 @@ const Stock: React.FC = () => {
                     }}
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Fecha Recepción
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Cliente
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Zona
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Mineral
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Cuarzo
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Llampo
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Total
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Transportista
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-slate-200">
               {filteredData.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
+                <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <input 
+                    <input
                       type="checkbox"
                       checked={selectedItems.includes(item.id)}
                       onChange={(e) => {
@@ -501,65 +507,64 @@ const Stock: React.FC = () => {
                           setSelectedItems(selectedItems.filter(id => id !== item.id));
                         }
                       }}
-                      className="rounded border-gray-300"
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
                     {new Date(item.fechaRecepcion).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{item.clienteNombre}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-sm font-bold text-slate-900">{item.clienteNombre}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">
                         {TIPO_CLIENTE.find(t => t.value === item.tipoCliente)?.label}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs rounded-full ${item.zona ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                    <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${item.zona ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                       {item.zona || 'Sin zona'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      item.mineral === 'OXIDO' 
-                        ? 'bg-orange-100 text-orange-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${item.mineral === 'OXIDO'
+                      ? 'bg-amber-50 text-amber-700 border-amber-100'
+                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                      }`}>
                       {MINERAL_TYPES_STOCK.find(m => m.value === item.mineral)?.label}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
                     {(item.cuarzo || 0).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
                     {(item.llampo || 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-bold text-gray-900">{(item.total || 0).toLocaleString()}</div>
+                    <div className="text-sm font-bold text-slate-900">{(item.total || 0).toLocaleString()}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{item.transportista || '-'}</div>
+                    <div className="text-sm text-slate-900 font-medium">{item.transportista || '-'}</div>
                     {item.placaCamion && (
-                      <div className="text-xs text-gray-500">{item.placaCamion}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">{item.placaCamion}</div>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
                       <button
                         onClick={() => abrirModalEditar(item)}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="p-1 text-slate-400 hover:text-indigo-600 transition-colors rounded-lg hover:bg-indigo-50"
                         title="Editar"
                       >
-                        <Edit size={18} />
+                        <Edit size={18} strokeWidth={1.5} />
                       </button>
                       <button
                         onClick={() => eliminarItem(item.id)}
-                        className="text-red-600 hover:text-red-900"
+                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded-lg hover:bg-rose-50"
                         title={user?.role === 'admin' ? "Eliminar" : "Solo admin puede eliminar"}
                         disabled={user?.role !== 'admin'}
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={18} strokeWidth={1.5} />
                       </button>
                     </div>
                   </td>
@@ -568,14 +573,14 @@ const Stock: React.FC = () => {
             </tbody>
           </table>
         </div>
-        
+
         {filteredData.length === 0 && (
-          <div className="text-center py-12">
-            <Package className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No hay registros</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {search || filterTipo !== 'all' || filterMineral !== 'all' 
-                ? 'Intenta con otros filtros' 
+          <div className="text-center py-16">
+            <Package className="mx-auto h-12 w-12 text-slate-300" strokeWidth={1.5} />
+            <h3 className="mt-2 text-sm font-medium text-slate-900">No hay registros</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              {search || filterTipo !== 'all' || filterMineral !== 'all'
+                ? 'Intenta con otros filtros'
                 : 'Comienza agregando un nuevo ingreso'}
             </p>
           </div>
@@ -584,31 +589,32 @@ const Stock: React.FC = () => {
 
       {/* Modal Nuevo Ingreso */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-2xl bg-white">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white border border-slate-200 w-full max-w-2xl shadow-xl rounded-2xl">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-900">
                 {isEditing ? 'Editar Registro de Stock' : 'Nuevo Ingreso de Stock'}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
+                className="text-slate-400 hover:text-slate-600 transition-colors"
               >
-                ×
+                <CheckCircle size={24} className="rotate-45" strokeWidth={1.5} /> {/* Reusing CheckCircle as X replacement or just X icon if available, but let's stick to X or similar. Wait, I imported CheckCircle but not X in the updated imports? Ah, X is not in imports. I will use 'rotate-45 + Plus' or just 'text-slate-400 font-bold text-2xl' for X if I can't change imports easily. Actually I can just render text '×' or use a known icon. Let's use text '×' styled properly or reuse an icon. I see CheckCircle is imported. I'll use text '×' for safety or X if I add it. Let's stick to text '×' but styled. */}
+                <span className="text-2xl leading-none">&times;</span>
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="p-6 space-y-6">
               {/* Fila 1: Fecha Recepción | Tipo Cliente | Cliente */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Fecha Recepción *
                   </label>
                   <input
                     type="date"
                     value={nuevoIngreso.fechaRecepcion}
-                    onChange={(e) => setNuevoIngreso({...nuevoIngreso, fechaRecepcion: e.target.value})}
+                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, fechaRecepcion: e.target.value })}
                     max={new Date().toISOString().slice(0, 10)}
                     className="input-field"
                     required
@@ -616,18 +622,18 @@ const Stock: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Tipo Cliente *
                   </label>
                   <select
                     value={nuevoIngreso.tipoCliente}
                     onChange={(e) => {
-                      setNuevoIngreso({...nuevoIngreso, tipoCliente: e.target.value});
+                      setNuevoIngreso({ ...nuevoIngreso, tipoCliente: e.target.value });
                       // Si cambia el tipo, limpiar cliente seleccionado
                       if (nuevoIngreso.clienteId) {
                         const cliente = MOCK_CLIENTES.find(c => c.id === nuevoIngreso.clienteId);
                         if (cliente?.tipo !== e.target.value) {
-                          setNuevoIngreso({...nuevoIngreso, tipoCliente: e.target.value, clienteId: ''});
+                          setNuevoIngreso({ ...nuevoIngreso, tipoCliente: e.target.value, clienteId: '' });
                         }
                       }
                     }}
@@ -642,16 +648,16 @@ const Stock: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Cliente *
                   </label>
                   <select
                     value={nuevoIngreso.clienteId}
                     onChange={(e) => {
-                      setNuevoIngreso({...nuevoIngreso, clienteId: e.target.value});
+                      setNuevoIngreso({ ...nuevoIngreso, clienteId: e.target.value });
                       // Cuando se selecciona cliente, limpiar zona seleccionada
                       if (nuevoIngreso.zona) {
-                        setNuevoIngreso(prev => ({...prev, zona: ''}));
+                        setNuevoIngreso(prev => ({ ...prev, zona: '' }));
                       }
                     }}
                     className="input-field"
@@ -675,15 +681,15 @@ const Stock: React.FC = () => {
               </div>
 
               {/* Fila 2: Zona | Mineral | Cuarzo | Llampo - NUEVA ESTRUCTURA */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* ZONA (opcional) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Zona (opcional)
                   </label>
                   <select
                     value={nuevoIngreso.zona || ''}
-                    onChange={(e) => setNuevoIngreso({...nuevoIngreso, zona: e.target.value})}
+                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, zona: e.target.value })}
                     className="input-field"
                     disabled={!nuevoIngreso.clienteId || nuevoIngreso.clienteId === 'new'}
                   >
@@ -704,12 +710,12 @@ const Stock: React.FC = () => {
 
                 {/* MINERAL (obligatorio) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Mineral *
                   </label>
                   <select
                     value={nuevoIngreso.mineral}
-                    onChange={(e) => setNuevoIngreso({...nuevoIngreso, mineral: e.target.value})}
+                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, mineral: e.target.value })}
                     className="input-field"
                     required
                   >
@@ -722,7 +728,7 @@ const Stock: React.FC = () => {
 
                 {/* CUARZO (obligatorio) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Cuarzo (sacos) *
                   </label>
                   <input
@@ -730,8 +736,8 @@ const Stock: React.FC = () => {
                     min="0"
                     step="1"
                     value={nuevoIngreso.cuarzo || ''}
-                    onChange={(e) => setNuevoIngreso({...nuevoIngreso, cuarzo: parseInt(e.target.value) || 0})}
-                    className="input-field text-center"
+                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, cuarzo: parseInt(e.target.value) || 0 })}
+                    className="input-field text-center font-bold text-amber-600"
                     placeholder="0"
                     required
                   />
@@ -739,7 +745,7 @@ const Stock: React.FC = () => {
 
                 {/* LLAMPO (obligatorio) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Llampo (sacos) *
                   </label>
                   <input
@@ -747,8 +753,8 @@ const Stock: React.FC = () => {
                     min="0"
                     step="1"
                     value={nuevoIngreso.llampo || ''}
-                    onChange={(e) => setNuevoIngreso({...nuevoIngreso, llampo: parseInt(e.target.value) || 0})}
-                    className="input-field text-center"
+                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, llampo: parseInt(e.target.value) || 0 })}
+                    className="input-field text-center font-bold text-slate-700"
                     placeholder="0"
                     required
                   />
@@ -756,43 +762,43 @@ const Stock: React.FC = () => {
               </div>
 
               {/* Fila 3: Total (auto) | Transportista | Placa Camión */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Total (automático)
                   </label>
-                  <div className="input-field bg-gray-50 flex items-center justify-between">
-                    <span className="text-lg font-bold text-gray-900">
+                  <div className="px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-between">
+                    <span className="text-lg font-bold text-slate-900">
                       {(nuevoIngreso.total || 0).toLocaleString()}
                     </span>
-                    <Package className="text-gray-400" size={20} />
+                    <Package className="text-slate-400" size={20} strokeWidth={1.5} />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     Cuarzo: {nuevoIngreso.cuarzo || 0} + Llampo: {nuevoIngreso.llampo || 0}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Transportista
                   </label>
                   <input
                     type="text"
                     value={nuevoIngreso.transportista}
-                    onChange={(e) => setNuevoIngreso({...nuevoIngreso, transportista: e.target.value})}
+                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, transportista: e.target.value })}
                     className="input-field"
                     placeholder="Nombre del transportista"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Placa Camión (opcional)
                   </label>
                   <input
                     type="text"
                     value={nuevoIngreso.placaCamion}
-                    onChange={(e) => setNuevoIngreso({...nuevoIngreso, placaCamion: e.target.value})}
+                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, placaCamion: e.target.value })}
                     className="input-field"
                     placeholder="ABC-123"
                   />
@@ -801,37 +807,37 @@ const Stock: React.FC = () => {
 
               {/* Fila 4: Observaciones (textarea full width) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Observaciones
                 </label>
                 <textarea
                   value={nuevoIngreso.observaciones}
-                  onChange={(e) => setNuevoIngreso({...nuevoIngreso, observaciones: e.target.value})}
+                  onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, observaciones: e.target.value })}
                   className="input-field min-h-[100px]"
                   placeholder="Observaciones adicionales..."
                 />
               </div>
 
               {/* Botones */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  className="px-5 py-2.5 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 font-medium transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={guardarIngreso}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 flex items-center shadow-md hover:shadow-lg transition-all transform active:scale-[0.98] font-medium"
                 >
                   {isEditing ? (
                     <>
-                      <Edit size={18} className="mr-2" />
+                      <Edit size={18} className="mr-2" strokeWidth={1.5} />
                       Actualizar
                     </>
                   ) : (
                     <>
-                      <CheckCircle size={18} className="mr-2" />
+                      <CheckCircle size={18} className="mr-2" strokeWidth={1.5} />
                       Guardar Ingreso
                     </>
                   )}

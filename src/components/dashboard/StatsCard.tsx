@@ -1,13 +1,14 @@
 import React from 'react';
-import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 
-interface StatsCardProps {
+export interface StatsCardProps {
   title: string;
   value: string;
-  change?: string;
+  change: string;
   icon: LucideIcon;
-  color: 'blue' | 'green' | 'orange' | 'red' | 'purple';
+  color: 'blue' | 'green' | 'orange' | 'purple' | 'red' | 'amber';
   description: string;
+  trend?: 'up' | 'down';
 }
 
 const StatsCard: React.FC<StatsCardProps> = ({
@@ -17,41 +18,92 @@ const StatsCard: React.FC<StatsCardProps> = ({
   icon: Icon,
   color,
   description,
+  trend = 'up'
 }) => {
   const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600 border-blue-100',
-    green: 'bg-green-50 text-green-600 border-green-100',
-    orange: 'bg-orange-50 text-orange-600 border-orange-100',
-    red: 'bg-red-50 text-red-600 border-red-100',
-    purple: 'bg-purple-50 text-purple-600 border-purple-100',
+    blue: {
+      bg: 'bg-blue-50',
+      border: 'border-blue-100',
+      text: 'text-blue-700',
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600'
+    },
+    green: {
+      bg: 'bg-green-50',
+      border: 'border-green-100',
+      text: 'text-green-700',
+      iconBg: 'bg-green-100',
+      iconColor: 'text-green-600'
+    },
+    orange: {
+      bg: 'bg-orange-50',
+      border: 'border-orange-100',
+      text: 'text-orange-700',
+      iconBg: 'bg-orange-100',
+      iconColor: 'text-orange-600'
+    },
+    purple: {
+      bg: 'bg-purple-50',
+      border: 'border-purple-100',
+      text: 'text-purple-700',
+      iconBg: 'bg-purple-100',
+      iconColor: 'text-purple-600'
+    },
+    red: {
+      bg: 'bg-red-50',
+      border: 'border-red-100',
+      text: 'text-red-700',
+      iconBg: 'bg-red-100',
+      iconColor: 'text-red-600'
+    },
+    amber: {
+      bg: 'bg-amber-50',
+      border: 'border-amber-100',
+      text: 'text-amber-700',
+      iconBg: 'bg-amber-100',
+      iconColor: 'text-amber-600'
+    }
   };
 
-  const changeColor = change?.startsWith('+') ? 'text-green-600' : 'text-red-600';
-  const ChangeIcon = change?.startsWith('+') ? TrendingUp : TrendingDown;
+  const colors = colorClasses[color] || colorClasses.blue;
 
   return (
-    <div className="card-hover bg-white rounded-2xl p-5 border">
-      <div className="flex items-start justify-between">
+    <div className={`card-hover border rounded-xl p-5 transition-all duration-200 hover:shadow-sm bg-white border-slate-200`}>
+      <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-600">{title}</p>
-          <div className="flex items-baseline mt-2">
-            <span className="text-3xl font-bold text-gray-900">{value}</span>
-            {change && (
-              <span className={`ml-2 text-sm font-medium flex items-center ${changeColor}`}>
-                <ChangeIcon size={16} className="mr-1" />
-                {change}
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-gray-500 mt-2">{description}</p>
+          <p className="text-sm font-medium text-slate-500">{title}</p>
+          <p className="text-2xl md:text-3xl font-bold mt-2 text-slate-900">{value}</p>
         </div>
-        
-        <div className={`p-3 rounded-xl ${colorClasses[color]}`}>
-          <Icon size={24} />
+        <div className={`p-3 rounded-lg ${colors.iconBg}`}>
+          <Icon size={20} strokeWidth={1.5} className={colors.iconColor} />
         </div>
+      </div>
+
+      <div className="flex items-center mt-4 text-sm">
+        {trend === 'up' ? (
+          <>
+            <span className="text-emerald-600 font-semibold flex items-center">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              {change}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="text-red-600 font-semibold flex items-center">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+              </svg>
+              {change}
+            </span>
+          </>
+        )}
+        <span className="text-slate-500 ml-2">{description}</span>
       </div>
     </div>
   );
 };
 
+// ✅ EXPORT DEFAULT (esto es lo que necesita tu Dashboard.tsx)
 export default StatsCard;

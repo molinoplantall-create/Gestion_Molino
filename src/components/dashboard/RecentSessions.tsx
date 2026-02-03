@@ -56,31 +56,31 @@ const RecentSessions: React.FC = () => {
       {sessions.map((session) => (
         <div
           key={session.id}
-          className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors"
+          className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100"
         >
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-4">
-              <span className="font-semibold text-gray-700">{session.molino.split(' ')[1]}</span>
+            <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center mr-4 text-slate-600">
+              <span className="font-semibold">{session.molino.split(' ')[1]}</span>
             </div>
             <div>
               <div className="flex items-center">
-                <h4 className="font-medium text-gray-900">{session.cliente}</h4>
-                <span className={`ml-3 px-2 py-1 text-xs rounded-full ${getStatusColor(session.estado)}`}>
-                  {getStatusIcon(session.estado)}
-                  <span className="ml-1">{session.estado.replace('_', ' ')}</span>
+                <h4 className="font-medium text-slate-900">{session.cliente}</h4>
+                <span className={`ml-3 px-2 py-0.5 text-xs rounded-full flex items-center ${getStatusColor(session.estado)}`}>
+                  {React.cloneElement(getStatusIcon(session.estado) as React.ReactElement, { size: 14, strokeWidth: 1.5 })}
+                  <span className="ml-1.5">{session.estado.replace('_', ' ')}</span>
                 </span>
               </div>
-              <div className="flex items-center text-sm text-gray-500 mt-1">
-                <span className="mr-4">{session.sacos} sacos</span>
+              <div className="flex items-center text-sm text-slate-500 mt-1">
+                <span className="mr-4 text-slate-600 font-medium">{session.sacos} sacos</span>
                 <span className="mr-4">{session.mineral}</span>
                 <span>{session.hora}</span>
               </div>
             </div>
           </div>
-          
+
           <div className="text-right">
-            <div className="font-medium text-gray-900">{session.tiempo}</div>
-            <div className="text-sm text-gray-500">duración</div>
+            <div className="font-medium text-slate-900">{session.tiempo}</div>
+            <div className="text-xs text-slate-400">duración</div>
           </div>
         </div>
       ))}

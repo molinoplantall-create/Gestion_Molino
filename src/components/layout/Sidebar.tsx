@@ -1,258 +1,151 @@
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  Factory, 
-  Package, 
-  FileText, 
-  Wrench,
-  Users,
-  UserCircle,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  PlusCircle,
-  Menu,
-  X
+import {
+  Home, Factory, Package, FileText, Wrench,
+  Users, UserCircle, LogOut, ChevronLeft,
+  ChevronRight, PlusCircle, Menu, X
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useState, useEffect } from 'react';
+import { useAppStore } from '../../store/appStore';
 
 const Sidebar = () => {
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  const [collapsed, setCollapsed] = useState(false);
+  const { sidebarOpen, setSidebarOpen } = useAppStore();
   const [isMobile, setIsMobile] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Detectar si estamos en móvil
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      
-      // En móvil: siempre oculto por defecto
-      if (mobile) {
-        setCollapsed(true);
-        setMobileMenuOpen(false);
-      } else {
-        // En desktop: restaurar el estado guardado o usar por defecto abierto
-        const savedState = localStorage.getItem('sidebar-collapsed');
-        if (savedState) {
-          setCollapsed(savedState === 'true');
-        } else {
-          setCollapsed(false); // Por defecto abierto en desktop
-        }
-        setMobileMenuOpen(false);
-      }
+      setIsMobile(window.innerWidth < 768);
     };
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Guardar el estado del sidebar cuando cambia (solo en desktop)
-  useEffect(() => {
-    if (!isMobile) {
-      localStorage.setItem('sidebar-collapsed', collapsed.toString());
-    }
-  }, [collapsed, isMobile]);
-
   const menuItems = [
-    { path: '/dashboard', icon: <Home size={24} />, label: 'Dashboard' },
-    { path: '/moliendas', icon: <Factory size={24} />, label: 'Moliendas' },
-    { path: '/registro-molienda', icon: <PlusCircle size={24} />, label: 'Nueva Molienda' },
-    { path: '/stock', icon: <Package size={24} />, label: 'Stock' },
-    { path: '/clientes', icon: <UserCircle size={24} />, label: 'Clientes' },
-    { path: '/reportes', icon: <FileText size={24} />, label: 'Reportes' },
-    { path: '/mantenimiento', icon: <Wrench size={24} />, label: 'Mantenimiento' },
+    { path: '/dashboard', icon: <Home size={20} strokeWidth={1.5} />, label: 'Dashboard' },
+    { path: '/moliendas', icon: <Factory size={20} strokeWidth={1.5} />, label: 'Moliendas' },
+    { path: '/registro-molienda', icon: <PlusCircle size={20} strokeWidth={1.5} />, label: 'Nueva Molienda' },
+    { path: '/stock', icon: <Package size={20} strokeWidth={1.5} />, label: 'Stock' },
+    { path: '/clientes', icon: <UserCircle size={20} strokeWidth={1.5} />, label: 'Clientes' },
+    { path: '/reportes', icon: <FileText size={20} strokeWidth={1.5} />, label: 'Reportes' },
+    { path: '/mantenimiento', icon: <Wrench size={20} strokeWidth={1.5} />, label: 'Mantenimiento' },
   ];
 
-  // Solo admin ve usuarios
   if (user?.role === 'admin') {
-    menuItems.push(
-      { path: '/usuarios', icon: <Users size={24} />, label: 'Usuarios' }
-    );
+    menuItems.push({ path: '/usuarios', icon: <Users size={20} strokeWidth={1.5} />, label: 'Usuarios' });
   }
 
-  // Manejar toggle en desktop
-  const handleDesktopToggle = () => {
-    setCollapsed(!collapsed);
-  };
-
-  // Manejar toggle en móvil
-  const handleMobileToggle = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
-
-  // Cerrar menú móvil al hacer clic en un enlace
-  const handleLinkClick = () => {
-    if (isMobile) {
-      setMobileMenuOpen(false);
-    }
-  };
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   return (
     <>
-      {/* Botón de menú hamburguesa para móvil - SIEMPRE VISIBLE EN MÓVIL */}
+      {/* Botón hamburguesa para móvil */}
       {isMobile && (
         <button
-          onClick={handleMobileToggle}
-          className="fixed top-4 left-4 z-50 p-3 bg-gray-900 text-white rounded-lg shadow-lg md:hidden"
-          title={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+          onClick={toggleSidebar}
+          className="fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg md:hidden"
+          aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
         >
-          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          {sidebarOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
         </button>
       )}
 
-      {/* Overlay para móvil cuando el menú está abierto */}
-      {isMobile && mobileMenuOpen && (
+      {/* Overlay para móvil */}
+      {isMobile && sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <div
+      {/* Sidebar principal */}
+      <aside
         className={`
-          fixed md:relative
-          top-0 left-0 h-full
-          bg-gray-900 text-white flex flex-col
-          transition-all duration-300 ease-in-out z-40
+          fixed md:sticky top-0 left-0 h-screen z-40
+          bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800
+          transition-all duration-300 ease-in-out
           ${isMobile
-            ? mobileMenuOpen 
-              ? 'w-64 translate-x-0' 
-              : '-translate-x-full w-64'
-            : collapsed 
-              ? 'w-16' 
-              : 'w-64'
+            ? sidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full'
+            : sidebarOpen ? 'w-64' : 'w-20'
           }
         `}
       >
         {/* Header del Sidebar */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          {/* Logo - visible según estado */}
-          {(!collapsed || isMobile) ? (
-            <div className="flex items-center space-x-2">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-2 rounded-lg">
-                <Factory size={24} />
-              </div>
-              {(!collapsed || (isMobile && mobileMenuOpen)) && (
-                <h1 className="text-lg font-bold">Gestión Molino</h1>
-              )}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
+          <div className={`flex items-center ${!sidebarOpen && 'justify-center w-full'}`}>
+            <div className="bg-indigo-600/20 p-2 rounded-lg text-indigo-400">
+              <Factory size={22} strokeWidth={1.5} />
             </div>
-          ) : (
-            <div className="mx-auto bg-gradient-to-r from-blue-600 to-blue-700 p-2 rounded-lg">
-              <Factory size={24} />
-            </div>
-          )}
-          
-          {/* Botón para contraer/expandir - SOLO EN DESKTOP */}
-          {!isMobile && (
-            <button
-              onClick={handleDesktopToggle}
-              className="p-1 hover:bg-gray-800 rounded-lg transition-colors"
-              title={collapsed ? "Expandir menú" : "Contraer menú"}
-            >
-              {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-            </button>
-          )}
-          
-          {/* Botón para cerrar - SOLO EN MÓVIL CUANDO EL MENÚ ESTÁ ABIERTO */}
-          {isMobile && mobileMenuOpen && (
-            <button
-              onClick={handleMobileToggle}
-              className="p-1 hover:bg-gray-800 rounded-lg transition-colors md:hidden"
-              title="Cerrar menú"
-            >
-              <X size={20} />
-            </button>
-          )}
+            {sidebarOpen && (
+              <h1 className="text-white font-bold ml-3 text-base whitespace-nowrap tracking-wide">
+                Gestión Molino
+              </h1>
+            )}
+          </div>
         </div>
-        
+
+        {/* Toggle Button Desktop - Floating */}
+        {!isMobile && (
+          <button
+            onClick={toggleSidebar}
+            className="absolute -right-3 top-20 bg-slate-800 text-slate-400 border border-slate-700 p-1 rounded-full hover:bg-slate-700 hover:text-white transition-colors shadow-sm z-50"
+          >
+            {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+          </button>
+        )}
+
         {/* Menú de navegación */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
-            const showLabels = !collapsed || isMobile;
-            
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                onClick={handleLinkClick}
+                onClick={() => isMobile && setSidebarOpen(false)}
                 className={`
-                  flex items-center 
-                  ${showLabels ? 'space-x-3' : 'justify-center'} 
-                  p-3 rounded-lg transition-colors min-h-[44px]
-                  ${isActive 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  flex items-center ${sidebarOpen ? 'px-3' : 'justify-center px-2'} 
+                  py-2.5 rounded-lg transition-all duration-200 group
+                  ${isActive
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/20'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }
                 `}
-                title={!showLabels ? item.label : ''}
+                title={!sidebarOpen ? item.label : ''}
               >
-                <div className="flex-shrink-0">
+                <div className={`flex-shrink-0 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>
                   {item.icon}
                 </div>
-                {showLabels && (
-                  <span className="font-medium">{item.label}</span>
+                {sidebarOpen && (
+                  <span className={`ml-3 text-sm font-medium whitespace-nowrap ${isActive ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                    {item.label}
+                  </span>
                 )}
               </Link>
             );
           })}
         </nav>
-        
-        {/* Footer con usuario y logout */}
-        <div className="border-t border-gray-800 p-4">
-          {/* Info del usuario - solo visible cuando el sidebar está expandido */}
-          {((!collapsed && !isMobile) || (isMobile && mobileMenuOpen)) && user && (
-            <div className="mb-3 p-2 bg-gray-800 rounded-lg">
-              <p className="text-sm font-medium truncate">{user.email}</p>
-              <p className="text-xs text-gray-400 capitalize">{user.role}</p>
-            </div>
-          )}
-          
-          {/* Botón de logout */}
+
+        {/* Footer */}
+        <div className="p-4 border-t border-slate-800">
           <button
-            onClick={() => {
-              handleLinkClick();
-              logout();
-            }}
+            onClick={logout}
             className={`
-              flex items-center 
-              ${(!collapsed || isMobile) ? 'space-x-3' : 'justify-center'} 
-              w-full p-3 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white 
-              transition-colors min-h-[44px]
+              flex items-center ${sidebarOpen ? 'px-3' : 'justify-center px-2'} 
+              w-full py-2.5 rounded-lg text-slate-400 
+              hover:bg-red-500/10 hover:text-red-400 transition-colors
+              group
             `}
-            title={(!collapsed || isMobile) ? "" : "Cerrar sesión"}
+            title={!sidebarOpen ? "Cerrar sesión" : ""}
           >
-            <LogOut size={20} className="flex-shrink-0" />
-            {(!collapsed || (isMobile && mobileMenuOpen)) && (
-              <span className="font-medium">Cerrar Sesión</span>
-            )}
+            <LogOut size={20} strokeWidth={1.5} className="group-hover:text-red-400" />
+            {sidebarOpen && <span className="ml-3 text-sm font-medium">Cerrar Sesión</span>}
           </button>
         </div>
-      </div>
-
-      {/* Tooltips para iconos cuando el sidebar está colapsado en desktop */}
-      {!isMobile && collapsed && (
-        <div className="hidden md:block">
-          {menuItems.map((item) => (
-            <div
-              key={item.path}
-              className="fixed left-16 ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none"
-              style={{ top: 'auto' }}
-            >
-              {item.label}
-            </div>
-          ))}
-        </div>
-      )}
+      </aside>
     </>
   );
 };

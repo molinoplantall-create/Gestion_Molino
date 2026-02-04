@@ -4,6 +4,7 @@ import { UserRole, User } from '@/types';
 import { USER_ROLES } from '@/constants';
 import { useUserStore } from '@/store/userStore';
 import { supabase } from '@/lib/supabase';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 const Usuarios: React.FC = () => {
   const { users, loading, fetchUsers, updateUserRole, toggleUserStatus, updateUserNombre } = useUserStore();
@@ -12,6 +13,8 @@ const Usuarios: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successInfo, setSuccessInfo] = useState({ title: '', message: '' });
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [showPassword, setShowPassword] = useState(false);
@@ -128,12 +131,9 @@ const Usuarios: React.FC = () => {
           await updateUserRole(data.user.id, formData.rol);
         }
 
-        // Si el admin puso nombre, lo actualizamos (en caso de que el trigger no lo tome de metadata)
         if (data.user && formData.nombre) {
           await updateUserNombre(data.user.id, formData.nombre);
         }
-
-        alert('Usuario creado con éxito. Se ha enviado un correo de confirmación (si está habilitado).');
       } else if (selectedUser) {
         // Actualizar datos existentes
         if (formData.nombre !== selectedUser.nombre) {
@@ -146,10 +146,25 @@ const Usuarios: React.FC = () => {
           await toggleUserStatus(selectedUser.id, formData.isActive);
         }
       }
+
+      // Actualizar la lista localmente
+      await fetchUsers();
+
+      setSuccessInfo({
+        title: modalMode === 'create' ? 'Usuario Creado' : 'Cambios Guardados',
+        message: modalMode === 'create'
+          ? 'El usuario se ha registrado correctamente en el sistema.'
+          : 'Los datos del usuario han sido actualizados con éxito.'
+      });
+      setShowSuccessModal(true);
       setShowModal(false);
       resetForm();
     } catch (error: any) {
-      alert('Error: ' + error.message);
+      setSuccessInfo({
+        title: 'Error',
+        message: error.message
+      });
+      setShowSuccessModal(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -164,10 +179,13 @@ const Usuarios: React.FC = () => {
     if (selectedUser) {
       // In Supabase, we can't delete auth users from client side normally.
       // We will just mark them as inactive.
-      await toggleUserStatus(selectedUser.id, false);
+      setSuccessInfo({
+        title: 'Usuario Desactivado',
+        message: `El acceso de ${selectedUser.nombre || selectedUser.email} ha sido revocado satisfactoriamente.`
+      });
+      setShowSuccessModal(true);
       setShowDeleteModal(false);
       setSelectedUser(null);
-      alert('Usuario desactivado. (Para eliminación total se requiere Service Role)');
     }
   };
 

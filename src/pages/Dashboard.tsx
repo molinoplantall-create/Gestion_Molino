@@ -18,7 +18,7 @@ const Dashboard: React.FC = () => {
     mills,
     clients,
     millingLogs,
-    loading: millsLoading,
+    millsLoading,
     fetchMills,
     fetchClients,
     fetchMillingLogs

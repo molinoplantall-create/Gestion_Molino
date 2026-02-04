@@ -8,6 +8,9 @@ interface SupabaseStore {
   millingLogs: MillingLog[];
   maintenanceLogs: any[];
   loading: boolean;
+  millsLoading: boolean;
+  clientsLoading: boolean;
+  logsLoading: boolean;
   error: string | null;
 
   // Actions
@@ -42,10 +45,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   millingLogs: [],
   maintenanceLogs: [],
   loading: false,
+  millsLoading: false,
+  clientsLoading: false,
+  logsLoading: false,
   error: null,
 
   fetchMills: async () => {
-    set({ loading: true, error: null });
+    set({ millsLoading: true, error: null });
     try {
       const { data, error } = await supabase
         .from('mills')
@@ -58,11 +64,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       console.error('❌ Error fetchMills:', error);
       set({ error: error.message });
     } finally {
-      set({ loading: false });
+      set({ millsLoading: false });
     }
   },
 
   fetchClients: async () => {
+    set({ clientsLoading: true, error: null });
     try {
       const { data, error } = await supabase
         .from('clients')
@@ -74,10 +81,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       set({ clients: data as Client[] });
     } catch (error: any) {
       console.error('❌ Error fetchClients:', error);
+      set({ error: error.message });
+    } finally {
+      set({ clientsLoading: false });
     }
   },
 
   fetchMillingLogs: async (limit = 20) => {
+    set({ logsLoading: true, error: null });
     try {
       const { data, error } = await supabase
         .from('milling_logs')
@@ -94,10 +105,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       set({ millingLogs: data || [] });
     } catch (error: any) {
       console.error('❌ Error fetchMillingLogs:', error);
+      set({ error: error.message });
+    } finally {
+      set({ logsLoading: false });
     }
   },
 
   fetchMaintenanceLogs: async () => {
+    set({ loading: true, error: null });
     try {
       const { data, error } = await supabase
         .from('maintenance_logs')
@@ -113,6 +128,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       set({ maintenanceLogs: data || [] });
     } catch (error: any) {
       console.error('❌ Error fetchMaintenanceLogs:', error);
+      set({ error: error.message });
+    } finally {
+      set({ loading: false });
     }
   },
 

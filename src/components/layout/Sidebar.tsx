@@ -34,7 +34,7 @@ const Sidebar = () => {
     { path: '/mantenimiento', icon: <Wrench size={20} strokeWidth={1.5} />, label: 'Mantenimiento' },
   ];
 
-  if (user?.role === 'admin') {
+  if (user?.role === 'ADMIN') {
     menuItems.push({ path: '/usuarios', icon: <Users size={20} strokeWidth={1.5} />, label: 'Usuarios' });
   }
 

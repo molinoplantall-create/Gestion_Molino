@@ -22,23 +22,27 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-        if (profile) {
-          set({
-            user: {
-              id: session.user.id,
-              email: session.user.email!,
-              role: profile.role as UserRole,
-              nombre: profile.nombre,
-              is_active: profile.is_active,
-              created_at: profile.created_at
-            }
-          });
+          if (profile && !profileError) {
+            set({
+              user: {
+                id: session.user.id,
+                email: session.user.email!,
+                role: profile.role as UserRole,
+                nombre: profile.nombre,
+                is_active: profile.is_active,
+                created_at: profile.created_at
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Error fetching initial profile:', err);
         }
       }
 

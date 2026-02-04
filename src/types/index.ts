@@ -31,14 +31,18 @@ export interface Mill {
 
 export interface Client {
   id: string;
-  name: string; // Changed from nombre
-  type: 'MINERO' | 'PALLAQUERO'; // New DB column
+  name: string;
+  contact_name?: string;
+  client_type?: string;
   email?: string;
   phone?: string;
-  company?: string;
-  stock_cuarzo: number; // New DB column
-  stock_llampo: number; // New DB column
+  ruc_dni?: string;
+  address?: string;
+  zone?: string;
+  stock_cuarzo: number;
+  stock_llampo: number;
   is_active: boolean;
+  observations?: string;
   created_at?: string;
 }
 
@@ -46,48 +50,31 @@ export interface MillingLog {
   id: string;
   client_id: string;
   mineral_type: 'OXIDO' | 'SULFURO';
-  start_date: string;
-  end_date?: string;
   total_sacks: number;
-  total_cuarzo: number; // New DB column
-  total_llampo: number; // New DB column
-  mills_used: any; // JSONB
-  status: 'COMPLETED' | 'IN_PROGRESS';
+  total_cuarzo: number;
+  total_llampo: number;
+  mills_used: any; // array of {mill_id, cuarzo, llampo}
+  status: 'IN_PROGRESS' | 'FINALIZADO';
   observations?: string;
   created_at: string;
-}
-
-// Deprecated interfaces kept for compatibility during migration if needed, but prefer above
-export interface MillingSession {
-  id: string;
-  molinoId: string;
-  clienteId: string;
-  clienteNombre: string;
-  cantidadSacos: number;
-  mineral: MineralType;
-  subMineral: SubMineralType;
-  horaInicio: Date;
-  horaFinCalculada: Date;
-  duracionMinutos: number;
-  estado: MillingStatus;
-  operadorId: string;
-  operadorNombre: string;
-  createdAt: Date;
+  clients?: {
+    name: string;
+  };
 }
 
 export interface MaintenanceLog {
   id: string;
-  molinoId: string;
-  molinoNombre: string;
-  tipo: MaintenanceType;
-  descripcionFalla: string;
-  accionTomada: string;
-  horasTrabajadas: number;
-  requiereNotificacion: boolean;
-  asignadoA: string;
-  fechaRegistro: Date;
-  fechaResolucion?: Date;
-  createdAt: Date;
+  mill_id: string;
+  type: 'PREVENTIVO' | 'CORRECTIVO';
+  description: string;
+  action_taken?: string;
+  worked_hours?: number;
+  technician_name?: string;
+  status: string;
+  created_at: string;
+  mills?: {
+    name: string;
+  };
 }
 
 export interface Notification {

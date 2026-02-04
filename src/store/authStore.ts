@@ -19,35 +19,37 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   initialize: async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) throw sessionError;
 
       if (session?.user) {
-        try {
-          const { data: profile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+        // Fetch profile with a slight delay or just ensure it doesn't block forever
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-          if (profile && !profileError) {
-            set({
-              user: {
-                id: session.user.id,
-                email: session.user.email!,
-                role: profile.role as UserRole,
-                nombre: profile.nombre,
-                is_active: profile.is_active,
-                created_at: profile.created_at
-              }
-            });
-          }
-        } catch (err) {
-          console.error('Error fetching initial profile:', err);
+        if (profile && !profileError) {
+          set({
+            user: {
+              id: session.user.id,
+              email: session.user.email!,
+              role: profile.role as UserRole,
+              nombre: profile.nombre,
+              is_active: profile.is_active,
+              created_at: profile.created_at
+            }
+          });
+        } else if (profileError) {
+          console.warn('⚠️ No se pudo cargar el perfil del usuario:', profileError.message);
         }
       }
 
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+      // Escuchar cambios de estado
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
           const { data: profile } = await supabase
             .from('user_profiles')
             .select('*')
@@ -71,8 +73,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         }
       });
 
+      // Guardar la suscripción si fuera necesario para cleanup, pero por ahora basta
     } catch (error) {
-      console.error('Error initializing auth:', error);
+      console.error('❌ Error initializing auth:', error);
     } finally {
       set({ initialized: true, loading: false });
     }

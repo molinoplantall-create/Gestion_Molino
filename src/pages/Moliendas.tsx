@@ -1,35 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Download, MessageSquare, Eye, Edit, Trash2, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import { MillingSession } from '@/types';
+import { MillingLog } from '@/types';
+import { useSupabaseStore } from '@/store/supabaseStore';
 
 const Moliendas: React.FC = () => {
+  const { millingLogs, fetchMillingLogs } = useSupabaseStore();
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Datos de ejemplo
-  const mockSessions: MillingSession[] = Array.from({ length: 48 }, (_, i) => ({
-    id: `#${(1000 + i).toString().padStart(3, '0')}`,
-    molinoId: `${(i % 4) + 1}`,
-    clienteId: `${i + 1}`,
-    clienteNombre: `Cliente ${String.fromCharCode(65 + (i % 5))}`,
-    cantidadSacos: 15 + Math.floor(Math.random() * 20),
-    mineral: i % 2 === 0 ? 'OXIDO' : 'SULFURO',
-    subMineral: i % 2 === 0 ? 'CUARZO' : 'LLAMPO',
-    horaInicio: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-    horaFinCalculada: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000),
-    duracionMinutos: i % 2 === 0 ? 100 : 120 + Math.floor(Math.random() * 30),
-    estado: i % 3 === 0 ? 'EN_PROCESO' : 'FINALIZADO',
-    operadorId: '1',
-    operadorNombre: 'Operador ' + (i % 3 + 1),
-    createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-  }));
+  useEffect(() => {
+    fetchMillingLogs(100); // Fetch initial 100 logs
+  }, [fetchMillingLogs]);
 
-  const filteredSessions = mockSessions.filter(session => {
-    const matchesSearch = session.clienteNombre.toLowerCase().includes(search.toLowerCase()) ||
+  const filteredSessions = (millingLogs || []).filter(session => {
+    const clientName = (session as any).clients?.name || '';
+    const matchesSearch = clientName.toLowerCase().includes(search.toLowerCase()) ||
       session.id.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || session.estado === selectedStatus;
+    const matchesStatus = selectedStatus === 'all' || session.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -161,57 +150,67 @@ const Moliendas: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedSessions.map((session) => (
-                <tr key={session.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="font-mono text-sm font-medium text-slate-600">{session.id}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3 border border-slate-200">
-                        <span className="font-semibold text-xs text-slate-600">M{session.molinoId}</span>
+              {paginatedSessions.map((session) => {
+                const clientName = (session as any).clients?.name || 'Cargando...';
+                const startTime = new Date(session.created_at);
+                const millInfo = Array.isArray(session.mills_used)
+                  ? session.mills_used.map((m: any) => m.mill_id).join(', ')
+                  : 'N/A';
+
+                return (
+                  <tr key={session.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="font-mono text-sm font-medium text-slate-600">#{session.id.substring(0, 6)}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3 border border-slate-200">
+                          <span className="font-semibold text-xs text-slate-600">IDX</span>
+                        </div>
+                        <span className="text-sm font-medium text-slate-700 truncate max-w-[100px]" title={millInfo}>
+                          {millInfo}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium text-slate-700">Molino {session.molinoId}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-slate-900">{session.clienteNombre}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">
-                      {session.horaInicio.toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-semibold text-slate-700">{session.cantidadSacos}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getMineralBadge(session.mineral)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-slate-600 font-medium">
-                      {Math.floor(session.duracionMinutos / 60)}h {session.duracionMinutos % 60}m
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(session.estado)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-slate-600">{session.operadorNombre}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex space-x-1">
-                      <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Ver detalles">
-                        <Eye size={18} strokeWidth={1.5} />
-                      </button>
-                      <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
-                        <Edit size={18} strokeWidth={1.5} />
-                      </button>
-                      <button className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
-                        <Trash2 size={18} strokeWidth={1.5} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-slate-900">{clientName}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        {startTime.toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-semibold text-slate-700">{session.total_sacks}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getMineralBadge(session.mineral_type)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-600 font-medium italic">
+                        Real-time
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(session.status)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-600">Personal</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex space-x-1">
+                        <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Ver detalles">
+                          <Eye size={18} strokeWidth={1.5} />
+                        </button>
+                        <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
+                          <Edit size={18} strokeWidth={1.5} />
+                        </button>
+                        <button className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                          <Trash2 size={18} strokeWidth={1.5} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

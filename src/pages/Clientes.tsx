@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { 
-  Users, Phone, Mail, Package, TrendingUp, Search, Filter, 
-  UserPlus, MessageSquare, X, Save, MapPin, Building, 
-  Calendar, User, FileText, DollarSign
+import React, { useState, useEffect } from 'react';
+import {
+  Users, Phone, Mail, Package, TrendingUp, Search, Filter,
+  UserPlus, MessageSquare, X, Save, MapPin, Building,
+  Calendar, User as UserIcon, FileText, DollarSign
 } from 'lucide-react';
+import { useSupabaseStore } from '@/store/supabaseStore';
+import { supabase } from '@/lib/supabase';
 
 const Clientes: React.FC = () => {
+  const { clients, loading, fetchClients } = useSupabaseStore();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showNuevoClienteModal, setShowNuevoClienteModal] = useState(false);
@@ -23,82 +26,24 @@ const Clientes: React.FC = () => {
     observaciones: ''
   });
 
-  // Mock clients data
-  const mockClients = [
-    {
-      id: '1',
-      nombre: 'Minera Andina SA',
-      contacto: 'Juan Rodríguez',
-      telefono: '+51 987 654 321',
-      email: 'contacto@mineraandina.com',
-      stockActual: 500,
-      totalSacos: 1250,
-      estado: 'ACTIVO',
-      zona: 'Norte',
-      ultimaCompra: '2024-01-15',
-    },
-    {
-      id: '2',
-      nombre: 'Compañía Minerales del Sur',
-      contacto: 'María González',
-      telefono: '+51 987 123 456',
-      email: 'ventas@mineralesdelsur.com',
-      stockActual: 320,
-      totalSacos: 980,
-      estado: 'ACTIVO',
-      zona: 'Sur',
-      ultimaCompra: '2024-01-16',
-    },
-    {
-      id: '3',
-      nombre: 'Empresa Extractora Norte',
-      contacto: 'Carlos López',
-      telefono: '+51 987 789 123',
-      email: 'info@extractoranorte.com',
-      stockActual: 450,
-      totalSacos: 890,
-      estado: 'INACTIVO',
-      zona: 'Norte',
-      ultimaCompra: '2024-01-10',
-    },
-    {
-      id: '4',
-      nombre: 'Minerales y Derivados SAC',
-      contacto: 'Ana Martínez',
-      telefono: '+51 987 456 789',
-      email: 'ana@mineralesysa.com',
-      stockActual: 280,
-      totalSacos: 1100,
-      estado: 'ACTIVO',
-      zona: 'Centro',
-      ultimaCompra: '2024-01-14',
-    },
-    {
-      id: '5',
-      nombre: 'Sociedad Minera Central',
-      contacto: 'Pedro Sánchez',
-      telefono: '+51 987 321 654',
-      email: 'pedro@mineracentral.com',
-      stockActual: 600,
-      totalSacos: 750,
-      estado: 'ACTIVO',
-      zona: 'Centro',
-      ultimaCompra: '2024-01-13',
-    },
-  ];
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
 
-  const filteredClients = mockClients.filter(client => {
-    const matchesSearch = client.nombre.toLowerCase().includes(search.toLowerCase()) ||
-                         client.contacto.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || client.estado === filterStatus;
+  const filteredClients = clients.filter(client => {
+    const lowerCaseSearch = search.toLowerCase();
+    const matchesSearch = (client.name || '').toLowerCase().includes(lowerCaseSearch) ||
+      (client.contact_name || '').toLowerCase().includes(lowerCaseSearch) ||
+      (client.phone || '').toLowerCase().includes(lowerCaseSearch);
+    const matchesStatus = filterStatus === 'all' || (client.is_active === true ? 'ACTIVO' : 'INACTIVO') === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (estado: string) => {
-    return estado === 'ACTIVO' ? (
-      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Activo</span>
+  const getStatusBadge = (isActive: boolean) => {
+    return isActive ? (
+      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-semibold rounded-full flex items-center w-fit">Activo</span>
     ) : (
-      <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Inactivo</span>
+      <span className="px-2.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-100 text-xs font-semibold rounded-full flex items-center w-fit">Inactivo</span>
     );
   };
 
@@ -112,10 +57,12 @@ const Clientes: React.FC = () => {
     };
     return (
       <span className={`px-2 py-1 text-xs rounded-full ${colors[zona as keyof typeof colors] || 'bg-gray-100'}`}>
-        {zona}
+        {zona || 'N/A'}
       </span>
     );
   };
+
+  // ... rest of helper functions ...
 
   const handleNuevoClienteChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -125,37 +72,44 @@ const Clientes: React.FC = () => {
     }));
   };
 
-  const handleSubmitNuevoCliente = (e: React.FormEvent) => {
+  const handleSubmitNuevoCliente = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validaciones básicas
-    if (!nuevoCliente.nombre || !nuevoCliente.contacto || !nuevoCliente.telefono) {
-      alert('Por favor complete los campos obligatorios: Nombre, Contacto y Teléfono');
+    if (!nuevoCliente.nombre) {
+      alert('Por favor complete el nombre del cliente');
       return;
     }
 
-    // Aquí iría la lógica para guardar el cliente en la base de datos
-    console.log('Nuevo cliente registrado:', nuevoCliente);
-    
-    // Mostrar confirmación
-    alert(`Cliente ${nuevoCliente.nombre} registrado exitosamente!`);
-    
-    // Resetear formulario y cerrar modal
-    setNuevoCliente({
-      nombre: '',
-      contacto: '',
-      telefono: '',
-      email: '',
-      ruc: '',
-      direccion: '',
-      zona: '',
-      tipoCliente: '',
-      stockInicial: 0,
-      tipoMineral: '',
-      observaciones: ''
-    });
-    setShowNuevoClienteModal(false);
+    try {
+      const { error } = await supabase.from('clients').insert({
+        name: nuevoCliente.nombre,
+        contact_name: nuevoCliente.contacto,
+        phone: nuevoCliente.telefono,
+        email: nuevoCliente.email,
+        ruc_dni: nuevoCliente.ruc,
+        address: nuevoCliente.direccion,
+        zone: nuevoCliente.zona,
+        client_type: nuevoCliente.tipoCliente,
+        stock_cuarzo: nuevoCliente.stockInicial, // Assuming initial stock is cuarzo for now or needs split
+        observations: nuevoCliente.observaciones,
+        is_active: true
+      });
+
+      if (error) throw error;
+
+      alert(`Cliente ${nuevoCliente.nombre} registrado exitosamente!`);
+      fetchClients();
+      setShowNuevoClienteModal(false);
+
+      setNuevoCliente({
+        nombre: '', contacto: '', telefono: '', email: '', ruc: '',
+        direccion: '', zona: '', tipoCliente: '', stockInicial: 0,
+        tipoMineral: '', observaciones: ''
+      });
+    } catch (error: any) {
+      alert('Error al registrar cliente: ' + error.message);
+    }
   };
+
 
   return (
     <div className="space-y-6">
@@ -166,7 +120,7 @@ const Clientes: React.FC = () => {
           <p className="text-gray-600 mt-1">Administración de clientes y stock</p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
-          <button 
+          <button
             className="btn-primary flex items-center"
             onClick={() => setShowNuevoClienteModal(true)}
           >
@@ -193,7 +147,7 @@ const Clientes: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-2xl p-6 border">
           <div className="flex items-center">
             <div className="p-3 bg-green-100 rounded-xl mr-4">
@@ -205,7 +159,7 @@ const Clientes: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-2xl p-6 border">
           <div className="flex items-center">
             <div className="p-3 bg-orange-100 rounded-xl mr-4">
@@ -217,7 +171,7 @@ const Clientes: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-2xl p-6 border">
           <div className="flex items-center">
             <div className="p-3 bg-purple-100 rounded-xl mr-4">
@@ -286,14 +240,14 @@ const Clientes: React.FC = () => {
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
-                    <Users className="text-primary-600" size={24} />
+                  <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center">
+                    <Users className="text-indigo-600" size={24} />
                   </div>
                   <div className="ml-4">
-                    <h3 className="font-bold text-gray-900">{client.nombre}</h3>
+                    <h3 className="font-bold text-gray-900">{client.name}</h3>
                     <div className="flex items-center mt-1">
-                      {getStatusBadge(client.estado)}
-                      <span className="ml-2">{getZoneBadge(client.zona)}</span>
+                      {getStatusBadge(client.is_active)}
+                      <span className="ml-2">{getZoneBadge(client.zone || '')}</span>
                     </div>
                   </div>
                 </div>
@@ -305,22 +259,22 @@ const Clientes: React.FC = () => {
               <div className="space-y-4">
                 {/* Contact Info */}
                 <div>
-                  <div className="flex items-center text-gray-600 mb-2">
-                    <Users size={16} className="mr-2" />
-                    <span className="text-sm">Contacto</span>
+                  <div className="flex items-center text-gray-400 mb-2">
+                    <UserIcon size={18} className="mr-2" />
+                    <span className="text-sm font-semibold uppercase tracking-wider">Información del Cliente</span>
                   </div>
-                  <p className="font-medium text-gray-900">{client.contacto}</p>
+                  <p className="font-medium text-gray-900">{client.contact_name || 'N/A'}</p>
                 </div>
 
                 {/* Contact Methods */}
                 <div className="space-y-2">
                   <div className="flex items-center">
                     <Phone size={16} className="text-gray-400 mr-3" />
-                    <span className="text-gray-700">{client.telefono}</span>
+                    <span className="text-gray-700">{client.phone || 'S/T'}</span>
                   </div>
                   <div className="flex items-center">
                     <Mail size={16} className="text-gray-400 mr-3" />
-                    <span className="text-gray-700">{client.email}</span>
+                    <span className="text-gray-700 font-medium text-sm truncate">{client.email || 'S/E'}</span>
                   </div>
                 </div>
 
@@ -328,34 +282,36 @@ const Clientes: React.FC = () => {
                 <div className="pt-4 border-t border-gray-100">
                   <div className="flex justify-between mb-4">
                     <div>
-                      <div className="text-sm text-gray-600">Stock Actual</div>
-                      <div className="text-2xl font-bold text-gray-900">{client.stockActual}</div>
+                      <div className="text-sm text-gray-600">Stock Cuarzo</div>
+                      <div className="text-2xl font-bold text-gray-900">{client.stock_cuarzo}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-600">Total Sacos</div>
-                      <div className="text-2xl font-bold text-gray-900">{client.totalSacos}</div>
+                      <div className="text-sm text-gray-600">Stock Llampo</div>
+                      <div className="text-2xl font-bold text-gray-900">{client.stock_llampo}</div>
                     </div>
                   </div>
 
-                  {/* Stock Progress */}
+                  {/* Stock Progress (Visual only for now) */}
                   <div>
                     <div className="flex justify-between text-sm text-gray-500 mb-1">
-                      <span>Utilización de stock</span>
-                      <span>{Math.round((client.stockActual / client.totalSacos) * 100)}%</span>
+                      <span>Nivel de stock</span>
+                      <span>{client.stock_cuarzo > 100 ? 'Normal' : 'Bajo'}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-primary-600 h-2 rounded-full"
-                        style={{ width: `${(client.stockActual / client.totalSacos) * 100}%` }}
+                      <div
+                        className={`h-2 rounded-full ${client.stock_cuarzo > 100 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                        style={{ width: `${Math.min(100, (client.stock_cuarzo / 500) * 100)}%` }}
                       ></div>
                     </div>
                   </div>
                 </div>
 
-                {/* Last Purchase */}
+                {/* Last Purchase/Created */}
                 <div className="pt-4 border-t border-gray-100">
-                  <div className="text-sm text-gray-600">Última compra</div>
-                  <div className="font-medium text-gray-900">{client.ultimaCompra}</div>
+                  <div className="text-sm text-gray-600">Registrado el</div>
+                  <div className="font-medium text-gray-900">
+                    {client.created_at ? new Date(client.created_at).toLocaleDateString() : 'N/A'}
+                  </div>
                 </div>
 
                 {/* Actions */}
@@ -364,7 +320,7 @@ const Clientes: React.FC = () => {
                     <button className="flex-1 btn-secondary py-2 text-sm">
                       Editar
                     </button>
-                    <button className="flex-1 btn-primary py-2 text-sm">
+                    <button className="flex-1 btn-primary py-2 text-sm bg-indigo-600 hover:bg-indigo-700">
                       Contactar
                     </button>
                   </div>
@@ -373,21 +329,27 @@ const Clientes: React.FC = () => {
             </div>
           </div>
         ))}
+        {clients.length === 0 && (
+          <div className="col-span-full py-12 text-center text-slate-400 font-medium italic bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            No hay clientes registrados aún
+          </div>
+        )}
       </div>
 
-      {/* Add New Client Button */}
-      <div className="flex justify-center">
-        <button 
-          className="border-2 border-dashed border-gray-300 hover:border-primary-300 rounded-2xl p-8 w-full max-w-md flex flex-col items-center justify-center transition-colors"
+      {/* Add New Client Button placeholder */}
+      <div className="flex justify-center mt-8">
+        <button
+          className="border-2 border-dashed border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 rounded-2xl p-8 w-full max-w-md flex flex-col items-center justify-center transition-all group"
           onClick={() => setShowNuevoClienteModal(true)}
         >
-          <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mb-4">
-            <UserPlus className="text-primary-600" size={32} />
+          <div className="w-16 h-16 bg-slate-50 group-hover:bg-indigo-100 rounded-full flex items-center justify-center mb-4 transition-colors">
+            <UserPlus className="text-slate-400 group-hover:text-indigo-600" size={32} />
           </div>
-          <span className="text-lg font-medium text-gray-700">Agregar nuevo cliente</span>
-          <span className="text-sm text-gray-500 mt-2">Registre un nuevo cliente en el sistema</span>
+          <span className="text-lg font-bold text-slate-700 group-hover:text-indigo-900">Agregar nuevo cliente</span>
+          <span className="text-sm text-slate-500 mt-1">Registre un nuevo cliente en el sistema</span>
         </button>
       </div>
+
 
       {/* Modal para Nuevo Cliente */}
       {showNuevoClienteModal && (
@@ -420,7 +382,7 @@ const Clientes: React.FC = () => {
                     <User className="mr-2 text-blue-600" size={20} />
                     Información Básica
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -436,7 +398,7 @@ const Clientes: React.FC = () => {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         RUC
@@ -450,7 +412,7 @@ const Clientes: React.FC = () => {
                         placeholder="Ej: 20123456789"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Contacto Principal *
@@ -465,7 +427,7 @@ const Clientes: React.FC = () => {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Teléfono *
@@ -480,7 +442,7 @@ const Clientes: React.FC = () => {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Email
@@ -494,7 +456,7 @@ const Clientes: React.FC = () => {
                         placeholder="Ej: contacto@empresa.com"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Tipo de Cliente
@@ -521,7 +483,7 @@ const Clientes: React.FC = () => {
                     <MapPin className="mr-2 text-blue-600" size={20} />
                     Ubicación
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -536,7 +498,7 @@ const Clientes: React.FC = () => {
                         placeholder="Ej: Av. Industrial 123"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Zona
@@ -564,7 +526,7 @@ const Clientes: React.FC = () => {
                     <Package className="mr-2 text-blue-600" size={20} />
                     Información de Stock
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -580,7 +542,7 @@ const Clientes: React.FC = () => {
                         min="0"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Tipo de Mineral Principal
@@ -607,7 +569,7 @@ const Clientes: React.FC = () => {
                     <FileText className="mr-2 text-blue-600" size={20} />
                     Observaciones
                   </h3>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Notas adicionales

@@ -1,36 +1,29 @@
-import React, { useState } from 'react';
-import { 
-  Wrench, AlertTriangle, CheckCircle, Clock, Search, Filter, Plus, Eye, Edit, Trash2, 
-  Download, Upload, FileText, Printer, History, Calendar, Settings, Activity, 
+import React, { useState, useEffect } from 'react';
+import {
+  Wrench, AlertTriangle, CheckCircle, Clock, Search, Filter, Plus, Eye, Edit, Trash2,
+  Download, Upload, FileText, Printer, History, Calendar, Settings, Activity,
   ChevronRight, ChevronLeft, Package, Users, X, Save, RefreshCw, FileSpreadsheet,
-  MessageSquare, Mail, QrCode, CheckSquare, AlertCircle, User, DollarSign, Layers
+  MessageSquare, Mail, QrCode, CheckSquare, AlertCircle, User as UserIcon, DollarSign, Layers
 } from 'lucide-react';
 import { MILLS } from '@/constants';
+import { useSupabaseStore } from '@/store/supabaseStore';
+import { supabase } from '@/lib/supabase';
 
 // Interfaces para el sistema de mantenimiento
 interface MaintenanceRecord {
   id: string;
-  molinoId: string;
-  molinoNombre: string;
-  tipo: 'PREVENTIVO' | 'CORRECTIVO' | 'PREDICTIVO' | 'EMERGENCIA';
-  categoria: string;
-  descripcion: string;
-  detalleTecnico: string;
-  estado: 'PENDIENTE' | 'EN_PROCESO' | 'COMPLETADO' | 'CANCELADO' | 'ESPERA_REPUESTO';
-  fechaProgramada: string;
-  fechaInicio: string;
-  fechaFin: string;
-  horasEstimadas: number;
-  horasReales: number;
-  asignadoA: string;
-  supervisor: string;
-  costoEstimado: number;
-  costoReal: number;
-  repuestosUtilizados: Repuesto[];
-  checklist: ChecklistItem[];
-  observaciones: string;
-  prioridad: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
-  impactoProduccion: number;
+  mill_id: string;
+  type: string;
+  category?: string;
+  description: string;
+  action_taken?: string;
+  worked_hours?: number;
+  technician_name?: string;
+  status: string;
+  created_at: string;
+  mills?: {
+    name: string;
+  };
 }
 
 interface Repuesto {
@@ -62,6 +55,7 @@ interface MolinoHistory {
 }
 
 const Mantenimiento: React.FC = () => {
+  const { mills, maintenanceLogs, fetchMills, fetchMaintenanceLogs, registerMaintenance, loading } = useSupabaseStore();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -72,12 +66,37 @@ const Mantenimiento: React.FC = () => {
   const [showRepuestoModal, setShowRepuestoModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<MaintenanceRecord | null>(null);
-  const [selectedMillHistory, setSelectedMillHistory] = useState<MolinoHistory | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
+  const [selectedMillHistory, setSelectedMillHistory] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
 
-  // Nuevo registro form state
+  useEffect(() => {
+    fetchMills();
+    fetchMaintenanceLogs();
+  }, [fetchMills, fetchMaintenanceLogs]);
+
+  // Form states and other variables already declared in previous edit attempt, 
+  // ensuring we don't have duplicates.
+
+  const filteredLogs = (maintenanceLogs || []).filter(log => {
+    const millName = log.mills?.name || '';
+    const matchesSearch = millName.toLowerCase().includes(search.toLowerCase()) ||
+      (log.description || '').toLowerCase().includes(search.toLowerCase()) ||
+      log.id.toLowerCase().includes(search.toLowerCase());
+    const matchesType = filterType === 'all' || log.type === filterType;
+    const matchesStatus = filterStatus === 'all' || log.status === filterStatus;
+    const matchesMill = selectedMill === 'all' || log.mill_id === selectedMill;
+    return matchesSearch && matchesType && matchesStatus && matchesMill;
+  });
+
+  const totalPages = Math.ceil(filteredLogs.length / recordsPerPage);
+  const paginatedLogs = filteredLogs.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
+
+  // Form states
   const [newRecord, setNewRecord] = useState({
     molinoId: '',
     tipo: 'PREVENTIVO' as const,
@@ -89,7 +108,6 @@ const Mantenimiento: React.FC = () => {
     asignadoA: ''
   });
 
-  // Nuevo repuesto form state
   const [newRepuesto, setNewRepuesto] = useState({
     nombre: '',
     codigo: '',
@@ -100,104 +118,11 @@ const Mantenimiento: React.FC = () => {
     motivo: ''
   });
 
-  // Mock data
-  const molinosHistorial: MolinoHistory[] = [
-    {
-      molinoId: '1',
-      molinoNombre: 'Molino I',
-      totalHorasOperacion: 12450,
-      ultimoMantenimiento: '2024-01-15',
-      proximoMantenimiento: '2024-02-15',
-      estadoActual: 'OPERATIVO',
-      eficiencia: 94,
-      historial: [
-        {
-          id: 'MT-2024-001',
-          molinoId: '1',
-          molinoNombre: 'Molino I',
-          tipo: 'PREVENTIVO',
-          categoria: 'LUBRICACION',
-          descripcion: 'Cambio completo de aceite y filtros',
-          detalleTecnico: 'Cambio de aceite ISO VG 320, filtros de entrada y salida. Verificación de niveles y presión.',
-          estado: 'COMPLETADO',
-          fechaProgramada: '2024-01-15',
-          fechaInicio: '2024-01-15 08:00',
-          fechaFin: '2024-01-15 12:30',
-          horasEstimadas: 4,
-          horasReales: 4.5,
-          asignadoA: 'Técnico Juan Pérez',
-          supervisor: 'Ing. Carlos Rodríguez',
-          costoEstimado: 1500,
-          costoReal: 1450,
-          repuestosUtilizados: [
-            { id: '1', nombre: 'Aceite ISO VG 320', codigo: 'LUB-001', cantidad: 120, unidad: 'litros', costoUnitario: 8.5, proveedor: 'Lubritec SA' },
-            { id: '2', nombre: 'Filtro de Aceite', codigo: 'FIL-005', cantidad: 2, unidad: 'unidades', costoUnitario: 125, proveedor: 'Filtros Industriales' }
-          ],
-          checklist: [
-            { id: '1', descripcion: 'Verificar nivel de aceite', estado: true, observacion: 'OK' },
-            { id: '2', descripcion: 'Cambiar filtros', estado: true, observacion: 'Filtros reemplazados' },
-            { id: '3', descripcion: 'Verificar fugas', estado: true, observacion: 'Sin fugas' }
-          ],
-          observaciones: 'Molino funcionando dentro de parámetros normales',
-          prioridad: 'MEDIA',
-          impactoProduccion: 4.5
-        }
-      ]
-    },
-    {
-      molinoId: '2',
-      molinoNombre: 'Molino II',
-      totalHorasOperacion: 11800,
-      ultimoMantenimiento: '2024-01-10',
-      proximoMantenimiento: '2024-02-10',
-      estadoActual: 'MANTENIMIENTO',
-      eficiencia: 91,
-      historial: []
-    },
-    {
-      molinoId: '3',
-      molinoNombre: 'Molino III',
-      totalHorasOperacion: 13200,
-      ultimoMantenimiento: '2024-01-18',
-      proximoMantenimiento: '2024-02-18',
-      estadoActual: 'OPERATIVO',
-      eficiencia: 96,
-      historial: []
-    },
-    {
-      molinoId: '4',
-      molinoNombre: 'Molino IV',
-      totalHorasOperacion: 11050,
-      ultimoMantenimiento: '2024-01-05',
-      proximoMantenimiento: '2024-02-05',
-      estadoActual: 'ESPERA_REPUESTO',
-      eficiencia: 89,
-      historial: []
-    }
-  ];
-
-  const allMaintenanceRecords = molinosHistorial.flatMap(molino => molino.historial);
-
-  const filteredLogs = allMaintenanceRecords.filter(log => {
-    const matchesSearch = log.molinoNombre.toLowerCase().includes(search.toLowerCase()) ||
-                         log.descripcion.toLowerCase().includes(search.toLowerCase()) ||
-                         log.id.toLowerCase().includes(search.toLowerCase());
-    const matchesType = filterType === 'all' || log.tipo === filterType;
-    const matchesStatus = filterStatus === 'all' || log.estado === filterStatus;
-    const matchesMill = selectedMill === 'all' || log.molinoId === selectedMill;
-    return matchesSearch && matchesType && matchesStatus && matchesMill;
-  });
-
-  const totalPages = Math.ceil(filteredLogs.length / recordsPerPage);
-  const paginatedLogs = filteredLogs.slice(
-    (currentPage - 1) * recordsPerPage,
-    currentPage * recordsPerPage
-  );
-
   // Funciones auxiliares
   const getStatusBadge = (estado: string) => {
     switch (estado) {
       case 'COMPLETADO':
+      case 'FINALIZADO':
         return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full flex items-center w-fit"><CheckCircle size={12} className="mr-1" /> Completado</span>;
       case 'EN_PROCESO':
         return <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full flex items-center w-fit"><Clock size={12} className="mr-1" /> En Proceso</span>;
@@ -219,7 +144,7 @@ const Mantenimiento: React.FC = () => {
       PREDICTIVO: 'bg-green-100 text-green-800',
       EMERGENCIA: 'bg-orange-100 text-orange-800'
     };
-    
+
     return (
       <span className={`px-2 py-1 text-xs rounded-full ${styles[tipo as keyof typeof styles] || 'bg-gray-100 text-gray-800'}`}>
         {tipo}
@@ -234,7 +159,7 @@ const Mantenimiento: React.FC = () => {
       ALTA: 'bg-orange-100 text-orange-800',
       CRITICA: 'bg-red-100 text-red-800'
     };
-    
+
     return (
       <span className={`px-2 py-1 text-xs rounded-full ${styles[prioridad as keyof typeof styles] || 'bg-gray-100 text-gray-800'}`}>
         {prioridad}
@@ -247,25 +172,34 @@ const Mantenimiento: React.FC = () => {
     setShowNewRecordModal(true);
   };
 
-  const handleSaveNewRecord = () => {
-    console.log('Guardando nueva orden:', newRecord);
-    alert(`Nueva orden creada exitosamente para ${MILLS.find(m => m.id === newRecord.molinoId)?.nombre || 'Molino'}`);
-    setShowNewRecordModal(false);
-    setNewRecord({
-      molinoId: '',
-      tipo: 'PREVENTIVO',
-      categoria: '',
-      descripcion: '',
-      prioridad: 'MEDIA',
-      fechaProgramada: '',
-      horasEstimadas: 4,
-      asignadoA: ''
+  const handleSaveNewRecord = async () => {
+    const success = await registerMaintenance({
+      mill_id: newRecord.molinoId,
+      type: newRecord.tipo,
+      description: newRecord.descripcion,
+      technician_name: newRecord.asignadoA,
+      worked_hours: newRecord.horasEstimadas,
+      status: 'PENDIENTE'
     });
+
+    if (success) {
+      setShowNewRecordModal(false);
+      setNewRecord({
+        molinoId: '',
+        tipo: 'PREVENTIVO',
+        categoria: '',
+        descripcion: '',
+        prioridad: 'MEDIA',
+        fechaProgramada: '',
+        horasEstimadas: 4,
+        asignadoA: ''
+      });
+    }
   };
 
   const handleViewHistory = (molinoId: string) => {
-    const history = molinosHistorial.find(m => m.molinoId === molinoId);
-    setSelectedMillHistory(history || null);
+    const mill = mills.find(m => m.id === molinoId);
+    setSelectedMillHistory(mill || null);
     setShowHistoryModal(true);
   };
 
@@ -278,14 +212,14 @@ const Mantenimiento: React.FC = () => {
     setSelectedRecord(record);
     setShowNewRecordModal(true);
     setNewRecord({
-      molinoId: record.molinoId,
-      tipo: record.tipo,
-      categoria: record.categoria,
-      descripcion: record.descripcion,
-      prioridad: record.prioridad,
-      fechaProgramada: record.fechaProgramada,
-      horasEstimadas: record.horasEstimadas,
-      asignadoA: record.asignadoA
+      molinoId: record.mill_id,
+      tipo: record.type as any,
+      categoria: record.category || '',
+      descripcion: record.description,
+      prioridad: (record.priority || 'MEDIA') as any,
+      fechaProgramada: record.created_at,
+      horasEstimadas: record.worked_hours || 4,
+      asignadoA: record.technician_name || ''
     });
   };
 
@@ -308,7 +242,7 @@ const Mantenimiento: React.FC = () => {
       'Costo Real': log.costoReal,
       Asignado: log.asignadoA
     }));
-    
+
     console.log('Exportando a Excel:', data);
     alert('Archivo Excel generado. Descargando...');
   };
@@ -421,7 +355,7 @@ const Mantenimiento: React.FC = () => {
             <X size={24} />
           </button>
         </div>
-        
+
         <div className="p-6 overflow-auto">
           <div className="grid grid-cols-7 gap-2 mb-6">
             {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => (
@@ -429,7 +363,7 @@ const Mantenimiento: React.FC = () => {
                 {day}
               </div>
             ))}
-            
+
             {Array.from({ length: 31 }, (_, i) => {
               const day = i + 1;
               const hasMaintenance = [5, 10, 15, 20, 25].includes(day);
@@ -446,7 +380,7 @@ const Mantenimiento: React.FC = () => {
               );
             })}
           </div>
-          
+
           <div className="space-y-4">
             <h4 className="font-semibold text-gray-900">Próximos Mantenimientos Programados</h4>
             {[
@@ -467,15 +401,15 @@ const Mantenimiento: React.FC = () => {
             ))}
           </div>
         </div>
-        
+
         <div className="p-6 border-t bg-gray-50 flex justify-between">
-          <button 
+          <button
             onClick={() => setShowCalendarModal(false)}
             className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
           >
             Cerrar
           </button>
-          <button 
+          <button
             onClick={handleExportExcel}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
           >
@@ -496,14 +430,14 @@ const Mantenimiento: React.FC = () => {
           <p className="text-gray-600 mt-1">Sistema integral de mantenimiento industrial</p>
         </div>
         <div className="mt-4 lg:mt-0 flex flex-wrap gap-3">
-          <button 
+          <button
             className="btn-primary flex items-center whitespace-nowrap"
             onClick={handleNewRecord}
           >
             <Plus size={18} className="mr-2" />
             Nueva Orden
           </button>
-          <button 
+          <button
             className="btn-secondary flex items-center whitespace-nowrap"
             onClick={handleExportExcel}
           >
@@ -532,7 +466,7 @@ const Mantenimiento: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-2xl p-4 md:p-6 border">
           <div className="flex items-center">
             <div className="p-3 bg-green-100 rounded-xl mr-4">
@@ -550,7 +484,7 @@ const Mantenimiento: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-2xl p-4 md:p-6 border">
           <div className="flex items-center">
             <div className="p-3 bg-orange-100 rounded-xl mr-4">
@@ -568,7 +502,7 @@ const Mantenimiento: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-2xl p-4 md:p-6 border">
           <div className="flex items-center">
             <div className="p-3 bg-red-100 rounded-xl mr-4">
@@ -596,7 +530,7 @@ const Mantenimiento: React.FC = () => {
             <p className="text-gray-600 text-sm">Dashboard operacional en tiempo real</p>
           </div>
           <div className="flex space-x-2 mt-4 md:mt-0">
-            <button 
+            <button
               className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium flex items-center"
               onClick={handleConfigurar}
             >
@@ -605,61 +539,57 @@ const Mantenimiento: React.FC = () => {
             </button>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {molinosHistorial.map((molino) => (
-            <div key={molino.molinoId} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
+          {mills.map((molino) => (
+            <div key={molino.id} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${
-                    molino.estadoActual === 'OPERATIVO' ? 'bg-green-100' :
-                    molino.estadoActual === 'MANTENIMIENTO' ? 'bg-yellow-100' :
-                    'bg-purple-100'
-                  }`}>
-                    <span className={`font-bold ${
-                      molino.estadoActual === 'OPERATIVO' ? 'text-green-700' :
-                      molino.estadoActual === 'MANTENIMIENTO' ? 'text-yellow-700' :
-                      'text-purple-700'
-                    }`}>M{molino.molinoId}</span>
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${molino.status === 'libre' ? 'bg-green-100' :
+                    molino.status === 'mantenimiento' ? 'bg-yellow-100' :
+                      'bg-purple-100'
+                    }`}>
+                    <span className={`font-bold ${molino.status === 'libre' ? 'text-green-700' :
+                      molino.status === 'mantenimiento' ? 'text-yellow-700' :
+                        'text-purple-700'
+                      }`}>{molino.name?.substring(0, 2)}</span>
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">{molino.molinoNombre}</div>
-                    <div className={`text-xs font-medium ${
-                      molino.estadoActual === 'OPERATIVO' ? 'text-green-600' :
-                      molino.estadoActual === 'MANTENIMIENTO' ? 'text-yellow-600' :
-                      'text-purple-600'
-                    }`}>
-                      {molino.estadoActual.replace('_', ' ')}
+                    <div className="font-medium text-gray-900">{molino.name}</div>
+                    <div className={`text-xs font-medium uppercase ${molino.status === 'libre' ? 'text-green-600' :
+                      molino.status === 'mantenimiento' ? 'text-yellow-600' :
+                        'text-purple-600'
+                      }`}>
+                      {molino.status}
                     </div>
                   </div>
                 </div>
-                <button 
-                  onClick={() => handleViewHistory(molino.molinoId)}
+                <button
+                  onClick={() => handleViewHistory(molino.id)}
                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
                 >
                   <History size={18} />
                 </button>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Eficiencia:</span>
-                  <span className="font-medium">{molino.eficiencia}%</span>
+                  <span className="text-gray-500">Horas Cambio:</span>
+                  <span className="font-medium">{molino.hours_to_oil_change}h</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Horas Operación:</span>
-                  <span className="font-medium">{molino.totalHorasOperacion.toLocaleString()}h</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Próximo PM:</span>
-                  <span className="font-medium">{molino.proximoMantenimiento}</span>
+                  <span className="text-gray-500">Capacidad:</span>
+                  <span className="font-medium">{molino.capacity} sacos</span>
                 </div>
               </div>
-              
+
               <div className="mt-4">
-                <div className="text-xs text-gray-500 mb-1">Disponibilidad</div>
+                <div className="text-xs text-gray-500 mb-1">Vida Aceite</div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '98%' }}></div>
+                  <div
+                    className={`h-2 rounded-full ${molino.hours_to_oil_change! > 20 ? 'bg-green-500' : 'bg-red-500'}`}
+                    style={{ width: `${Math.min(100, (molino.hours_to_oil_change! / 100) * 100)}%` }}
+                  ></div>
                 </div>
               </div>
             </div>
@@ -677,7 +607,7 @@ const Mantenimiento: React.FC = () => {
               placeholder="Buscar ID, molino, descripción..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input-field pl-10 w-full"
+              className="px-4 py-2 border rounded-xl pl-10 w-full"
             />
           </div>
 
@@ -685,12 +615,11 @@ const Mantenimiento: React.FC = () => {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="input-field w-full"
+              className="px-4 py-2 border rounded-xl w-full"
             >
               <option value="all">Todos los tipos</option>
               <option value="PREVENTIVO">Preventivo</option>
               <option value="CORRECTIVO">Correctivo</option>
-              <option value="PREDICTIVO">Predictivo</option>
             </select>
           </div>
 
@@ -698,7 +627,7 @@ const Mantenimiento: React.FC = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="input-field w-full"
+              className="px-4 py-2 border rounded-xl w-full"
             >
               <option value="all">Todos los estados</option>
               <option value="PENDIENTE">Pendiente</option>
@@ -711,52 +640,52 @@ const Mantenimiento: React.FC = () => {
             <select
               value={selectedMill}
               onChange={(e) => setSelectedMill(e.target.value)}
-              className="input-field w-full"
+              className="px-4 py-2 border rounded-xl w-full"
             >
               <option value="all">Todos los molinos</option>
-              {MILLS && MILLS.map((mill) => (
-                <option key={mill.id} value={mill.id}>{mill.nombre}</option>
+              {mills.map((mill) => (
+                <option key={mill.id} value={mill.id}>{mill.name}</option>
               ))}
             </select>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2 mt-4">
-          <button 
+          <button
             className="px-4 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium flex items-center whitespace-nowrap"
             onClick={handleAplicarFiltros}
           >
             <Filter size={16} className="inline mr-2" />
             Aplicar filtros
           </button>
-          <button 
+          <button
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium whitespace-nowrap"
             onClick={handleLimpiarFiltros}
           >
             Limpiar filtros
           </button>
-          <button 
+          <button
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium flex items-center whitespace-nowrap"
             onClick={handlePrint}
           >
             <Printer size={16} className="inline mr-2" />
             Imprimir
           </button>
-          <button 
+          <button
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium flex items-center whitespace-nowrap"
             onClick={handleGeneratePDF}
           >
             <FileText size={16} className="inline mr-2" />
             Generar PDF
           </button>
-          <button 
+          <button
             className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium flex items-center whitespace-nowrap"
             onClick={handleEnviarWhatsApp}
           >
             <MessageSquare size={16} className="inline mr-2" />
             Enviar WhatsApp
           </button>
-          <button 
+          <button
             className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium flex items-center whitespace-nowrap"
             onClick={handleEnviarCorreo}
           >
@@ -818,28 +747,28 @@ const Mantenimiento: React.FC = () => {
                     </td>
                     <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-wrap gap-1">
-                        <button 
+                        <button
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
                           onClick={() => handleViewDetail(log)}
                           title="Ver detalle"
                         >
                           <Eye size={18} />
                         </button>
-                        <button 
+                        <button
                           className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg"
                           onClick={() => handleEditRecord(log)}
                           title="Editar"
                         >
                           <Edit size={18} />
                         </button>
-                        <button 
+                        <button
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                           onClick={() => handleDeleteRecord(log.id)}
                           title="Eliminar"
                         >
                           <Trash2 size={18} />
                         </button>
-                        <button 
+                        <button
                           className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
                           onClick={handleGenerarQR}
                           title="Generar QR"
@@ -878,7 +807,7 @@ const Mantenimiento: React.FC = () => {
                 >
                   <ChevronLeft size={20} />
                 </button>
-                
+
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum;
                   if (totalPages <= 5) {
@@ -890,22 +819,21 @@ const Mantenimiento: React.FC = () => {
                   } else {
                     pageNum = currentPage - 2 + i;
                   }
-                  
+
                   return (
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-10 h-10 rounded-lg font-medium ${
-                        currentPage === pageNum
-                          ? 'bg-primary-600 text-white'
-                          : 'border text-gray-700 hover:bg-gray-50'
-                      }`}
+                      className={`w-10 h-10 rounded-lg font-medium ${currentPage === pageNum
+                        ? 'bg-primary-600 text-white'
+                        : 'border text-gray-700 hover:bg-gray-50'
+                        }`}
                     >
                       {pageNum}
                     </button>
                   );
                 })}
-                
+
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
@@ -923,51 +851,47 @@ const Mantenimiento: React.FC = () => {
       <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between">
           <div className="flex items-center">
-            <AlertTriangle className="text-yellow-600 mr-3" size={20} md:size={24} />
+            <AlertTriangle className="text-yellow-600 mr-3" size={24} />
             <div>
               <h3 className="font-semibold text-yellow-900 text-base md:text-lg">Alertas de Mantenimiento</h3>
               <p className="text-yellow-700 text-sm">Próximos mantenimientos preventivos programados</p>
             </div>
           </div>
-          <button 
+          <button
             className="btn-secondary mt-4 md:mt-0"
             onClick={handleShowCalendar}
           >
             Ver calendario
           </button>
         </div>
-        
+
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {molinosHistorial.map((molino) => (
-            <div key={molino.molinoId} className="bg-white rounded-xl p-4 border border-yellow-200">
+          {mills.filter(m => m.necesita_mantenimiento).map((molino) => (
+            <div key={molino.id} className="bg-white rounded-xl p-4 border border-yellow-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="font-medium text-yellow-700">M{molino.molinoId}</span>
+                    <span className="font-medium text-yellow-700">{molino.name?.substring(0, 2)}</span>
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">{molino.molinoNombre}</div>
-                    <div className="text-sm text-yellow-600">PM Programado</div>
+                    <div className="font-medium text-gray-900">{molino.name}</div>
+                    <div className="text-sm text-yellow-600">Requiere Atención</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-yellow-700">
-                    {molino.proximoMantenimiento}
+                    {molino.hours_to_oil_change}h
                   </div>
-                  <div className="text-sm text-gray-500">Fecha</div>
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>Último PM: {molino.ultimoMantenimiento}</span>
-                  <span>45 días</span>
-                </div>
-                <div className="w-full bg-yellow-200 rounded-full h-2">
-                  <div className="bg-yellow-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                  <div className="text-sm text-gray-500">Restante</div>
                 </div>
               </div>
             </div>
           ))}
+          {mills.filter(m => m.necesita_mantenimiento).length === 0 && (
+            <div className="col-span-full py-4 text-center text-yellow-700 italic text-sm">
+              No hay alertas de mantenimiento activas en este momento.
+            </div>
+          )}
         </div>
       </div>
 
@@ -979,14 +903,14 @@ const Mantenimiento: React.FC = () => {
             <p className="text-gray-600 text-sm">Inventario y seguimiento de componentes</p>
           </div>
           <div className="flex space-x-2 mt-4 md:mt-0">
-            <button 
+            <button
               className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium flex items-center"
               onClick={handleControlStock}
             >
               <Package size={16} className="mr-2" />
               Control Stock
             </button>
-            <button 
+            <button
               className="px-3 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium flex items-center"
               onClick={handleSolicitarRepuesto}
             >
@@ -995,7 +919,7 @@ const Mantenimiento: React.FC = () => {
             </button>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="border rounded-xl p-4">
             <div className="flex items-center mb-4">
@@ -1022,7 +946,7 @@ const Mantenimiento: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="border rounded-xl p-4">
             <div className="flex items-center mb-4">
               <div className="p-2 bg-green-100 rounded-lg mr-3">
@@ -1048,7 +972,7 @@ const Mantenimiento: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="border rounded-xl p-4">
             <div className="flex items-center mb-4">
               <div className="p-2 bg-purple-100 rounded-lg mr-3">
@@ -1079,28 +1003,28 @@ const Mantenimiento: React.FC = () => {
 
       {/* Botones de acción adicionales */}
       <div className="flex flex-wrap gap-3 justify-center">
-        <button 
+        <button
           className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 flex items-center"
           onClick={handleGenerarQR}
         >
           <QrCode size={18} className="mr-2" />
           Generar Códigos QR
         </button>
-        <button 
+        <button
           className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 flex items-center"
           onClick={() => alert('Generando reporte estadístico...')}
         >
           <Activity size={18} className="mr-2" />
           Estadísticas Avanzadas
         </button>
-        <button 
+        <button
           className="px-4 py-2 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 flex items-center"
           onClick={() => alert('Actualizando datos desde ERP...')}
         >
           <RefreshCw size={18} className="mr-2" />
           Sincronizar con ERP
         </button>
-        <button 
+        <button
           className="px-4 py-2 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 flex items-center"
           onClick={() => alert('Enviando alertas automáticas...')}
         >
@@ -1122,14 +1046,14 @@ const Mantenimiento: React.FC = () => {
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Molino</label>
                   <select
                     value={newRecord.molinoId}
-                    onChange={(e) => setNewRecord({...newRecord, molinoId: e.target.value})}
+                    onChange={(e) => setNewRecord({ ...newRecord, molinoId: e.target.value })}
                     className="input-field w-full"
                   >
                     <option value="">Seleccionar molino</option>
@@ -1138,12 +1062,12 @@ const Mantenimiento: React.FC = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Mantenimiento</label>
                   <select
                     value={newRecord.tipo}
-                    onChange={(e) => setNewRecord({...newRecord, tipo: e.target.value as any})}
+                    onChange={(e) => setNewRecord({ ...newRecord, tipo: e.target.value as any })}
                     className="input-field w-full"
                   >
                     <option value="PREVENTIVO">Preventivo</option>
@@ -1152,12 +1076,12 @@ const Mantenimiento: React.FC = () => {
                     <option value="EMERGENCIA">Emergencia</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
                   <select
                     value={newRecord.categoria}
-                    onChange={(e) => setNewRecord({...newRecord, categoria: e.target.value})}
+                    onChange={(e) => setNewRecord({ ...newRecord, categoria: e.target.value })}
                     className="input-field w-full"
                   >
                     <option value="">Seleccionar categoría</option>
@@ -1168,12 +1092,12 @@ const Mantenimiento: React.FC = () => {
                     <option value="NEUMATICO">Neumático</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Prioridad</label>
                   <select
                     value={newRecord.prioridad}
-                    onChange={(e) => setNewRecord({...newRecord, prioridad: e.target.value as any})}
+                    onChange={(e) => setNewRecord({ ...newRecord, prioridad: e.target.value as any })}
                     className="input-field w-full"
                   >
                     <option value="BAJA">Baja</option>
@@ -1182,44 +1106,44 @@ const Mantenimiento: React.FC = () => {
                     <option value="CRITICA">Crítica</option>
                   </select>
                 </div>
-                
+
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
                   <input
                     type="text"
                     value={newRecord.descripcion}
-                    onChange={(e) => setNewRecord({...newRecord, descripcion: e.target.value})}
+                    onChange={(e) => setNewRecord({ ...newRecord, descripcion: e.target.value })}
                     className="input-field w-full"
                     placeholder="Ej: Cambio de aceite y filtros"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Programada</label>
                   <input
                     type="date"
                     value={newRecord.fechaProgramada}
-                    onChange={(e) => setNewRecord({...newRecord, fechaProgramada: e.target.value})}
+                    onChange={(e) => setNewRecord({ ...newRecord, fechaProgramada: e.target.value })}
                     className="input-field w-full"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Horas Estimadas</label>
                   <input
                     type="number"
                     value={newRecord.horasEstimadas}
-                    onChange={(e) => setNewRecord({...newRecord, horasEstimadas: parseInt(e.target.value) || 0})}
+                    onChange={(e) => setNewRecord({ ...newRecord, horasEstimadas: parseInt(e.target.value) || 0 })}
                     className="input-field w-full"
                     min="1"
                   />
                 </div>
-                
+
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Asignado a</label>
                   <select
                     value={newRecord.asignadoA}
-                    onChange={(e) => setNewRecord({...newRecord, asignadoA: e.target.value})}
+                    onChange={(e) => setNewRecord({ ...newRecord, asignadoA: e.target.value })}
                     className="input-field w-full"
                   >
                     <option value="">Seleccionar técnico</option>
@@ -1230,7 +1154,7 @@ const Mantenimiento: React.FC = () => {
                   </select>
                 </div>
               </div>
-              
+
               <div className="mt-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Repuestos Necesarios</label>
                 <textarea
@@ -1239,15 +1163,15 @@ const Mantenimiento: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             <div className="p-6 border-t bg-gray-50 flex justify-between">
-              <button 
+              <button
                 onClick={() => setShowNewRecordModal(false)}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={handleSaveNewRecord}
                 className="btn-primary flex items-center"
               >
@@ -1272,7 +1196,7 @@ const Mantenimiento: React.FC = () => {
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
@@ -1280,39 +1204,39 @@ const Mantenimiento: React.FC = () => {
                   <input
                     type="text"
                     value={newRepuesto.nombre}
-                    onChange={(e) => setNewRepuesto({...newRepuesto, nombre: e.target.value})}
+                    onChange={(e) => setNewRepuesto({ ...newRepuesto, nombre: e.target.value })}
                     className="input-field w-full"
                     placeholder="Ej: Perno M24x120 Grado 8.8"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Código</label>
                   <input
                     type="text"
                     value={newRepuesto.codigo}
-                    onChange={(e) => setNewRepuesto({...newRepuesto, codigo: e.target.value})}
+                    onChange={(e) => setNewRepuesto({ ...newRepuesto, codigo: e.target.value })}
                     className="input-field w-full"
                     placeholder="Ej: PER-024"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad</label>
                   <input
                     type="number"
                     value={newRepuesto.cantidad}
-                    onChange={(e) => setNewRepuesto({...newRepuesto, cantidad: parseInt(e.target.value) || 0})}
+                    onChange={(e) => setNewRepuesto({ ...newRepuesto, cantidad: parseInt(e.target.value) || 0 })}
                     className="input-field w-full"
                     min="1"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Unidad</label>
                   <select
                     value={newRepuesto.unidad}
-                    onChange={(e) => setNewRepuesto({...newRepuesto, unidad: e.target.value})}
+                    onChange={(e) => setNewRepuesto({ ...newRepuesto, unidad: e.target.value })}
                     className="input-field w-full"
                   >
                     <option value="unidades">Unidades</option>
@@ -1321,24 +1245,24 @@ const Mantenimiento: React.FC = () => {
                     <option value="metros">Metros</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Costo Unitario ($)</label>
                   <input
                     type="number"
                     value={newRepuesto.costoUnitario}
-                    onChange={(e) => setNewRepuesto({...newRepuesto, costoUnitario: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => setNewRepuesto({ ...newRepuesto, costoUnitario: parseFloat(e.target.value) || 0 })}
                     className="input-field w-full"
                     min="0"
                     step="0.01"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Proveedor</label>
                   <select
                     value={newRepuesto.proveedor}
-                    onChange={(e) => setNewRepuesto({...newRepuesto, proveedor: e.target.value})}
+                    onChange={(e) => setNewRepuesto({ ...newRepuesto, proveedor: e.target.value })}
                     className="input-field w-full"
                   >
                     <option value="">Seleccionar proveedor</option>
@@ -1348,18 +1272,18 @@ const Mantenimiento: React.FC = () => {
                     <option value="ABB">ABB</option>
                   </select>
                 </div>
-                
+
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Motivo de Solicitud</label>
                   <textarea
                     value={newRepuesto.motivo}
-                    onChange={(e) => setNewRepuesto({...newRepuesto, motivo: e.target.value})}
+                    onChange={(e) => setNewRepuesto({ ...newRepuesto, motivo: e.target.value })}
                     className="input-field w-full h-24"
                     placeholder="Describa la necesidad del repuesto..."
                   />
                 </div>
               </div>
-              
+
               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                 <div className="flex justify-between items-center">
                   <div>
@@ -1374,15 +1298,15 @@ const Mantenimiento: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-6 border-t bg-gray-50 flex justify-between">
-              <button 
+              <button
                 onClick={() => setShowRepuestoModal(false)}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={handleSaveRepuesto}
                 className="btn-primary flex items-center"
               >
@@ -1407,7 +1331,7 @@ const Mantenimiento: React.FC = () => {
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               <div className="space-y-6">
                 <div>
@@ -1423,7 +1347,7 @@ const Mantenimiento: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium text-gray-900 mb-4">Notificaciones</h4>
                   <div className="space-y-3">
@@ -1441,7 +1365,7 @@ const Mantenimiento: React.FC = () => {
                     </label>
                   </div>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium text-gray-900 mb-4">Integraciones</h4>
                   <div className="space-y-4">
@@ -1457,15 +1381,15 @@ const Mantenimiento: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-6 border-t bg-gray-50 flex justify-between">
-              <button 
+              <button
                 onClick={() => setShowConfigModal(false)}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={() => {
                   alert('Configuración guardada exitosamente');
                   setShowConfigModal(false);
@@ -1486,85 +1410,81 @@ const Mantenimiento: React.FC = () => {
           <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Historial - {selectedMillHistory.molinoNombre}</h3>
+                <h3 className="text-xl font-bold text-gray-900">Historial - {selectedMillHistory.name}</h3>
                 <p className="text-gray-600">Registro completo de intervenciones</p>
               </div>
               <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="bg-gray-50 p-4 rounded-xl">
-                  <div className="text-sm text-gray-500">Horas Total Operación</div>
-                  <div className="text-2xl font-bold">{selectedMillHistory.totalHorasOperacion.toLocaleString()}h</div>
+                  <div className="text-sm text-gray-500">Horas Cambio Aceite</div>
+                  <div className="text-2xl font-bold">{selectedMillHistory.hours_to_oil_change}h</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl">
                   <div className="text-sm text-gray-500">Estado Actual</div>
-                  <div className="text-2xl font-bold">{selectedMillHistory.estadoActual.replace('_', ' ')}</div>
+                  <div className="text-2xl font-bold uppercase">{selectedMillHistory.status}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl">
-                  <div className="text-sm text-gray-500">Eficiencia</div>
-                  <div className="text-2xl font-bold">{selectedMillHistory.eficiencia}%</div>
+                  <div className="text-sm text-gray-500">Capacidad</div>
+                  <div className="text-2xl font-bold">{selectedMillHistory.capacity} sacos</div>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
-                {selectedMillHistory.historial.map((record) => (
+                {(maintenanceLogs || []).filter(log => log.mill_id === selectedMillHistory.id).map((record) => (
                   <div key={record.id} className="border rounded-xl p-4 hover:bg-gray-50">
                     <div className="flex flex-col md:flex-row md:items-center justify-between mb-3">
                       <div className="flex items-center mb-2 md:mb-0">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
-                          record.tipo === 'PREVENTIVO' ? 'bg-blue-100' : 'bg-red-100'
-                        }`}>
-                          <Wrench size={16} className={
-                            record.tipo === 'PREVENTIVO' ? 'text-blue-600' : 'text-red-600'
-                          } />
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${record.type === 'PREVENTIVO' ? 'bg-blue-100' : 'bg-red-100'}`}>
+                          <Wrench size={16} className={record.type === 'PREVENTIVO' ? 'text-blue-600' : 'text-red-600'} />
                         </div>
                         <div>
-                          <div className="font-medium">{record.id} - {record.tipo}</div>
-                          <div className="text-sm text-gray-500">{record.fechaProgramada}</div>
+                          <div className="font-medium">#{record.id.substring(0, 8)} - {record.type}</div>
+                          <div className="text-sm text-gray-500">{new Date(record.created_at).toLocaleDateString()}</div>
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        {getStatusBadge(record.estado)}
-                        {getPriorityBadge(record.prioridad)}
+                        {getStatusBadge(record.status)}
                       </div>
                     </div>
-                    
+
                     <div className="mb-3">
-                      <div className="font-medium text-gray-900">{record.descripcion}</div>
-                      <div className="text-gray-600 text-sm mt-1">{record.detalleTecnico}</div>
+                      <div className="text-gray-900 text-sm">{record.description}</div>
+                      {record.action_taken && <div className="text-gray-600 text-xs mt-1 italic">Acción: {record.action_taken}</div>}
                     </div>
-                    
-                    <div className="flex flex-wrap gap-2 text-sm">
-                      <span className="text-gray-600">Técnico: <span className="font-medium">{record.asignadoA}</span></span>
-                      <span className="text-gray-600">Horas: <span className="font-medium">{record.horasReales}h</span></span>
-                      <span className="text-gray-600">Costo: <span className="font-medium">${record.costoReal.toLocaleString()}</span></span>
-                      <span className="text-gray-600">Impacto: <span className="font-medium">{record.impactoProduccion}h</span></span>
+
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="text-gray-600">Técnico: <span className="font-medium text-gray-900">{record.technician_name || 'N/A'}</span></span>
+                      <span className="text-gray-600">Horas: <span className="font-medium text-gray-900">{record.worked_hours}h</span></span>
                     </div>
-                    
-                    <button 
+
+                    <button
                       onClick={() => handleViewDetail(record)}
-                      className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                      className="mt-3 text-indigo-600 hover:text-indigo-800 text-xs font-semibold flex items-center"
                     >
-                      <Eye size={16} className="mr-1" />
-                      Ver detalles completos
+                      <Eye size={14} className="mr-1" />
+                      Ver detalles
                     </button>
                   </div>
                 ))}
+                {(!maintenanceLogs || maintenanceLogs.filter(log => log.mill_id === selectedMillHistory.id).length === 0) && (
+                  <div className="text-center py-8 text-gray-400 italic">No hay historial registrado para este molino.</div>
+                )}
               </div>
             </div>
-            
+
             <div className="p-6 border-t bg-gray-50 flex justify-between">
-              <button 
+              <button
                 onClick={() => setShowHistoryModal(false)}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
               >
                 Cerrar
               </button>
-              <button 
+              <button
                 onClick={handleExportExcel}
                 className="btn-primary flex items-center"
               >

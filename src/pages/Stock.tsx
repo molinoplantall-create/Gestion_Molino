@@ -17,45 +17,28 @@ import {
 import {
   TIPO_CLIENTE,
   MINERAL_TYPES_STOCK,
-  SUBMINERAL_TYPES_STOCK,
-  MOCK_CLIENTES
+  SUBMINERAL_TYPES_STOCK
 } from '../constants';
 import { useAuthStore } from '../store/authStore';
-
-// Tipo para items de stock
-interface StockItem {
-  id: string;
-  fechaRecepcion: Date;
-  tipoCliente: 'MINERO' | 'PALLAQUERO';
-  clienteId: string;
-  clienteNombre: string;
-  zona?: string; // NUEVO CAMPO: Zona de procedencia
-  mineral: 'OXIDO' | 'SULFURO';
-  cuarzo: number;
-  llampo: number;
-  total: number;
-  transportista?: string;
-  placaCamion?: string;
-  observaciones?: string;
-  fechaRegistro: Date;
-}
+import { useSupabaseStore } from '../store/supabaseStore';
 
 const Stock: React.FC = () => {
   const { user } = useAuthStore();
+  const { clients, loading, fetchClients, addClientStock } = useSupabaseStore();
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState('all');
-  const [filterMineral, setFilterMineral] = useState('all');
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
 
-  // Estado para nuevo ingreso - ACTUALIZADO con zona
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
+
+  // Estado para nuevo ingreso
   const [nuevoIngreso, setNuevoIngreso] = useState({
     fechaRecepcion: new Date().toISOString().slice(0, 10),
     tipoCliente: '',
     clienteId: '',
-    zona: '', // NUEVO CAMPO
+    zona: '',
     mineral: '',
     cuarzo: 0,
     llampo: 0,
@@ -66,92 +49,24 @@ const Stock: React.FC = () => {
     observaciones: ''
   });
 
-  // Mock data inicial
-  const [stockData, setStockData] = useState<StockItem[]>([
-    {
-      id: '1',
-      fechaRecepcion: new Date('2024-01-15'),
-      tipoCliente: 'MINERO',
-      clienteId: '1',
-      clienteNombre: 'Minera Andina SA',
-      zona: 'Norte', // Ejemplo de zona
-      mineral: 'OXIDO',
-      cuarzo: 300,
-      llampo: 200,
-      total: 500,
-      transportista: 'Transportes Perú',
-      placaCamion: 'ABC-123',
-      observaciones: 'Entrega completa',
-      fechaRegistro: new Date('2024-01-15')
-    },
-    {
-      id: '2',
-      fechaRecepcion: new Date('2024-01-16'),
-      tipoCliente: 'MINERO',
-      clienteId: '2',
-      clienteNombre: 'Compañía Minerales del Sur',
-      zona: 'Sur', // Ejemplo de zona
-      mineral: 'SULFURO',
-      cuarzo: 200,
-      llampo: 120,
-      total: 320,
-      transportista: 'Logística Minera',
-      placaCamion: 'DEF-456',
-      observaciones: 'Falta verificar',
-      fechaRegistro: new Date('2024-01-16')
-    },
-    {
-      id: '3',
-      fechaRecepcion: new Date('2024-01-14'),
-      tipoCliente: 'PALLAQUERO',
-      clienteId: '3',
-      clienteNombre: 'Juan Pérez (Pallaquero)',
-      zona: 'Centro', // Ejemplo de zona
-      mineral: 'OXIDO',
-      cuarzo: 80,
-      llampo: 70,
-      total: 150,
-      transportista: 'Envíos Rápidos',
-      placaCamion: 'GHI-789',
-      observaciones: '',
-      fechaRegistro: new Date('2024-01-14')
-    },
-  ]);
-
-  // Datos mock para zonas de clientes
-  const mockZonasCliente = [
-    { clienteId: '1', zonas: ['Norte', 'Sur', 'Centro'] },
-    { clienteId: '2', zonas: ['Sur', 'Este'] },
-    { clienteId: '3', zonas: ['Centro', 'Oeste'] },
-  ];
-
-  // Obtener zonas del cliente seleccionado
-  const getZonasCliente = (clienteId: string) => {
-    const clienteZonas = mockZonasCliente.find(z => z.clienteId === clienteId);
-    return clienteZonas ? clienteZonas.zonas : [];
-  };
-
   // Calcular total automáticamente
   useEffect(() => {
     const total = (nuevoIngreso.cuarzo || 0) + (nuevoIngreso.llampo || 0);
     setNuevoIngreso(prev => ({ ...prev, total }));
   }, [nuevoIngreso.cuarzo, nuevoIngreso.llampo]);
 
-  // Filtrar datos
-  const filteredData = stockData.filter(item => {
-    const matchesSearch = item.clienteNombre.toLowerCase().includes(search.toLowerCase()) ||
-      (item.transportista?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (item.placaCamion?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (item.zona?.toLowerCase() || '').includes(search.toLowerCase());
-    const matchesTipo = filterTipo === 'all' || item.tipoCliente === filterTipo;
-    const matchesMineral = filterMineral === 'all' || item.mineral === filterMineral;
-    return matchesSearch && matchesTipo && matchesMineral;
+  // Filtrar clientes para mostrar en la lista
+  const filteredClients = clients.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.zone?.toLowerCase() || '').includes(search.toLowerCase());
+    const matchesTipo = filterTipo === 'all' || c.client_type === filterTipo;
+    return matchesSearch && matchesTipo;
   });
 
-  // Totales
-  const totalStock = stockData.reduce((sum, item) => sum + (item.total || 0), 0);
-  const totalCuarzo = stockData.reduce((sum, item) => sum + (item.cuarzo || 0), 0);
-  const totalLlampo = stockData.reduce((sum, item) => sum + (item.llampo || 0), 0);
+  // Totales globales basados en la DB
+  const totalStock = clients.reduce((sum, c) => sum + (c.stock_cuarzo || 0) + (c.stock_llampo || 0), 0);
+  const totalCuarzo = clients.reduce((sum, c) => sum + (c.stock_cuarzo || 0), 0);
+  const totalLlampo = clients.reduce((sum, c) => sum + (c.stock_llampo || 0), 0);
 
   // Abrir modal para nuevo ingreso
   const abrirModalNuevo = () => {
@@ -169,53 +84,13 @@ const Stock: React.FC = () => {
       placaCamion: '',
       observaciones: ''
     });
-    setIsEditing(false);
-    setEditId(null);
     setShowModal(true);
   };
 
-  // Abrir modal para editar
-  const abrirModalEditar = (item: StockItem) => {
-    setNuevoIngreso({
-      fechaRecepcion: new Date(item.fechaRecepcion).toISOString().slice(0, 10),
-      tipoCliente: item.tipoCliente,
-      clienteId: item.clienteId,
-      zona: item.zona || '',
-      mineral: item.mineral,
-      cuarzo: item.cuarzo || 0,
-      llampo: item.llampo || 0,
-      total: item.total || 0,
-      clienteNombre: item.clienteNombre,
-      transportista: item.transportista || '',
-      placaCamion: item.placaCamion || '',
-      observaciones: item.observaciones || ''
-    });
-    setIsEditing(true);
-    setEditId(item.id);
-    setShowModal(true);
-  };
-
-  // Guardar ingreso (nuevo o editar)
-  const guardarIngreso = () => {
-    // Validaciones
-    if (!nuevoIngreso.fechaRecepcion) {
-      alert('La fecha de recepción es requerida');
-      return;
-    }
-    if (!nuevoIngreso.tipoCliente) {
-      alert('El tipo de cliente es requerido');
-      return;
-    }
+  // Guardar ingreso
+  const guardarIngreso = async () => {
     if (!nuevoIngreso.clienteId) {
       alert('Debe seleccionar un cliente');
-      return;
-    }
-    if (!nuevoIngreso.mineral) {
-      alert('El tipo de mineral es requerido');
-      return;
-    }
-    if (nuevoIngreso.cuarzo < 0 || nuevoIngreso.llampo < 0) {
-      alert('Las cantidades deben ser positivas');
       return;
     }
     if (nuevoIngreso.total <= 0) {
@@ -223,82 +98,32 @@ const Stock: React.FC = () => {
       return;
     }
 
-    const clienteSeleccionado = MOCK_CLIENTES.find(c => c.id === nuevoIngreso.clienteId);
+    const success = await addClientStock(
+      nuevoIngreso.clienteId,
+      nuevoIngreso.cuarzo,
+      nuevoIngreso.llampo
+    );
 
-    if (isEditing && editId) {
-      // Editar existente
-      setStockData(prev => prev.map(item =>
-        item.id === editId ? {
-          ...item,
-          fechaRecepcion: new Date(nuevoIngreso.fechaRecepcion),
-          tipoCliente: nuevoIngreso.tipoCliente as 'MINERO' | 'PALLAQUERO',
-          clienteId: nuevoIngreso.clienteId,
-          clienteNombre: clienteSeleccionado?.nombre || nuevoIngreso.clienteNombre,
-          zona: nuevoIngreso.zona || undefined,
-          mineral: nuevoIngreso.mineral as 'OXIDO' | 'SULFURO',
-          cuarzo: nuevoIngreso.cuarzo,
-          llampo: nuevoIngreso.llampo,
-          total: nuevoIngreso.total,
-          transportista: nuevoIngreso.transportista,
-          placaCamion: nuevoIngreso.placaCamion,
-          observaciones: nuevoIngreso.observaciones
-        } : item
-      ));
+    if (success) {
+      setShowModal(false);
+      alert('Ingreso de mineral registrado exitosamente');
     } else {
-      // Nuevo ingreso
-      const nuevoItem: StockItem = {
-        id: Date.now().toString(),
-        fechaRecepcion: new Date(nuevoIngreso.fechaRecepcion),
-        tipoCliente: nuevoIngreso.tipoCliente as 'MINERO' | 'PALLAQUERO',
-        clienteId: nuevoIngreso.clienteId,
-        clienteNombre: clienteSeleccionado?.nombre || '',
-        zona: nuevoIngreso.zona || undefined,
-        mineral: nuevoIngreso.mineral as 'OXIDO' | 'SULFURO',
-        cuarzo: nuevoIngreso.cuarzo || 0,
-        llampo: nuevoIngreso.llampo || 0,
-        total: nuevoIngreso.total || 0,
-        transportista: nuevoIngreso.transportista,
-        placaCamion: nuevoIngreso.placaCamion,
-        observaciones: nuevoIngreso.observaciones,
-        fechaRegistro: new Date()
-      };
-
-      setStockData(prev => [nuevoItem, ...prev]);
-    }
-
-    setShowModal(false);
-    alert(isEditing ? 'Stock actualizado correctamente' : 'Nuevo ingreso registrado');
-  };
-
-  // Eliminar item (solo admin)
-  const eliminarItem = (id: string) => {
-    if (user?.role !== 'admin') {
-      alert('Solo el administrador puede eliminar registros');
-      return;
-    }
-
-    if (window.confirm('¿Está seguro de eliminar este registro?')) {
-      setStockData(prev => prev.filter(item => item.id !== id));
+      alert('Error al registrar el ingreso');
     }
   };
 
   // Exportar a Excel
   const exportarExcel = () => {
-    const headers = ['Fecha Recepción', 'Cliente', 'Tipo', 'Zona', 'Mineral', 'Cuarzo', 'Llampo', 'Total', 'Transportista', 'Placa', 'Observaciones'];
+    const headers = ['Cliente', 'Tipo', 'Zona', 'Stock Cuarzo', 'Stock Llampo', 'Total'];
     const csvData = [
       headers.join(','),
-      ...filteredData.map(item => [
-        new Date(item.fechaRecepcion).toLocaleDateString(),
-        item.clienteNombre,
-        item.tipoCliente,
-        item.zona || '',
-        item.mineral,
-        item.cuarzo || 0,
-        item.llampo || 0,
-        item.total || 0,
-        item.transportista || '',
-        item.placaCamion || '',
-        item.observaciones || ''
+      ...clients.map(c => [
+        c.name,
+        c.client_type || 'N/A',
+        c.zone || 'N/A',
+        c.stock_cuarzo || 0,
+        c.stock_llampo || 0,
+        (c.stock_cuarzo || 0) + (c.stock_llampo || 0)
       ].join(','))
     ].join('\n');
 
@@ -306,7 +131,7 @@ const Stock: React.FC = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `stock_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `inventario_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
   };
 
@@ -380,9 +205,9 @@ const Stock: React.FC = () => {
               <User className="text-violet-600" size={24} strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">Clientes Activos</p>
+              <p className="text-sm font-medium text-slate-500">Clientes con Stock</p>
               <p className="text-2xl font-bold text-slate-900">
-                {[...new Set(stockData.map(item => item.clienteId))].length}
+                {clients.filter(c => (c.stock_cuarzo || 0) + (c.stock_llampo || 0) > 0).length}
               </p>
             </div>
           </div>
@@ -392,457 +217,227 @@ const Stock: React.FC = () => {
       {/* Filtros */}
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
+          <div className="md:col-span-2 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} strokeWidth={1.5} />
             <input
               type="text"
-              placeholder="Buscar por cliente, transportista..."
+              placeholder="Buscar por cliente o zona..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
             />
           </div>
 
-          <div>
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} strokeWidth={1.5} />
             <select
               value={filterTipo}
               onChange={(e) => setFilterTipo(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 appearance-none outline-none transition-all"
             >
               <option value="all">Todos los tipos</option>
-              {TIPO_CLIENTE.map(tipo => (
-                <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
-              ))}
+              <option value="MINERO">Minero</option>
+              <option value="PALLAQUERO">Pallaquero</option>
             </select>
           </div>
 
-          <div>
-            <select
-              value={filterMineral}
-              onChange={(e) => setFilterMineral(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-            >
-              <option value="all">Todos los minerales</option>
-              {MINERAL_TYPES_STOCK.map(mineral => (
-                <option key={mineral.value} value={mineral.value}>{mineral.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                setSearch('');
-                setFilterTipo('all');
-                setFilterMineral('all');
-              }}
-              className="flex items-center px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
-            >
-              <RefreshCw size={18} className="mr-2" strokeWidth={1.5} />
-              Limpiar
-            </button>
-          </div>
+          <button
+            onClick={() => fetchClients()}
+            className="flex items-center justify-center px-4 py-2 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all font-medium"
+          >
+            <RefreshCw size={18} strokeWidth={1.5} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </button>
         </div>
       </div>
 
-      {/* Tabla de Stock */}
+      {/* Tabla de Inventario */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedItems(filteredData.map(item => item.id));
-                      } else {
-                        setSelectedItems([]);
-                      }
-                    }}
-                  />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Fecha Recepción
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Cliente
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Zona
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Mineral
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Cuarzo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Llampo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Transportista
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Acciones
-                </th>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Cliente</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Zona</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-amber-600">Stock Cuarzo</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-slate-700">Stock Llampo</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Total Sacos</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
-              {filteredData.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={selectedItems.includes(item.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedItems([...selectedItems, item.id]);
-                        } else {
-                          setSelectedItems(selectedItems.filter(id => id !== item.id));
-                        }
-                      }}
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
-                    {new Date(item.fechaRecepcion).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-bold text-slate-900">{item.clienteNombre}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {TIPO_CLIENTE.find(t => t.value === item.tipoCliente)?.label}
+            <tbody className="divide-y divide-slate-100">
+              {filteredClients.map((client) => (
+                <tr key={client.id} className="hover:bg-slate-50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-indigo-50 rounded-lg mr-3 group-hover:bg-white border border-transparent group-hover:border-indigo-100 transition-all">
+                        <User size={16} className="text-indigo-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900">{client.name}</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wider font-medium">{client.client_type}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${item.zona ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                      {item.zona || 'Sin zona'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${item.mineral === 'OXIDO'
-                      ? 'bg-amber-50 text-amber-700 border-amber-100'
-                      : 'bg-slate-100 text-slate-700 border-slate-200'
-                      }`}>
-                      {MINERAL_TYPES_STOCK.find(m => m.value === item.mineral)?.label}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
-                    {(item.cuarzo || 0).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
-                    {(item.llampo || 0).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-bold text-slate-900">{(item.total || 0).toLocaleString()}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-slate-900 font-medium">{item.transportista || '-'}</div>
-                    {item.placaCamion && (
-                      <div className="text-xs text-slate-500 mt-0.5">{item.placaCamion}</div>
+                  <td className="px-6 py-4">
+                    {client.zone ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                        {client.zone}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 italic text-sm">N/A</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => abrirModalEditar(item)}
-                        className="p-1 text-slate-400 hover:text-indigo-600 transition-colors rounded-lg hover:bg-indigo-50"
-                        title="Editar"
-                      >
-                        <Edit size={18} strokeWidth={1.5} />
-                      </button>
-                      <button
-                        onClick={() => eliminarItem(item.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded-lg hover:bg-rose-50"
-                        title={user?.role === 'admin' ? "Eliminar" : "Solo admin puede eliminar"}
-                        disabled={user?.role !== 'admin'}
-                      >
-                        <Trash2 size={18} strokeWidth={1.5} />
-                      </button>
-                    </div>
+                  <td className="px-6 py-4 font-bold text-amber-600">
+                    {(client.stock_cuarzo || 0).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 font-bold text-slate-700">
+                    {(client.stock_llampo || 0).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 font-bold text-slate-900">
+                    {((client.stock_cuarzo || 0) + (client.stock_llampo || 0)).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="Registrar Ingreso"
+                      onClick={() => {
+                        setNuevoIngreso(prev => ({
+                          ...prev,
+                          clienteId: client.id,
+                          tipoCliente: client.client_type || '',
+                          clienteNombre: client.name
+                        }));
+                        setShowModal(true);
+                      }}
+                    >
+                      <Plus size={20} />
+                    </button>
                   </td>
                 </tr>
               ))}
+              {filteredClients.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center">
+                      <Package className="text-slate-300 mb-2" size={48} strokeWidth={1} />
+                      <p className="text-slate-500 font-medium">No se encontraron clientes</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-
-        {filteredData.length === 0 && (
-          <div className="text-center py-16">
-            <Package className="mx-auto h-12 w-12 text-slate-300" strokeWidth={1.5} />
-            <h3 className="mt-2 text-sm font-medium text-slate-900">No hay registros</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              {search || filterTipo !== 'all' || filterMineral !== 'all'
-                ? 'Intenta con otros filtros'
-                : 'Comienza agregando un nuevo ingreso'}
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* Modal Nuevo Ingreso */}
+      {/* Modal de Nuevo Ingreso */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-          <div className="relative bg-white border border-slate-200 w-full max-w-2xl shadow-xl rounded-2xl">
-            <div className="flex justify-between items-center p-6 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-slate-900">
-                {isEditing ? 'Editar Registro de Stock' : 'Nuevo Ingreso de Stock'}
-              </h2>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0">
+              <div className="flex items-center">
+                <div className="p-2.5 bg-indigo-50 rounded-xl mr-4">
+                  <Truck className="text-indigo-600" size={24} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">Registrar Ingreso de Mineral</h3>
+                  <p className="text-slate-500 text-sm">Aumentar stock disponible para cliente</p>
+                </div>
+              </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
               >
-                <CheckCircle size={24} className="rotate-45" strokeWidth={1.5} /> {/* Reusing CheckCircle as X replacement or just X icon if available, but let's stick to X or similar. Wait, I imported CheckCircle but not X in the updated imports? Ah, X is not in imports. I will use 'rotate-45 + Plus' or just 'text-slate-400 font-bold text-2xl' for X if I can't change imports easily. Actually I can just render text '×' or use a known icon. Let's use text '×' styled properly or reuse an icon. I see CheckCircle is imported. I'll use text '×' for safety or X if I add it. Let's stick to text '×' but styled. */}
-                <span className="text-2xl leading-none">&times;</span>
+                <Plus className="rotate-45" size={24} />
               </button>
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Fila 1: Fecha Recepción | Tipo Cliente | Cliente */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Fecha Recepción *
-                  </label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Cliente *</label>
+                  <select
+                    value={nuevoIngreso.clienteId}
+                    onChange={(e) => {
+                      const client = clients.find(c => c.id === e.target.value);
+                      setNuevoIngreso({
+                        ...nuevoIngreso,
+                        clienteId: e.target.value,
+                        clienteNombre: client?.name || '',
+                        tipoCliente: client?.client_type || ''
+                      });
+                    }}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    required
+                  >
+                    <option value="">Seleccionar Cliente</option>
+                    {clients.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Fecha Recepción *</label>
                   <input
                     type="date"
                     value={nuevoIngreso.fechaRecepcion}
                     onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, fechaRecepcion: e.target.value })}
-                    max={new Date().toISOString().slice(0, 10)}
-                    className="input-field"
-                    required
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Tipo Cliente *
-                  </label>
-                  <select
-                    value={nuevoIngreso.tipoCliente}
-                    onChange={(e) => {
-                      setNuevoIngreso({ ...nuevoIngreso, tipoCliente: e.target.value });
-                      // Si cambia el tipo, limpiar cliente seleccionado
-                      if (nuevoIngreso.clienteId) {
-                        const cliente = MOCK_CLIENTES.find(c => c.id === nuevoIngreso.clienteId);
-                        if (cliente?.tipo !== e.target.value) {
-                          setNuevoIngreso({ ...nuevoIngreso, tipoCliente: e.target.value, clienteId: '' });
-                        }
-                      }
-                    }}
-                    className="input-field"
-                    required
-                  >
-                    <option value="">Seleccionar</option>
-                    {TIPO_CLIENTE.map(tipo => (
-                      <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Cliente *
-                  </label>
-                  <select
-                    value={nuevoIngreso.clienteId}
-                    onChange={(e) => {
-                      setNuevoIngreso({ ...nuevoIngreso, clienteId: e.target.value });
-                      // Cuando se selecciona cliente, limpiar zona seleccionada
-                      if (nuevoIngreso.zona) {
-                        setNuevoIngreso(prev => ({ ...prev, zona: '' }));
-                      }
-                    }}
-                    className="input-field"
-                    required
-                    disabled={!nuevoIngreso.tipoCliente}
-                  >
-                    <option value="">Seleccionar cliente</option>
-                    {MOCK_CLIENTES
-                      .filter(cliente => !nuevoIngreso.tipoCliente || cliente.tipo === nuevoIngreso.tipoCliente)
-                      .map(cliente => (
-                        <option key={cliente.id} value={cliente.id}>
-                          {cliente.nombre} ({cliente.stock} sacos)
-                        </option>
-                      ))
-                    }
-                    {nuevoIngreso.tipoCliente && (
-                      <option value="new">+ Crear nuevo cliente</option>
-                    )}
-                  </select>
                 </div>
               </div>
 
-              {/* Fila 2: Zona | Mineral | Cuarzo | Llampo - NUEVA ESTRUCTURA */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {/* ZONA (opcional) */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Zona (opcional)
-                  </label>
-                  <select
-                    value={nuevoIngreso.zona || ''}
-                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, zona: e.target.value })}
-                    className="input-field"
-                    disabled={!nuevoIngreso.clienteId || nuevoIngreso.clienteId === 'new'}
-                  >
-                    <option value="">Seleccionar zona</option>
-                    {/* Mostrar zonas del cliente seleccionado */}
-                    {nuevoIngreso.clienteId && nuevoIngreso.clienteId !== 'new' && (
-                      <>
-                        {getZonasCliente(nuevoIngreso.clienteId).map((zona, index) => (
-                          <option key={index} value={zona}>
-                            {zona}
-                          </option>
-                        ))}
-                        <option value="new_zone">+ Agregar nueva zona</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-
-                {/* MINERAL (obligatorio) */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Mineral *
-                  </label>
-                  <select
-                    value={nuevoIngreso.mineral}
-                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, mineral: e.target.value })}
-                    className="input-field"
-                    required
-                  >
-                    <option value="">Seleccionar</option>
-                    {MINERAL_TYPES_STOCK.map(mineral => (
-                      <option key={mineral.value} value={mineral.value}>{mineral.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* CUARZO (obligatorio) */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Cuarzo (sacos) *
-                  </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                  <label className="block text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">Sacos Cuarzo</label>
                   <input
                     type="number"
                     min="0"
-                    step="1"
                     value={nuevoIngreso.cuarzo || ''}
                     onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, cuarzo: parseInt(e.target.value) || 0 })}
-                    className="input-field text-center font-bold text-amber-600"
+                    className="w-full bg-transparent text-2xl font-bold text-amber-900 border-b-2 border-amber-200 focus:border-amber-500 outline-none transition-all"
                     placeholder="0"
-                    required
                   />
                 </div>
 
-                {/* LLAMPO (obligatorio) */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Llampo (sacos) *
-                  </label>
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Sacos Llampo</label>
                   <input
                     type="number"
                     min="0"
-                    step="1"
                     value={nuevoIngreso.llampo || ''}
                     onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, llampo: parseInt(e.target.value) || 0 })}
-                    className="input-field text-center font-bold text-slate-700"
+                    className="w-full bg-transparent text-2xl font-bold text-slate-900 border-b-2 border-slate-300 focus:border-slate-800 outline-none transition-all"
                     placeholder="0"
-                    required
                   />
                 </div>
               </div>
 
-              {/* Fila 3: Total (auto) | Transportista | Placa Camión */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Total (automático)
-                  </label>
-                  <div className="px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-between">
-                    <span className="text-lg font-bold text-slate-900">
-                      {(nuevoIngreso.total || 0).toLocaleString()}
-                    </span>
-                    <Package className="text-slate-400" size={20} strokeWidth={1.5} />
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Cuarzo: {nuevoIngreso.cuarzo || 0} + Llampo: {nuevoIngreso.llampo || 0}
-                  </p>
+              <div className="bg-indigo-50 p-4 rounded-2xl flex items-center justify-between border border-indigo-100">
+                <div className="flex items-center">
+                  <Package className="text-indigo-600 mr-3" size={24} />
+                  <span className="font-bold text-indigo-900">Total a Ingresar:</span>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Transportista
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevoIngreso.transportista}
-                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, transportista: e.target.value })}
-                    className="input-field"
-                    placeholder="Nombre del transportista"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Placa Camión (opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevoIngreso.placaCamion}
-                    onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, placaCamion: e.target.value })}
-                    className="input-field"
-                    placeholder="ABC-123"
-                  />
-                </div>
+                <span className="text-2xl font-black text-indigo-700">{nuevoIngreso.total.toLocaleString()} sacos</span>
               </div>
+            </div>
 
-              {/* Fila 4: Observaciones (textarea full width) */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Observaciones
-                </label>
-                <textarea
-                  value={nuevoIngreso.observaciones}
-                  onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, observaciones: e.target.value })}
-                  className="input-field min-h-[100px]"
-                  placeholder="Observaciones adicionales..."
-                />
-              </div>
-
-              {/* Botones */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-5 py-2.5 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={guardarIngreso}
-                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 flex items-center shadow-md hover:shadow-lg transition-all transform active:scale-[0.98] font-medium"
-                >
-                  {isEditing ? (
-                    <>
-                      <Edit size={18} className="mr-2" strokeWidth={1.5} />
-                      Actualizar
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle size={18} className="mr-2" strokeWidth={1.5} />
-                      Guardar Ingreso
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end space-x-4">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-100 transition-all shadow-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={guardarIngreso}
+                disabled={loading}
+                className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl font-black hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 disabled:opacity-50"
+              >
+                {loading ? 'Procesando...' : 'Confirmar Ingreso'}
+              </button>
             </div>
           </div>
         </div>

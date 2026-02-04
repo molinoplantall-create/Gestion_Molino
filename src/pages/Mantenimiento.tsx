@@ -448,39 +448,34 @@ const Mantenimiento: React.FC = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-4 md:p-6 border">
-          <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-xl mr-4">
-              <Activity className="text-blue-600" size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Disponibilidad</p>
-              <p className="text-2xl font-bold text-gray-900">97.8%</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-xs text-gray-500">MTBF: 415h</div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-500 h-2 rounded-full" style={{ width: '97.8%' }}></div>
-            </div>
-          </div>
-        </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <div className="bg-white rounded-2xl p-4 md:p-6 border">
           <div className="flex items-center">
             <div className="p-3 bg-green-100 rounded-xl mr-4">
               <CheckCircle className="text-green-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Cumplimiento PM</p>
-              <p className="text-2xl font-bold text-gray-900">94%</p>
+              <p className="text-sm text-gray-600">Disponibilidad</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {mills.length > 0
+                  ? `${Math.round((mills.filter(m => m.status === 'libre').length / mills.length) * 100)}%`
+                  : '0%'}
+              </p>
             </div>
           </div>
           <div className="mt-4">
-            <div className="text-xs text-gray-500">+3% vs mes anterior</div>
+            <div className="text-xs text-gray-500">
+              {mills.filter(m => m.status === 'libre').length} de {mills.length} operativos
+            </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-green-500 h-2 rounded-full" style={{ width: '94%' }}></div>
+              <div
+                className="bg-green-500 h-2 rounded-full"
+                style={{
+                  width: mills.length > 0
+                    ? `${(mills.filter(m => m.status === 'libre').length / mills.length) * 100}%`
+                    : '0%'
+                }}
+              ></div>
             </div>
           </div>
         </div>
@@ -491,14 +486,14 @@ const Mantenimiento: React.FC = () => {
               <Clock className="text-orange-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Tiempo Prom. Reparación</p>
-              <p className="text-2xl font-bold text-gray-900">2.8h</p>
+              <p className="text-sm text-gray-600">Historial Total</p>
+              <p className="text-2xl font-bold text-gray-900">{maintenanceLogs.length}</p>
             </div>
           </div>
           <div className="mt-4">
-            <div className="text-xs text-gray-500">MTTR: 2.8h</div>
+            <div className="text-xs text-gray-500">Registros en base de datos</div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-orange-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+              <div className="bg-orange-500 h-2 rounded-full" style={{ width: '100%' }}></div>
             </div>
           </div>
         </div>
@@ -509,14 +504,23 @@ const Mantenimiento: React.FC = () => {
               <AlertTriangle className="text-red-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Órdenes Pendientes</p>
-              <p className="text-2xl font-bold text-gray-900">8</p>
+              <p className="text-sm text-gray-600">Mantenimientos Urgentes</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {mills.filter(m => (m.hours_to_oil_change || 0) < 20).length}
+              </p>
             </div>
           </div>
           <div className="mt-4">
-            <div className="text-xs text-gray-500">3 altas prioridad</div>
+            <div className="text-xs text-gray-500">Aceite crítico (&lt;20h)</div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-red-500 h-2 rounded-full" style={{ width: '40%' }}></div>
+              <div
+                className="bg-red-500 h-2 rounded-full"
+                style={{
+                  width: mills.length > 0
+                    ? `${(mills.filter(m => (m.hours_to_oil_change || 0) < 20).length / mills.length) * 100}%`
+                    : '0%'
+                }}
+              ></div>
             </div>
           </div>
         </div>
@@ -596,7 +600,6 @@ const Mantenimiento: React.FC = () => {
           ))}
         </div>
       </div>
-
       {/* Filters */}
       <div className="bg-white rounded-2xl p-4 md:p-6 border">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

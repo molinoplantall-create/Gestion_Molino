@@ -79,7 +79,7 @@ const Dashboard: React.FC = () => {
         <StatsCard
           title="Molienda Reciente"
           value={totalMoliendoSemana.toLocaleString()}
-          change="+100%"
+          change={millingLogs.length > 0 ? "Actualizado" : "Sin datos"}
           icon={Factory}
           color="blue"
           description="sacos registrados"
@@ -88,16 +88,16 @@ const Dashboard: React.FC = () => {
         <StatsCard
           title="Stock en Bodega"
           value={totalStockSacos.toLocaleString()}
-          change="-0.5%"
+          change={totalStockSacos > 1000 ? "Estable" : "Bajo"}
           icon={ShoppingBag}
           color="orange"
           description="sacos totales"
-          trend="down"
+          trend={totalStockSacos > 1000 ? "up" : "down"}
         />
         <StatsCard
           title="Clientes Activos"
           value={totalClientes.toString()}
-          change={clients.length > 0 ? "+1" : "0"}
+          change={(clients?.filter(c => c.is_active).length || 0).toString()}
           icon={Users}
           color="green"
           description="en el sistema"
@@ -106,10 +106,10 @@ const Dashboard: React.FC = () => {
         <StatsCard
           title="Estimado Mensual"
           value={`$${ingresosEstimados.toLocaleString()}`}
-          change="+5%"
+          change="Proyectado"
           icon={DollarSign}
           color="purple"
-          description="calculado"
+          description="según moliendas"
           trend="up"
         />
       </div>

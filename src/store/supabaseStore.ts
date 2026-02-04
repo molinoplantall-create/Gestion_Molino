@@ -33,6 +33,7 @@ interface SupabaseStore {
   ) => Promise<boolean>;
   registerMaintenance: (data: any) => Promise<boolean>;
   updateMillStatus: (id: string, status: string) => Promise<void>;
+  addClientStock: (clientId: string, cuarzo: number, llampo: number) => Promise<boolean>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -223,6 +224,38 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       get().fetchMills();
     } catch (error) {
       console.error('Error updating mill status:', error);
+    }
+  },
+
+  addClientStock: async (clientId: string, cuarzo: number, llampo: number) => {
+    set({ loading: true, error: null });
+    try {
+      const { data: client, error: fetchError } = await supabase
+        .from('clients')
+        .select('stock_cuarzo, stock_llampo')
+        .eq('id', clientId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({
+          stock_cuarzo: (client.stock_cuarzo || 0) + cuarzo,
+          stock_llampo: (client.stock_llampo || 0) + llampo,
+        })
+        .eq('id', clientId);
+
+      if (updateError) throw updateError;
+
+      await get().fetchClients();
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error addClientStock:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
     }
   }
 }));

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, Phone, Mail, Package, TrendingUp, Search, Filter,
   UserPlus, MessageSquare, X, Save, MapPin, Building,
-  Calendar, User as UserIcon, FileText, DollarSign
+  Calendar, User as UserIcon, FileText, DollarSign,
+  CheckCircle, AlertTriangle, Layers, RefreshCw
 } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +30,12 @@ const Clientes: React.FC = () => {
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
+
+  // KPIs
+  const totalClientes = clients.length;
+  const clientesActivos = clients.filter(c => c.is_active).length;
+  const stockBajo = clients.filter(c => (c.stock_cuarzo || 0) < 100).length;
+  const totalZonas = new Set(clients.map(c => c.zone).filter(Boolean)).size;
 
   const filteredClients = clients.filter(client => {
     const lowerCaseSearch = search.toLowerCase();
@@ -136,57 +143,57 @@ const Clientes: React.FC = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-6 border">
+        <div className="bg-white rounded-2xl p-6 border shadow-sm">
           <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-xl mr-4">
+            <div className="p-3 bg-blue-50 rounded-xl mr-4 border border-blue-100">
               <Users className="text-blue-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total Clientes</p>
-              <p className="text-2xl font-bold text-gray-900">12</p>
+              <p className="text-sm text-gray-500 font-medium">Total Clientes</p>
+              <p className="text-2xl font-bold text-gray-900">{totalClientes}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border">
+        <div className="bg-white rounded-2xl p-6 border shadow-sm">
           <div className="flex items-center">
-            <div className="p-3 bg-green-100 rounded-xl mr-4">
-              <Package className="text-green-600" size={24} />
+            <div className="p-3 bg-emerald-50 rounded-xl mr-4 border border-emerald-100">
+              <CheckCircle className="text-emerald-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Stock Total</p>
-              <p className="text-2xl font-bold text-gray-900">2,150</p>
+              <p className="text-sm text-gray-500 font-medium">Activos</p>
+              <p className="text-2xl font-bold text-gray-900">{clientesActivos}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border">
+        <div className="bg-white rounded-2xl p-6 border shadow-sm">
           <div className="flex items-center">
-            <div className="p-3 bg-orange-100 rounded-xl mr-4">
-              <TrendingUp className="text-orange-600" size={24} />
+            <div className="p-3 bg-amber-50 rounded-xl mr-4 border border-amber-100">
+              <AlertTriangle className="text-amber-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Clientes Activos</p>
-              <p className="text-2xl font-bold text-gray-900">8</p>
+              <p className="text-sm text-gray-500 font-medium">Stock Bajo</p>
+              <p className="text-2xl font-bold text-gray-900">{stockBajo}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border">
+        <div className="bg-white rounded-2xl p-6 border shadow-sm">
           <div className="flex items-center">
-            <div className="p-3 bg-purple-100 rounded-xl mr-4">
-              <Package className="text-purple-600" size={24} />
+            <div className="p-3 bg-purple-50 rounded-xl mr-4 border border-purple-100">
+              <Layers className="text-purple-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Sacos Promedio</p>
-              <p className="text-2xl font-bold text-gray-900">179</p>
+              <p className="text-sm text-gray-500 font-medium">Zonas</p>
+              <p className="text-2xl font-bold text-gray-900">{totalZonas}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl p-6 border">
+      <div className="bg-white rounded-2xl p-6 border shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -222,12 +229,17 @@ const Clientes: React.FC = () => {
             </select>
           </div>
 
-          <div>
-            <select className="input-field">
-              <option>Ordenar por: Nombre</option>
-              <option>Ordenar por: Stock</option>
-              <option>Ordenar por: Última compra</option>
-            </select>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                setSearch('');
+                setFilterStatus('all');
+              }}
+              className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <RefreshCw size={18} className="mr-2" />
+              Limpiar filtros
+            </button>
           </div>
         </div>
       </div>
@@ -235,16 +247,16 @@ const Clientes: React.FC = () => {
       {/* Clients Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredClients.map((client) => (
-          <div key={client.id} className="bg-white rounded-2xl border overflow-hidden card-hover">
+          <div key={client.id} className="bg-white rounded-2xl border overflow-hidden card-hover shadow-sm">
             {/* Client Header */}
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100">
                     <Users className="text-indigo-600" size={24} />
                   </div>
                   <div className="ml-4">
-                    <h3 className="font-bold text-gray-900">{client.name}</h3>
+                    <h3 className="font-bold text-gray-900 line-clamp-1">{client.name}</h3>
                     <div className="flex items-center mt-1">
                       {getStatusBadge(client.is_active)}
                       <span className="ml-2">{getZoneBadge(client.zone || '')}</span>
@@ -283,46 +295,34 @@ const Clientes: React.FC = () => {
                   <div className="flex justify-between mb-4">
                     <div>
                       <div className="text-sm text-gray-600">Stock Cuarzo</div>
-                      <div className="text-2xl font-bold text-gray-900">{client.stock_cuarzo}</div>
+                      <div className="text-2xl font-bold text-gray-900">{(client.stock_cuarzo || 0).toLocaleString()}</div>
                     </div>
                     <div>
                       <div className="text-sm text-gray-600">Stock Llampo</div>
-                      <div className="text-2xl font-bold text-gray-900">{client.stock_llampo}</div>
+                      <div className="text-2xl font-bold text-gray-900">{(client.stock_llampo || 0).toLocaleString()}</div>
                     </div>
                   </div>
 
-                  {/* Stock Progress (Visual only for now) */}
+                  {/* Stock Progress */}
                   <div>
                     <div className="flex justify-between text-sm text-gray-500 mb-1">
                       <span>Nivel de stock</span>
-                      <span>{client.stock_cuarzo > 100 ? 'Normal' : 'Bajo'}</span>
+                      <span>{(client.stock_cuarzo || 0) > 100 ? 'Normal' : 'Bajo'}</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-100 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full ${client.stock_cuarzo > 100 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                        style={{ width: `${Math.min(100, (client.stock_cuarzo / 500) * 100)}%` }}
+                        className={`h-2 rounded-full ${(client.stock_cuarzo || 0) > 100 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                        style={{ width: `${Math.min(100, ((client.stock_cuarzo || 0) / 1000) * 100)}%` }}
                       ></div>
                     </div>
                   </div>
                 </div>
 
-                {/* Last Purchase/Created */}
+                {/* Registered Date */}
                 <div className="pt-4 border-t border-gray-100">
                   <div className="text-sm text-gray-600">Registrado el</div>
                   <div className="font-medium text-gray-900">
                     {client.created_at ? new Date(client.created_at).toLocaleDateString() : 'N/A'}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="pt-4 border-t border-gray-100">
-                  <div className="flex space-x-2">
-                    <button className="flex-1 btn-secondary py-2 text-sm">
-                      Editar
-                    </button>
-                    <button className="flex-1 btn-primary py-2 text-sm bg-indigo-600 hover:bg-indigo-700">
-                      Contactar
-                    </button>
                   </div>
                 </div>
               </div>
@@ -336,7 +336,7 @@ const Clientes: React.FC = () => {
         )}
       </div>
 
-      {/* Add New Client Button placeholder */}
+      {/* Add Client CTA */}
       <div className="flex justify-center mt-8">
         <button
           className="border-2 border-dashed border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 rounded-2xl p-8 w-full max-w-md flex flex-col items-center justify-center transition-all group"
@@ -350,257 +350,143 @@ const Clientes: React.FC = () => {
         </button>
       </div>
 
-
-      {/* Modal para Nuevo Cliente */}
+      {/* Nuevo Cliente Modal */}
       {showNuevoClienteModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-4 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-2xl bg-white">
-            <div className="flex justify-between items-center mb-6">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white w-full max-w-4xl shadow-2xl rounded-2xl overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-slate-50">
               <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                <UserPlus className="mr-3 text-blue-600" size={28} />
+                <UserPlus className="mr-3 text-indigo-600" size={28} />
                 Registro de Nuevo Cliente
               </h2>
               <button
                 onClick={() => setShowNuevoClienteModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-3xl"
+                className="text-gray-400 hover:text-gray-600 p-2"
               >
-                ×
+                <X size={24} />
               </button>
             </div>
 
             <form onSubmit={handleSubmitNuevoCliente}>
-              <div className="space-y-6 max-h-[70vh] overflow-y-auto px-2">
-                <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                  <p className="text-sm text-blue-700">
-                    Complete todos los campos para registrar un nuevo cliente. Los campos marcados con * son obligatorios.
-                  </p>
-                </div>
-
-                {/* Sección 1: Información Básica */}
-                <div className="border rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <User className="mr-2 text-blue-600" size={20} />
-                    Información Básica
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nombre/Razón Social *
-                      </label>
-                      <input
-                        type="text"
-                        name="nombre"
-                        value={nuevoCliente.nombre}
-                        onChange={handleNuevoClienteChange}
-                        className="input-field"
-                        placeholder="Ej: Minera Andina SA"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        RUC
-                      </label>
-                      <input
-                        type="text"
-                        name="ruc"
-                        value={nuevoCliente.ruc}
-                        onChange={handleNuevoClienteChange}
-                        className="input-field"
-                        placeholder="Ej: 20123456789"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Contacto Principal *
-                      </label>
-                      <input
-                        type="text"
-                        name="contacto"
-                        value={nuevoCliente.contacto}
-                        onChange={handleNuevoClienteChange}
-                        className="input-field"
-                        placeholder="Ej: Juan Rodríguez"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Teléfono *
-                      </label>
-                      <input
-                        type="tel"
-                        name="telefono"
-                        value={nuevoCliente.telefono}
-                        onChange={handleNuevoClienteChange}
-                        className="input-field"
-                        placeholder="Ej: +51 987 654 321"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={nuevoCliente.email}
-                        onChange={handleNuevoClienteChange}
-                        className="input-field"
-                        placeholder="Ej: contacto@empresa.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tipo de Cliente
-                      </label>
-                      <select
-                        name="tipoCliente"
-                        value={nuevoCliente.tipoCliente}
-                        onChange={handleNuevoClienteChange}
-                        className="input-field"
-                      >
-                        <option value="">Seleccionar tipo</option>
-                        <option value="MINERO">Minero</option>
-                        <option value="PALLAQUERO">Pallaquero</option>
-                        <option value="COMERCIAL">Comercial</option>
-                        <option value="INDUSTRIAL">Industrial</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sección 2: Ubicación */}
-                <div className="border rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <MapPin className="mr-2 text-blue-600" size={20} />
-                    Ubicación
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Dirección
-                      </label>
-                      <input
-                        type="text"
-                        name="direccion"
-                        value={nuevoCliente.direccion}
-                        onChange={handleNuevoClienteChange}
-                        className="input-field"
-                        placeholder="Ej: Av. Industrial 123"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Zona
-                      </label>
-                      <select
-                        name="zona"
-                        value={nuevoCliente.zona}
-                        onChange={handleNuevoClienteChange}
-                        className="input-field"
-                      >
-                        <option value="">Seleccionar zona</option>
-                        <option value="Norte">Norte</option>
-                        <option value="Sur">Sur</option>
-                        <option value="Centro">Centro</option>
-                        <option value="Este">Este</option>
-                        <option value="Oeste">Oeste</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sección 3: Información de Stock */}
-                <div className="border rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <Package className="mr-2 text-blue-600" size={20} />
-                    Información de Stock
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Stock Inicial (sacos)
-                      </label>
-                      <input
-                        type="number"
-                        name="stockInicial"
-                        value={nuevoCliente.stockInicial}
-                        onChange={handleNuevoClienteChange}
-                        className="input-field"
-                        placeholder="Ej: 500"
-                        min="0"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tipo de Mineral Principal
-                      </label>
-                      <select
-                        name="tipoMineral"
-                        value={nuevoCliente.tipoMineral}
-                        onChange={handleNuevoClienteChange}
-                        className="input-field"
-                      >
-                        <option value="">Seleccionar mineral</option>
-                        <option value="OXIDO">Óxido</option>
-                        <option value="SULFURO">Sulfuro</option>
-                        <option value="MIXTO">Mixto</option>
-                        <option value="OTRO">Otro</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sección 4: Observaciones */}
-                <div className="border rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <FileText className="mr-2 text-blue-600" size={20} />
-                    Observaciones
-                  </h3>
-
+              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Notas adicionales
-                    </label>
-                    <textarea
-                      name="observaciones"
-                      value={nuevoCliente.observaciones}
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre/Razón Social *</label>
+                    <input
+                      type="text"
+                      name="nombre"
+                      value={nuevoCliente.nombre}
                       onChange={handleNuevoClienteChange}
-                      className="input-field min-h-[100px]"
-                      placeholder="Observaciones sobre el cliente, acuerdos especiales, etc."
+                      className="input-field"
+                      placeholder="Ej: Minera Andina SA"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">RUC</label>
+                    <input
+                      type="text"
+                      name="ruc"
+                      value={nuevoCliente.ruc}
+                      onChange={handleNuevoClienteChange}
+                      className="input-field"
+                      placeholder="Ej: 20123456789"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Contacto Principal *</label>
+                    <input
+                      type="text"
+                      name="contacto"
+                      value={nuevoCliente.contacto}
+                      onChange={handleNuevoClienteChange}
+                      className="input-field"
+                      placeholder="Ej: Juan Rodríguez"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono *</label>
+                    <input
+                      type="tel"
+                      name="telefono"
+                      value={nuevoCliente.telefono}
+                      onChange={handleNuevoClienteChange}
+                      className="input-field"
+                      placeholder="Ej: +51 987 654 321"
+                      required
                     />
                   </div>
                 </div>
+
+                {/* Additional Details */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Zona</label>
+                    <select
+                      name="zona"
+                      value={nuevoCliente.zona}
+                      onChange={handleNuevoClienteChange}
+                      className="input-field"
+                    >
+                      <option value="">Seleccionar zona</option>
+                      <option value="Norte">Norte</option>
+                      <option value="Sur">Sur</option>
+                      <option value="Centro">Centro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de Cliente</label>
+                    <select
+                      name="tipoCliente"
+                      value={nuevoCliente.tipoCliente}
+                      onChange={handleNuevoClienteChange}
+                      className="input-field"
+                    >
+                      <option value="">Seleccionar tipo</option>
+                      <option value="MINERO">Minero</option>
+                      <option value="PALLAQUERO">Pallaquero</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Stock Inicial (Sacos)</label>
+                    <input
+                      type="number"
+                      name="stockInicial"
+                      value={nuevoCliente.stockInicial}
+                      onChange={handleNuevoClienteChange}
+                      className="input-field"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Observaciones</label>
+                  <textarea
+                    name="observaciones"
+                    value={nuevoCliente.observaciones}
+                    onChange={handleNuevoClienteChange}
+                    className="input-field min-h-[80px]"
+                    placeholder="Notas adicionales..."
+                  />
+                </div>
               </div>
 
-              {/* Botones de acción */}
-              <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+              <div className="p-6 bg-slate-50 border-t border-gray-100 flex justify-end space-x-3">
                 <button
                   type="button"
                   onClick={() => setShowNuevoClienteModal(false)}
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center"
+                  className="btn-secondary"
                 >
-                  <X size={18} className="mr-2" />
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                  className="btn-primary"
                 >
-                  <Save size={18} className="mr-2" />
-                  Registrar Cliente
+                  Guardar Cliente
                 </button>
               </div>
             </form>

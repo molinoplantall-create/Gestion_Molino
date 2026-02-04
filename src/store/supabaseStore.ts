@@ -5,12 +5,14 @@ import { Mill, Client, MillingLog } from '@/types';
 interface SupabaseStore {
   mills: Mill[];
   clients: Client[];
+  millingLogs: MillingLog[];
   loading: boolean;
   error: string | null;
 
   // Actions
   fetchMills: () => Promise<void>;
   fetchClients: () => Promise<void>;
+  fetchMillingLogs: (limit?: number) => Promise<void>;
   registerMilling: (
     data: {
       clientId: string;
@@ -33,6 +35,7 @@ interface SupabaseStore {
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   mills: [],
   clients: [],
+  millingLogs: [],
   loading: false,
   error: null,
 
@@ -144,6 +147,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       // Refresh data
       await get().fetchMills();
       await get().fetchClients();
+      await get().fetchMillingLogs(10); // Refresh logs too
 
       return true;
 
@@ -153,6 +157,27 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return false;
     } finally {
       set({ loading: false });
+    }
+  },
+
+  fetchMillingLogs: async (limit = 20) => {
+    try {
+      const { data, error } = await supabase
+        .from('milling_logs')
+        .select(`
+          *,
+          clients (
+            name
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+
+      set({ millingLogs: data || [] });
+    } catch (error: any) {
+      console.error('❌ Error fetchMillingLogs:', error);
     }
   },
 

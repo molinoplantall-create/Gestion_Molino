@@ -1,32 +1,60 @@
 import React from 'react';
+import { useSupabaseStore } from '@/store/supabaseStore';
 
 const ActivityChart: React.FC = () => {
-  const data = [
-    { name: 'Molino I', value: 420, color: 'bg-blue-500' },
-    { name: 'Molino II', value: 380, color: 'bg-green-500' },
-    { name: 'Molino III', value: 290, color: 'bg-orange-500' },
-    { name: 'Molino IV', value: 310, color: 'bg-purple-500' },
+  const { mills, millingLogs } = useSupabaseStore();
+
+  // Colores predefinidos para los molinos
+  const colors = [
+    'bg-blue-500',
+    'bg-emerald-500',
+    'bg-orange-500',
+    'bg-purple-500',
+    'bg-rose-500',
+    'bg-amber-500'
   ];
 
-  const maxValue = Math.max(...data.map(d => d.value));
+  // Calculamos el total de sacos procesados por cada molino
+  const chartData = mills.map((mill, index) => {
+    let totalSacos = 0;
+
+    millingLogs.forEach(log => {
+      if (Array.isArray(log.mills_used)) {
+        const usage = log.mills_used.find((m: any) => m.mill_id === mill.id);
+        if (usage) {
+          totalSacos += (usage.cuarzo || 0) + (usage.llampo || 0);
+        }
+      }
+    });
+
+    return {
+      name: mill.name,
+      value: totalSacos,
+      color: colors[index % colors.length]
+    };
+  });
+
+  const maxValue = Math.max(...chartData.map(d => d.value), 1);
 
   return (
     <div>
       <div className="space-y-5">
-        {data.map((item, index) => (
+        {chartData.map((item, index) => (
           <div key={index} className="flex items-center">
-            <div className="w-24">
-              <span className="text-sm font-medium text-slate-600">{item.name}</span>
+            <div className="w-24 shrink-0">
+              <span className="text-sm font-bold text-slate-700 truncate block" title={item.name}>
+                {item.name}
+              </span>
             </div>
             <div className="flex-1 ml-4">
               <div className="relative">
-                <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-                  <span className="font-medium text-slate-700">{item.value.toLocaleString()} sacos</span>
+                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                  <span className="text-slate-600 italic">{item.value.toLocaleString()} sacos</span>
                   <span>{((item.value / maxValue) * 100).toFixed(0)}%</span>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2.5">
+                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200 shadow-inner">
                   <div
-                    className={`h-2.5 rounded-full ${item.color} transition-all duration-500`}
+                    className={`h-full rounded-full ${item.color} transition-all duration-1000 ease-out shadow-sm`}
                     style={{ width: `${(item.value / maxValue) * 100}%` }}
                   ></div>
                 </div>
@@ -34,13 +62,18 @@ const ActivityChart: React.FC = () => {
             </div>
           </div>
         ))}
+        {chartData.length === 0 && (
+          <div className="py-20 text-center text-slate-400 font-medium italic">
+            Esperando datos de molienda...
+          </div>
+        )}
       </div>
 
-      <div className="flex justify-center space-x-6 mt-8">
-        {data.map((item, index) => (
-          <div key={index} className="flex items-center">
-            <div className={`w-2.5 h-2.5 rounded-full ${item.color} mr-2`}></div>
-            <span className="text-xs text-slate-500 font-medium">{item.name}</span>
+      <div className="flex flex-wrap justify-center gap-4 mt-8">
+        {chartData.map((item, index) => (
+          <div key={index} className="flex items-center bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 shadow-sm">
+            <div className={`w-2 h-2 rounded-full ${item.color} mr-2 shadow-sm`}></div>
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tight">{item.name}</span>
           </div>
         ))}
       </div>

@@ -1,83 +1,137 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart3, PieChart, Download, Filter, Calendar, TrendingUp, TrendingDown, MessageSquare, FileText, Printer } from 'lucide-react';
+import { useSupabaseStore } from '../store/supabaseStore';
 
 const Reportes: React.FC = () => {
+  const { millingLogs, mills, clients, fetchMillingLogs, fetchMills, fetchClients } = useSupabaseStore();
   const [dateRange, setDateRange] = useState('month');
   const [reportType, setReportType] = useState('general');
 
-  // Datos para gráficos
-  const monthlyData = [
-    { month: 'Ene', sacos: 420, clientes: 8 },
-    { month: 'Feb', sacos: 380, clientes: 7 },
-    { month: 'Mar', sacos: 450, clientes: 9 },
-    { month: 'Abr', sacos: 520, clientes: 10 },
-    { month: 'May', sacos: 480, clientes: 9 },
-    { month: 'Jun', sacos: 600, clientes: 12 },
-  ];
+  useEffect(() => {
+    fetchMillingLogs(100); // Fetch more for reports
+    fetchMills();
+    fetchClients();
+  }, [fetchMillingLogs, fetchMills, fetchClients]);
 
-  const millData = [
-    { name: 'Molino I', value: 1250, color: 'bg-blue-500' },
-    { name: 'Molino II', value: 980, color: 'bg-green-500' },
-    { name: 'Molino III', value: 890, color: 'bg-orange-500' },
-    { name: 'Molino IV', value: 1100, color: 'bg-purple-500' },
-  ];
+  // Cálculos dinámicos basados en logs
+  const { monthlyData, millData, mineralData, topClients, totalSacosTotal } = useMemo(() => {
+    // 1. Producción Mensual
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const currentYear = new Date().getFullYear();
 
-  const mineralData = [
-    { name: 'Óxido', value: 65, color: 'bg-blue-500' },
-    { name: 'Sulfuro', value: 35, color: 'bg-yellow-500' },
-  ];
+    // Objeto para agrupar por mes
+    const monthlyGroups: Record<number, { sacos: number; clientes: Set<string> }> = {};
+    for (let i = 0; i < 12; i++) {
+      monthlyGroups[i] = { sacos: 0, clientes: new Set() };
+    }
 
-  const topClients = [
-    { name: 'Minera Andina SA', sacos: 1250, change: '+12%' },
-    { name: 'Compañía Minerales', sacos: 980, change: '+8%' },
-    { name: 'Empresa Extractora', sacos: 890, change: '+15%' },
-    { name: 'Minerales del Sur', sacos: 850, change: '-5%' },
-    { name: 'Sociedad Minera', sacos: 750, change: '+20%' },
-  ];
+    millingLogs.forEach(log => {
+      const date = new Date(log.created_at);
+      if (date.getFullYear() === currentYear) {
+        const month = date.getMonth();
+        monthlyGroups[month].sacos += log.total_sacks;
+        monthlyGroups[month].clientes.add(log.client_id);
+      }
+    });
 
-  const maxSacos = Math.max(...monthlyData.map(d => d.sacos));
-  const maxMillSacos = Math.max(...millData.map(d => d.value));
+    const mData = months.map((month, i) => ({
+      month,
+      sacos: monthlyGroups[i].sacos,
+      clientes: monthlyGroups[i].clientes.size
+    })).filter((_, i) => i <= new Date().getMonth()); // Solo hasta el mes actual
+
+    // 2. Producción por Molino
+    const millProd: Record<string, number> = {};
+    mills.forEach(m => millProd[m.id] = 0);
+
+    millingLogs.forEach(log => {
+      if (Array.isArray(log.mills_used)) {
+        log.mills_used.forEach((mu: any) => {
+          if (millProd[mu.mill_id] !== undefined) {
+            millProd[mu.mill_id] += mu.total || (mu.cuarzo + mu.llampo) || 0;
+          }
+        });
+      }
+    });
+
+    const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'];
+    const miData = mills.map((m, i) => ({
+      name: m.name,
+      value: millProd[m.id] || 0,
+      color: colors[i % colors.length]
+    })).sort((a, b) => b.value - a.value);
+
+    // 3. Distribución por Mineral
+    let oxidoSacos = 0;
+    let sulfuroSacos = 0;
+    millingLogs.forEach(log => {
+      if (log.mineral_type === 'OXIDO') oxidoSacos += log.total_sacks;
+      else if (log.mineral_type === 'SULFURO') sulfuroSacos += log.total_sacks;
+    });
+    const totalSacks = oxidoSacos + sulfuroSacos || 1;
+    const minData = [
+      { name: 'Óxido', value: Math.round((oxidoSacos / totalSacks) * 100), color: 'bg-blue-500' },
+      { name: 'Sulfuro', value: Math.round((sulfuroSacos / totalSacks) * 100), color: 'bg-yellow-500' },
+    ];
+
+    // 4. Top Clientes
+    const clientProd: Record<string, { name: string; sacos: number }> = {};
+    millingLogs.forEach(log => {
+      const clientId = log.client_id;
+      if (!clientProd[clientId]) {
+        clientProd[clientId] = { name: log.clients?.name || 'Cliente Desconocido', sacos: 0 };
+      }
+      clientProd[clientId].sacos += log.total_sacks;
+    });
+
+    const tClients = Object.values(clientProd)
+      .sort((a, b) => b.sacos - a.sacos)
+      .slice(0, 5)
+      .map(c => ({
+        name: c.name,
+        sacos: c.sacos,
+        change: '+0%' // Placeholder ya que no tenemos comparación histórica fácil aquí
+      }));
+
+    return {
+      monthlyData: mData,
+      millData: miData,
+      mineralData: minData,
+      topClients: tClients,
+      totalSacosTotal: totalSacks === 1 ? 0 : totalSacks
+    };
+  }, [millingLogs, mills]);
+
+  const maxSacos = Math.max(...monthlyData.map(d => d.sacos), 1);
+  const maxMillSacos = Math.max(...millData.map(d => d.value), 1);
 
   // Funciones para manejar las acciones de los botones
   const handleExportExcel = () => {
-    console.log('Exportando a Excel...');
-    // Aquí iría la lógica para exportar a Excel
-    alert('Funcionalidad de exportar a Excel activada');
+    alert('Exportando reporte a Excel con datos dinámicos...');
   };
 
   const handleSendWhatsApp = () => {
-    console.log('Enviando por WhatsApp...');
-    // Aquí iría la lógica para enviar por WhatsApp
     alert('Funcionalidad de WhatsApp activada');
   };
 
   const handlePrint = () => {
-    console.log('Imprimiendo reporte...');
     window.print();
   };
 
   const handleGeneratePDF = () => {
-    console.log('Generando PDF...');
-    // Aquí iría la lógica para generar PDF
-    alert('Funcionalidad de generar PDF activada');
+    alert('Generando PDF...');
   };
 
   const handleApplyFilters = () => {
-    console.log('Aplicando filtros...');
-    // Aquí iría la lógica para aplicar filtros
-    alert('Filtros aplicados');
+    alert('Filtros aplicados (simulado)');
   };
 
   const handleClearFilters = () => {
-    console.log('Limpiando filtros...');
     setDateRange('month');
     setReportType('general');
-    alert('Filtros limpiados');
   };
 
   const handleSendReports = () => {
-    console.log('Enviando reportes masivos...');
-    // Aquí iría la lógica para envío masivo
     alert('Envío masivo de reportes activado');
   };
 
@@ -202,13 +256,13 @@ const Reportes: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500">Sacos Procesados</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">4,220</p>
+              <p className="text-2xl font-bold text-slate-900 mt-2">{totalSacosTotal.toLocaleString()}</p>
               <div className="flex flex-wrap items-center mt-2 text-xs font-medium">
                 <span className="flex items-center text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100">
                   <TrendingUp size={14} strokeWidth={1.5} className="mr-1" />
-                  +12%
+                  Total
                 </span>
-                <span className="text-slate-400 ml-2 whitespace-nowrap">vs mes anterior</span>
+                <span className="text-slate-400 ml-2 whitespace-nowrap">histórico</span>
               </div>
             </div>
             <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
@@ -221,13 +275,13 @@ const Reportes: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500">Clientes Activos</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">12</p>
+              <p className="text-2xl font-bold text-slate-900 mt-2">{clients.length}</p>
               <div className="flex flex-wrap items-center mt-2 text-xs font-medium">
                 <span className="flex items-center text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100">
                   <TrendingUp size={14} strokeWidth={1.5} className="mr-1" />
-                  +2
+                  {clients.filter(c => c.is_active).length}
                 </span>
-                <span className="text-slate-400 ml-2 whitespace-nowrap">nuevos este mes</span>
+                <span className="text-slate-400 ml-2 whitespace-nowrap">operativos</span>
               </div>
             </div>
             <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
@@ -239,8 +293,10 @@ const Reportes: React.FC = () => {
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">Eficiencia</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">94%</p>
+              <p className="text-sm font-medium text-slate-500">Producción Mes</p>
+              <p className="text-2xl font-bold text-slate-900 mt-2">
+                {(monthlyData[monthlyData.length - 1]?.sacos || 0).toLocaleString()}
+              </p>
               <div className="flex flex-wrap items-center mt-2 text-xs font-medium">
                 <span className="flex items-center text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100">
                   <TrendingUp size={14} strokeWidth={1.5} className="mr-1" />
@@ -258,8 +314,10 @@ const Reportes: React.FC = () => {
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">Tiempo Promedio</p>
-              <p className="text-2xl font-bold text-slate-900 mt-2">2.1h</p>
+              <p className="text-sm font-medium text-slate-500">Molinos Activos</p>
+              <p className="text-2xl font-bold text-slate-900 mt-2">
+                {mills.filter(m => m.status === 'ocupado').length}
+              </p>
               <div className="flex flex-wrap items-center mt-2 text-xs font-medium">
                 <span className="flex items-center text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100">
                   <TrendingDown size={14} strokeWidth={1.5} className="mr-1" />
@@ -400,8 +458,8 @@ const Reportes: React.FC = () => {
                   </div>
                 </div>
                 <div className={`flex items-center flex-shrink-0 ml-4 px-2.5 py-1 rounded-full text-xs font-bold border ${client.change.startsWith('+')
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                    : 'bg-rose-50 text-rose-700 border-rose-100'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                  : 'bg-rose-50 text-rose-700 border-rose-100'
                   }`}>
                   {client.change.startsWith('+') ? (
                     <TrendingUp size={14} strokeWidth={2} className="mr-1" />

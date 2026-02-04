@@ -17,8 +17,6 @@ import {
 import {
   TIPO_CLIENTE,
   MINERAL_TYPES_STOCK,
-  MOCK_CLIENTES,
-  MOLINOS_DISPONIBLES,
   MOLINO_STATUS
 } from '../constants';
 import { useAuthStore } from '../store/authStore';
@@ -140,19 +138,7 @@ const RegistroMolienda: React.FC = () => {
     stockRestanteTotal: 0,
     stockRestanteCuarzo: 0,
     stockRestanteLlampo: 0,
-    molinos: MOLINOS_DISPONIBLES.map(m => ({
-      id: m.id,
-      nombre: m.nombre,
-      activo: false,
-      cuarzo: 0,
-      llampo: 0,
-      total: 0,
-      capacidadMaxima: m.capacidadMaxima,
-      disponible: true,
-      estado: 'LIBRE',
-      tiempoEstimado: 0,
-      horaFin: null
-    })),
+    molinos: [],
     observaciones: '',
     totalSacos: 0,
     totalCuarzo: 0,
@@ -162,6 +148,28 @@ const RegistroMolienda: React.FC = () => {
     procesoId: null,
     estado: 'PROCESANDO'
   });
+
+  // Inicializar molinos cuando la data esté disponible
+  useEffect(() => {
+    if (mills.length > 0 && molienda.molinos.length === 0) {
+      setMolienda(prev => ({
+        ...prev,
+        molinos: mills.map(m => ({
+          id: m.id,
+          nombre: m.name,
+          activo: false,
+          cuarzo: 0,
+          llampo: 0,
+          total: 0,
+          capacidadMaxima: m.capacity || 200,
+          disponible: m.status === 'libre',
+          estado: m.status?.toUpperCase() as any || 'LIBRE',
+          tiempoEstimado: 0,
+          horaFin: null
+        }))
+      }));
+    }
+  }, [mills, molienda.molinos.length]);
 
   // Sync molinos local state with Supabase Store state
   useEffect(() => {
@@ -328,8 +336,8 @@ const RegistroMolienda: React.FC = () => {
       setMolienda(prev => ({
         ...prev,
         clienteId: cliente.id,
-        clienteNombre: cliente.name, // usar name de DB
-        tipoCliente: cliente.type, // user type de DB
+        clienteNombre: cliente.name,
+        tipoCliente: (cliente.client_type || 'MINERO') as any,
         stockTotal: stockTotal,
         stockCuarzo: cliente.stock_cuarzo || 0,
         stockLlampo: cliente.stock_llampo || 0,
@@ -984,10 +992,10 @@ terminan a la misma hora.
               className="input-field"
               disabled={molienda.procesoIniciado}
             >
-              <option value="">Seleccione Cliente ({MOCK_CLIENTES.filter(c => c.stock > 0).length} con stock)</option>
-              {MOCK_CLIENTES.filter(c => c.stock > 0).map(cliente => (
+              <option value="">Seleccione Cliente ({clients.length} disponibles)</option>
+              {clients.map(cliente => (
                 <option key={cliente.id} value={cliente.id}>
-                  {cliente.nombre}
+                  {cliente.name}
                 </option>
               ))}
             </select>

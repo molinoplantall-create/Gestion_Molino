@@ -57,78 +57,33 @@ export const SUBMINERAL_TYPES_STOCK = [
   { value: 'LLAMPO', label: 'Llampo' },
 ] as const;
 
-// Mock de clientes para desarrollo
-export const MOCK_CLIENTES = [
-  { id: '1', nombre: 'Minera Andina SA', tipo: 'MINERO', stock: 500 },
-  { id: '2', nombre: 'Compañía Minerales del Sur', tipo: 'MINERO', stock: 320 },
-  { id: '3', nombre: 'Juan Pérez (Pallaquero)', tipo: 'PALLAQUERO', stock: 150 },
-  { id: '4', nombre: 'Carlos López (Minero)', tipo: 'MINERO', stock: 280 },
-];
-
-// Agrega al final de tu archivo constants/index.ts
-// Estados de los molinos
+// Estados de los molinos para visualización
 export const MOLINO_STATUS = {
-  LIBRE: { 
-    label: 'Libre', 
+  LIBRE: {
+    label: 'Libre',
     color: 'bg-green-100 text-green-800',
     icon: 'CheckCircle',
-    disponible: true 
+    disponible: true
   },
-  OCUPADO: { 
-    label: 'Ocupado', 
+  OCUPADO: {
+    label: 'Ocupado',
     color: 'bg-red-100 text-red-800',
     icon: 'XCircle',
-    disponible: false 
+    disponible: false
   },
-  MANTENIMIENTO: { 
-    label: 'Mantenimiento', 
+  MANTENIMIENTO: {
+    label: 'Mantenimiento',
     color: 'bg-yellow-100 text-yellow-800',
     icon: 'Wrench',
-    disponible: false 
+    disponible: false
   },
-  PROCESANDO: { 
-    label: 'Procesando', 
+  PROCESANDO: {
+    label: 'Procesando',
     color: 'bg-blue-100 text-blue-800',
     icon: 'Loader',
-    disponible: false 
+    disponible: false
   }
 } as const;
-
-// Molinos con su estado actual
-export const MOLINOS_DISPONIBLES = [
-  { 
-    id: '1', 
-    nombre: 'Molino I', 
-    capacidadMaxima: 200, // sacos máximos
-    estado: 'LIBRE' as keyof typeof MOLINO_STATUS,
-    clienteActual: null,
-    inicioProceso: null
-  },
-  { 
-    id: '2', 
-    nombre: 'Molino II', 
-    capacidadMaxima: 200,
-    estado: 'LIBRE' as keyof typeof MOLINO_STATUS,
-    clienteActual: null,
-    inicioProceso: null
-  },
-  { 
-    id: '3', 
-    nombre: 'Molino III', 
-    capacidadMaxima: 180,
-    estado: 'LIBRE' as keyof typeof MOLINO_STATUS,
-    clienteActual: null,
-    inicioProceso: null
-  },
-  { 
-    id: '4', 
-    nombre: 'Molino IV', 
-    capacidadMaxima: 180,
-    estado: 'LIBRE' as keyof typeof MOLINO_STATUS,
-    clienteActual: null,
-    inicioProceso: null
-  }
-];
 
 // Tiempos estimados por tipo de mineral (horas por 10 sacos)
 export const TIEMPO_ESTIMADO_MOLIENDA = {

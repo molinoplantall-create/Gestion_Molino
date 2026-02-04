@@ -14,12 +14,13 @@ interface MaintenanceRecord {
   id: string;
   mill_id: string;
   type: string;
+  status: string;
+  priority?: string;
   category?: string;
   description: string;
   action_taken?: string;
   worked_hours?: number;
   technician_name?: string;
-  status: string;
   created_at: string;
   mills?: {
     name: string;
@@ -924,59 +925,39 @@ const Mantenimiento: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="border rounded-xl p-4">
+          <div className="border rounded-xl p-4 bg-slate-50/50">
             <div className="flex items-center mb-4">
               <div className="p-2 bg-blue-100 rounded-lg mr-3">
                 <Wrench className="text-blue-600" size={20} />
               </div>
               <div>
                 <div className="font-medium text-gray-900">Repuestos Críticos</div>
-                <div className="text-sm text-gray-500">Stock mínimo</div>
+                <div className="text-sm text-gray-500">Estado de stock</div>
               </div>
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm">Pernos M24 Grado 8.8</span>
-                <span className="text-sm font-medium text-red-600">3 uds</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Rodamientos 6312-C3</span>
-                <span className="text-sm font-medium text-red-600">2 uds</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Aceite ISO VG 320</span>
-                <span className="text-sm font-medium text-yellow-600">15 litros</span>
-              </div>
+            <div className="py-8 text-center">
+              <Package className="mx-auto text-slate-300 mb-2" size={32} strokeWidth={1} />
+              <p className="text-sm text-slate-500 italic">Módulo de inventario<br />en desarrollo</p>
             </div>
           </div>
 
-          <div className="border rounded-xl p-4">
+          <div className="border rounded-xl p-4 bg-slate-50/50">
             <div className="flex items-center mb-4">
               <div className="p-2 bg-green-100 rounded-lg mr-3">
                 <CheckCircle className="text-green-600" size={20} />
               </div>
               <div>
                 <div className="font-medium text-gray-900">En Garantía</div>
-                <div className="text-sm text-gray-500">Próximos a vencer</div>
+                <div className="text-sm text-gray-500">Componentes activos</div>
               </div>
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm">Motor 100HP</span>
-                <span className="text-sm font-medium">45 días</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Reductor 1:50</span>
-                <span className="text-sm font-medium">60 días</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Sensor de Vibración</span>
-                <span className="text-sm font-medium">30 días</span>
-              </div>
+            <div className="py-8 text-center">
+              <AlertCircle className="mx-auto text-slate-300 mb-2" size={32} strokeWidth={1} />
+              <p className="text-sm text-slate-500 italic">Sin registros de<br />garantía actuales</p>
             </div>
           </div>
 
-          <div className="border rounded-xl p-4">
+          <div className="border rounded-xl p-4 bg-slate-50/50">
             <div className="flex items-center mb-4">
               <div className="p-2 bg-purple-100 rounded-lg mr-3">
                 <Calendar className="text-purple-600" size={20} />
@@ -986,19 +967,9 @@ const Mantenimiento: React.FC = () => {
                 <div className="text-sm text-gray-500">Programadas</div>
               </div>
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm">Sensores Temperatura</span>
-                <span className="text-sm font-medium">15/02/2024</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Sistema Monitoreo Online</span>
-                <span className="text-sm font-medium">28/02/2024</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">PLC Controlador</span>
-                <span className="text-sm font-medium">10/03/2024</span>
-              </div>
+            <div className="py-8 text-center">
+              <Calendar className="mx-auto text-slate-300 mb-2" size={32} strokeWidth={1} />
+              <p className="text-sm text-slate-500 italic">No hay instalaciones<br />programadas</p>
             </div>
           </div>
         </div>
@@ -1144,17 +1115,13 @@ const Mantenimiento: React.FC = () => {
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Asignado a</label>
-                  <select
+                  <input
+                    type="text"
                     value={newRecord.asignadoA}
                     onChange={(e) => setNewRecord({ ...newRecord, asignadoA: e.target.value })}
                     className="input-field w-full"
-                  >
-                    <option value="">Seleccionar técnico</option>
-                    <option value="Juan Pérez">Juan Pérez</option>
-                    <option value="Carlos Rodríguez">Carlos Rodríguez</option>
-                    <option value="Pedro Gómez">Pedro Gómez</option>
-                    <option value="Luis Martínez">Luis Martínez</option>
-                  </select>
+                    placeholder="Nombre del técnico"
+                  />
                 </div>
               </div>
 

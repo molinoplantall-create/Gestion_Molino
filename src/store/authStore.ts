@@ -1,79 +1,121 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-interface User {
-  email: string;
-  role: 'admin' | 'operator';
-  nombre?: string;
-}
+import { supabase } from '@/lib/supabase';
+import { User, UserRole } from '@/types';
 
 interface AuthStore {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  initialized: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  initialize: () => Promise<void>;
   setLoading: (loading: boolean) => void;
 }
 
-export const useAuthStore = create<AuthStore>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      loading: true,
-      
-      login: async (email: string, password: string) => {
-        set({ loading: true });
-        
-        // Simular delay de red
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        console.log('Intento de login con:', email, password);
-        
-        // Credenciales hardcodeadas
-        const validCredentials = [
-          { email: 'admin@molino.com', password: 'admin123', role: 'admin' as const },
-          { email: 'operador@molino.com', password: 'operador123', role: 'operator' as const }
-        ];
+export const useAuthStore = create<AuthStore>((set, get) => ({
+  user: null,
+  loading: true,
+  initialized: false,
 
-        const userCredential = validCredentials.find(
-          cred => cred.email === email && cred.password === password
-        );
+  initialize: async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
 
-        console.log('Credencial encontrada:', userCredential);
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-        if (userCredential) {
-          const userData: User = {
-            email: userCredential.email,
-            role: userCredential.role,
-            nombre: userCredential.email.split('@')[0]
-          };
-          
-          console.log('Usuario logueado:', userData);
-          set({ user: userData, loading: false });
-          return true;
-        }
-
-        console.log('Credenciales incorrectas');
-        set({ loading: false });
-        return false;
-      },
-      
-      logout: () => {
-        console.log('Cerrando sesión');
-        set({ user: null });
-      },
-      
-      setLoading: (loading: boolean) => {
-        set({ loading });
-      }
-    }),
-    {
-      name: 'auth-storage',
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.setLoading(false);
+        if (profile) {
+          set({
+            user: {
+              id: session.user.id,
+              email: session.user.email!,
+              role: profile.role as UserRole,
+              nombre: profile.nombre,
+              is_active: profile.is_active,
+              created_at: profile.created_at
+            }
+          });
         }
       }
+
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile) {
+            set({
+              user: {
+                id: session.user.id,
+                email: session.user.email!,
+                role: profile.role as UserRole,
+                nombre: profile.nombre,
+                is_active: profile.is_active,
+                created_at: profile.created_at
+              }
+            });
+          }
+        } else if (event === 'SIGNED_OUT') {
+          set({ user: null });
+        }
+      });
+
+    } catch (error) {
+      console.error('Error initializing auth:', error);
+    } finally {
+      set({ initialized: true, loading: false });
     }
-  )
-);
+  },
+
+  login: async (email, password) => {
+    set({ loading: true });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (!profile) throw new Error('No se encontró el perfil del usuario');
+      if (!profile.is_active) throw new Error('Esta cuenta está deshabilitada');
+
+      const userData: User = {
+        id: data.user.id,
+        email: data.user.email!,
+        role: profile.role as UserRole,
+        nombre: profile.nombre,
+        is_active: profile.is_active,
+        created_at: profile.created_at
+      };
+
+      set({ user: userData, loading: false });
+      return { success: true };
+
+    } catch (error: any) {
+      console.error('Login error:', error);
+      set({ loading: false });
+      return { success: false, error: error.message };
+    }
+  },
+
+  logout: async () => {
+    await supabase.auth.signOut();
+    set({ user: null });
+  },
+
+  setLoading: (loading) => set({ loading })
+}));

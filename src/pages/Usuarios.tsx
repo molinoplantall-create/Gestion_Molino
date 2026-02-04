@@ -1,19 +1,12 @@
-import React, { useState } from 'react';
-import { Users, UserPlus, Mail, Shield, Edit, Trash2, CheckCircle, XCircle, Search, Filter, Key, Eye, EyeOff } from 'lucide-react';
-import { UserRole } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { Users, UserPlus, Mail, Shield, Edit, Trash2, CheckCircle, XCircle, Search, Filter, Key, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { UserRole, User } from '@/types';
 import { USER_ROLES } from '@/constants';
-
-interface User {
-  id: string;
-  nombre: string;
-  email: string;
-  rol: UserRole;
-  isActive: boolean;
-  createdAt: Date;
-  lastLogin: Date;
-}
+import { useUserStore } from '@/store/userStore';
+import { supabase } from '@/lib/supabase';
 
 const Usuarios: React.FC = () => {
+  const { users, loading, fetchUsers, updateUserRole, toggleUserStatus, updateUserNombre } = useUserStore();
   const [search, setSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState<UserRole | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
@@ -22,6 +15,7 @@ const Usuarios: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -31,70 +25,24 @@ const Usuarios: React.FC = () => {
     isActive: true,
   });
 
-  // Mock users data
-  const [mockUsers, setMockUsers] = useState<User[]>([
-    {
-      id: '1',
-      nombre: 'Juan Pérez',
-      email: 'juan@molino.com',
-      rol: 'ADMIN' as UserRole,
-      isActive: true,
-      createdAt: new Date('2024-01-01'),
-      lastLogin: new Date('2024-01-15'),
-    },
-    {
-      id: '2',
-      nombre: 'María González',
-      email: 'maria@molino.com',
-      rol: 'OPERADOR' as UserRole,
-      isActive: true,
-      createdAt: new Date('2024-01-05'),
-      lastLogin: new Date('2024-01-16'),
-    },
-    {
-      id: '3',
-      nombre: 'Carlos López',
-      email: 'carlos@molino.com',
-      rol: 'GERENCIA' as UserRole,
-      isActive: true,
-      createdAt: new Date('2024-01-10'),
-      lastLogin: new Date('2024-01-14'),
-    },
-    {
-      id: '4',
-      nombre: 'Ana Rodríguez',
-      email: 'ana@molino.com',
-      rol: 'OPERADOR' as UserRole,
-      isActive: false,
-      createdAt: new Date('2024-01-12'),
-      lastLogin: new Date('2024-01-13'),
-    },
-    {
-      id: '5',
-      nombre: 'Pedro Sánchez',
-      email: 'pedro@molino.com',
-      rol: 'OPERADOR' as UserRole,
-      isActive: true,
-      createdAt: new Date('2024-01-15'),
-      lastLogin: new Date('2024-01-16'),
-    },
-  ]);
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
-  const filteredUsers = mockUsers.filter(user => {
-    const matchesSearch = user.nombre.toLowerCase().includes(search.toLowerCase()) ||
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = (user.nombre || '').toLowerCase().includes(search.toLowerCase()) ||
       user.email.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = selectedRole === 'all' || user.rol === selectedRole;
+    const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     return matchesSearch && matchesRole;
   });
 
-  const getRoleBadge = (rol: UserRole) => {
-    const roleConfig = USER_ROLES.find(r => r.value === rol);
-    // Custom styling based on role for better visual distinction
+  const getRoleBadge = (role: UserRole) => {
+    const roleConfig = USER_ROLES.find(r => r.value === role);
     let badgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
 
-    if (rol === 'ADMIN') {
+    if (role === 'ADMIN') {
       badgeClass = 'bg-violet-50 text-violet-700 border-violet-100';
-    } else if (rol === 'GERENCIA') {
+    } else if (role === 'GERENCIA') {
       badgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-100';
     } else {
       badgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
@@ -102,7 +50,7 @@ const Usuarios: React.FC = () => {
 
     return (
       <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${badgeClass}`}>
-        {roleConfig?.label || rol}
+        {roleConfig?.label || role}
       </span>
     );
   };
@@ -137,15 +85,74 @@ const Usuarios: React.FC = () => {
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setFormData({
-      nombre: user.nombre,
+      nombre: user.nombre || '',
       email: user.email,
-      rol: user.rol,
+      rol: user.role,
       password: '',
       confirmPassword: '',
-      isActive: user.isActive,
+      isActive: user.is_active,
     });
     setModalMode('edit');
     setShowModal(true);
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      if (modalMode === 'create') {
+        if (formData.password.length < 6) {
+          alert('La contraseña debe tener al menos 6 caracteres');
+          return;
+        }
+        if (formData.password !== formData.confirmPassword) {
+          alert('Las contraseñas no coinciden');
+          return;
+        }
+
+        // 1. Create user in Auth
+        const { data, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              nombre: formData.nombre
+            }
+          }
+        });
+
+        if (authError) throw authError;
+
+        // El trigger handle_new_user debería crear el perfil.
+        // Pero el rol por defecto es OPERADOR. Si el admin eligió otro, actualizamos.
+        if (data.user && formData.rol !== 'OPERADOR') {
+          await updateUserRole(data.user.id, formData.rol);
+        }
+
+        // Si el admin puso nombre, lo actualizamos (en caso de que el trigger no lo tome de metadata)
+        if (data.user && formData.nombre) {
+          await updateUserNombre(data.user.id, formData.nombre);
+        }
+
+        alert('Usuario creado con éxito. Se ha enviado un correo de confirmación (si está habilitado).');
+      } else if (selectedUser) {
+        // Actualizar datos existentes
+        if (formData.nombre !== selectedUser.nombre) {
+          await updateUserNombre(selectedUser.id, formData.nombre);
+        }
+        if (formData.rol !== selectedUser.role) {
+          await updateUserRole(selectedUser.id, formData.rol);
+        }
+        if (formData.isActive !== selectedUser.is_active) {
+          await toggleUserStatus(selectedUser.id, formData.isActive);
+        }
+      }
+      setShowModal(false);
+      resetForm();
+    } catch (error: any) {
+      alert('Error: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteUser = (user: User) => {
@@ -153,68 +160,23 @@ const Usuarios: React.FC = () => {
     setShowDeleteModal(true);
   };
 
+  const confirmDelete = async () => {
+    if (selectedUser) {
+      // In Supabase, we can't delete auth users from client side normally.
+      // We will just mark them as inactive.
+      await toggleUserStatus(selectedUser.id, false);
+      setShowDeleteModal(false);
+      setSelectedUser(null);
+      alert('Usuario desactivado. (Para eliminación total se requiere Service Role)');
+    }
+  };
+
   const handleChangePassword = (user: User) => {
     setSelectedUser(user);
-    setFormData({
-      nombre: user.nombre,
-      email: user.email,
-      rol: user.rol,
-      password: '',
-      confirmPassword: '',
-      isActive: user.isActive,
-    });
     setShowPasswordModal(true);
   };
 
-  const confirmDelete = () => {
-    if (selectedUser) {
-      setMockUsers(prev => prev.filter(user => user.id !== selectedUser.id));
-      setShowDeleteModal(false);
-      setSelectedUser(null);
-    }
-  };
-
-  const handleSubmit = () => {
-    if (modalMode === 'create') {
-      // Validar contraseña para creación
-      if (formData.password.length < 6) {
-        alert('La contraseña debe tener al menos 6 caracteres');
-        return;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        alert('Las contraseñas no coinciden');
-        return;
-      }
-
-      const newUser: User = {
-        id: (mockUsers.length + 1).toString(),
-        nombre: formData.nombre,
-        email: formData.email,
-        rol: formData.rol,
-        isActive: formData.isActive,
-        createdAt: new Date(),
-        lastLogin: new Date(),
-      };
-      setMockUsers(prev => [...prev, newUser]);
-    } else if (selectedUser) {
-      // En modo edición, solo actualizar si hay cambios
-      setMockUsers(prev => prev.map(user =>
-        user.id === selectedUser.id
-          ? {
-            ...user,
-            nombre: formData.nombre,
-            email: formData.email,
-            rol: formData.rol,
-            isActive: formData.isActive
-          }
-          : user
-      ));
-    }
-    setShowModal(false);
-    resetForm();
-  };
-
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (!formData.password || formData.password.length < 6) {
       alert('La contraseña debe tener al menos 6 caracteres');
       return;
@@ -224,9 +186,21 @@ const Usuarios: React.FC = () => {
       return;
     }
 
-    alert(`Contraseña cambiada para ${selectedUser?.nombre}`);
-    setShowPasswordModal(false);
-    resetForm();
+    try {
+      setIsSubmitting(true);
+      // Solo el usuario actual puede cambiar su propia contraseña vía updateUser
+      // Para cambiar la de otros, se necesitaría un flujo de reset email o admin key.
+      // Implementamos el reset email que es lo estándar.
+      const { error } = await supabase.auth.resetPasswordForEmail(selectedUser!.email);
+      if (error) throw error;
+      alert(`Se ha enviado un correo para restablecer la contraseña a ${selectedUser?.email}`);
+      setShowPasswordModal(false);
+      resetForm();
+    } catch (error: any) {
+      alert('Error: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -242,6 +216,13 @@ const Usuarios: React.FC = () => {
     setShowPassword(false);
   };
 
+  if (loading && users.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+      </div>
+    );
+  }
   return (
     <div className="space-y-6 pb-20">
       {/* Header */}
@@ -260,48 +241,45 @@ const Usuarios: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div className="flex items-center">
-            <div className="p-3 bg-indigo-50 rounded-xl mr-4 border border-indigo-100">
-              <Users className="text-indigo-600" size={24} strokeWidth={1.5} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500">Total Usuarios</p>
-              <p className="text-2xl font-bold text-slate-900">{mockUsers.length}</p>
-            </div>
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+        <div className="flex items-center">
+          <div className="p-3 bg-indigo-50 rounded-xl mr-4 border border-indigo-100">
+            <Users className="text-indigo-600" size={24} strokeWidth={1.5} />
           </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div className="flex items-center">
-            <div className="p-3 bg-emerald-50 rounded-xl mr-4 border border-emerald-100">
-              <CheckCircle className="text-emerald-600" size={24} strokeWidth={1.5} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500">Activos</p>
-              <p className="text-2xl font-bold text-slate-900">
-                {mockUsers.filter(u => u.isActive).length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div className="flex items-center">
-            <div className="p-3 bg-violet-50 rounded-xl mr-4 border border-violet-100">
-              <Shield className="text-violet-600" size={24} strokeWidth={1.5} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500">Administradores</p>
-              <p className="text-2xl font-bold text-slate-900">
-                {mockUsers.filter(u => u.rol === 'ADMIN').length}
-              </p>
-            </div>
+          <div>
+            <p className="text-sm font-medium text-slate-500">Total Usuarios</p>
+            <p className="text-2xl font-bold text-slate-900">{users.length}</p>
           </div>
         </div>
       </div>
 
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+        <div className="flex items-center">
+          <div className="p-3 bg-emerald-50 rounded-xl mr-4 border border-emerald-100">
+            <CheckCircle className="text-emerald-600" size={24} strokeWidth={1.5} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-500">Activos</p>
+            <p className="text-2xl font-bold text-slate-900">
+              {users.filter(u => u.is_active).length}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+        <div className="flex items-center">
+          <div className="p-3 bg-violet-50 rounded-xl mr-4 border border-violet-100">
+            <Shield className="text-violet-600" size={24} strokeWidth={1.5} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-500">Administradores</p>
+            <p className="text-2xl font-bold text-slate-900">
+              {users.filter(u => u.role === 'ADMIN').length}
+            </p>
+          </div>
+        </div>
+      </div>
       {/* Filters */}
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -349,7 +327,6 @@ const Usuarios: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Rol</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Último Acceso</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
@@ -360,13 +337,13 @@ const Usuarios: React.FC = () => {
                     <div className="flex items-center">
                       <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3 border border-indigo-200">
                         <span className="text-indigo-700 font-bold text-sm">
-                          {user.nombre.split(' ').map(n => n[0]).join('')}
+                          {(user.nombre || user.email).split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
                       <div>
-                        <div className="font-bold text-slate-900">{user.nombre}</div>
+                        <div className="font-bold text-slate-900">{user.nombre || 'Sin nombre'}</div>
                         <div className="text-xs text-slate-500">
-                          Registrado: {user.createdAt.toLocaleDateString()}
+                          ID: {user.id.substring(0, 8)}...
                         </div>
                       </div>
                     </div>
@@ -378,18 +355,10 @@ const Usuarios: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {getRoleBadge(user.rol)}
+                    {getRoleBadge(user.role)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(user.isActive)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-slate-900 font-medium">
-                      {user.lastLogin.toLocaleDateString()}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {user.lastLogin.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+                    {getStatusBadge(user.is_active)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex space-x-2">
@@ -403,14 +372,14 @@ const Usuarios: React.FC = () => {
                       <button
                         onClick={() => handleChangePassword(user)}
                         className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                        title="Cambiar contraseña"
+                        title="Reseteo Contraseña"
                       >
-                        <Key size={18} strokeWidth={1.5} />
+                        <Mail size={18} strokeWidth={1.5} />
                       </button>
                       <button
                         onClick={() => handleDeleteUser(user)}
                         className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                        title="Eliminar"
+                        title="Desactivar"
                       >
                         <Trash2 size={18} strokeWidth={1.5} />
                       </button>
@@ -430,18 +399,18 @@ const Usuarios: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {USER_ROLES.map((role) => (
             <div key={role.value} className={`border rounded-xl p-5 ${role.value === 'ADMIN' ? 'bg-violet-50/50 border-violet-100' :
-                role.value === 'GERENCIA' ? 'bg-indigo-50/50 border-indigo-100' :
-                  'bg-slate-50/50 border-slate-200'
+              role.value === 'GERENCIA' ? 'bg-indigo-50/50 border-indigo-100' :
+                'bg-slate-50/50 border-slate-200'
               }`}>
               <div className="flex items-center justify-between mb-4">
                 <div className={`px-3 py-1 rounded-full text-xs font-bold border ${role.value === 'ADMIN' ? 'bg-violet-100 text-violet-700 border-violet-200' :
-                    role.value === 'GERENCIA' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' :
-                      'bg-slate-200 text-slate-700 border-slate-300'
+                  role.value === 'GERENCIA' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' :
+                    'bg-slate-200 text-slate-700 border-slate-300'
                   }`}>
                   <span>{role.label}</span>
                 </div>
                 <div className="text-2xl font-bold text-slate-900">
-                  {mockUsers.filter(u => u.rol === role.value).length}
+                  {users.filter(u => u.role === role.value).length}
                 </div>
               </div>
 
@@ -504,130 +473,134 @@ const Usuarios: React.FC = () => {
       </div>
 
       {/* Modal para crear/editar usuario */}
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl border border-slate-200">
-            <div className="p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">
-                {modalMode === 'create' ? 'Nuevo Usuario' : 'Editar Usuario'}
-              </h2>
+      {
+        showModal && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl border border-slate-200">
+              <div className="p-6">
+                <h2 className="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">
+                  {modalMode === 'create' ? 'Nuevo Usuario' : 'Editar Usuario'}
+                </h2>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Nombre completo
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="input-field w-full"
-                    placeholder="Ej: Juan Pérez"
-                  />
-                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Nombre completo
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.nombre}
+                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                      className="input-field w-full"
+                      placeholder="Ej: Juan Pérez"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="input-field w-full"
-                    placeholder="ejemplo@molino.com"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="input-field w-full"
+                      placeholder="ejemplo@molino.com"
+                      disabled={modalMode === 'edit'}
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Rol
-                  </label>
-                  <select
-                    value={formData.rol}
-                    onChange={(e) => setFormData({ ...formData, rol: e.target.value as UserRole })}
-                    className="input-field w-full"
-                  >
-                    <option value="OPERADOR">Operador</option>
-                    <option value="GERENCIA">Gerencia</option>
-                    <option value="ADMIN">Administrador</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Rol
+                    </label>
+                    <select
+                      value={formData.rol}
+                      onChange={(e) => setFormData({ ...formData, rol: e.target.value as UserRole })}
+                      className="input-field w-full"
+                    >
+                      <option value="OPERADOR">Operador</option>
+                      <option value="GERENCIA">Gerencia</option>
+                      <option value="ADMIN">Administrador</option>
+                    </select>
+                  </div>
 
-                {modalMode === 'create' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Contraseña
-                      </label>
-                      <div className="relative">
+                  {modalMode === 'create' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Contraseña
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            className="input-field w-full pr-10"
+                            placeholder="Mínimo 6 caracteres"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Confirmar Contraseña
+                        </label>
                         <input
                           type={showPassword ? "text" : "password"}
-                          value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          className="input-field w-full pr-10"
-                          placeholder="Mínimo 6 caracteres"
+                          value={formData.confirmPassword}
+                          onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                          className="input-field w-full"
+                          placeholder="Repite la contraseña"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                        >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
                       </div>
-                    </div>
+                    </>
+                  )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Confirmar Contraseña
-                      </label>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={formData.confirmPassword}
-                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                        className="input-field w-full"
-                        placeholder="Repite la contraseña"
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div className="flex items-center pt-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300"
-                  />
-                  <label htmlFor="isActive" className="ml-2 text-sm text-slate-700">
-                    Usuario activo
-                  </label>
+                  <div className="flex items-center pt-2">
+                    <input
+                      type="checkbox"
+                      id="isActive"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300"
+                    />
+                    <label htmlFor="isActive" className="ml-2 text-sm text-slate-700">
+                      Usuario activo
+                    </label>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-slate-100">
-                <button
-                  onClick={() => {
-                    setShowModal(false);
-                    resetForm();
-                  }}
-                  className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-xl font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-medium shadow-sm transition-colors"
-                >
-                  {modalMode === 'create' ? 'Crear Usuario' : 'Guardar Cambios'}
-                </button>
+                <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-slate-100">
+                  <button
+                    onClick={() => {
+                      setShowModal(false);
+                      resetForm();
+                    }}
+                    className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-xl font-medium transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
+                  >
+                    {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
+                    {modalMode === 'create' ? 'Crear Usuario' : 'Guardar Cambios'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Modal para cambiar contraseña */}
       {showPasswordModal && selectedUser && (
@@ -635,48 +608,11 @@ const Usuarios: React.FC = () => {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl border border-slate-200">
             <div className="p-6">
               <h2 className="text-xl font-bold text-slate-900 mb-4 border-b border-slate-100 pb-4">
-                Cambiar Contraseña
+                Restablecer Contraseña
               </h2>
               <p className="text-slate-600 mb-6 bg-slate-50 p-3 rounded-lg text-sm border border-slate-100">
-                Estás cambiando la contraseña de <strong>{selectedUser.nombre}</strong>
+                Se enviará un correo a <strong>{selectedUser.email}</strong> para que pueda elegir una nueva contraseña de forma segura.
               </p>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Nueva Contraseña
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="input-field w-full pr-10"
-                      placeholder="Mínimo 6 caracteres"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Confirmar Nueva Contraseña
-                  </label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="input-field w-full"
-                    placeholder="Repite la contraseña"
-                  />
-                </div>
-              </div>
 
               <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-slate-100">
                 <button
@@ -690,9 +626,11 @@ const Usuarios: React.FC = () => {
                 </button>
                 <button
                   onClick={handlePasswordChange}
-                  className="px-4 py-2 bg-amber-600 text-white hover:bg-amber-700 rounded-xl font-medium shadow-sm transition-colors"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-amber-600 text-white hover:bg-amber-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
                 >
-                  Cambiar Contraseña
+                  {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
+                  Enviar Correo de Reseteo
                 </button>
               </div>
             </div>
@@ -700,7 +638,7 @@ const Usuarios: React.FC = () => {
         </div>
       )}
 
-      {/* Modal para confirmar eliminación */}
+      {/* Modal para confirmar eliminación (desactivación) */}
       {showDeleteModal && selectedUser && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl border border-slate-200">
@@ -710,11 +648,10 @@ const Usuarios: React.FC = () => {
                   <Trash2 className="text-red-600" size={24} strokeWidth={1.5} />
                 </div>
                 <h2 className="text-xl font-bold text-slate-900 mb-2">
-                  ¿Eliminar usuario?
+                  ¿Desactivar usuario?
                 </h2>
                 <p className="text-slate-600 mb-6 text-sm">
-                  Estás a punto de eliminar a <strong>{selectedUser.nombre}</strong>.
-                  Esta acción no se puede deshacer.
+                  Estás a punto de desactivar el acceso de <strong>{selectedUser.nombre || selectedUser.email}</strong>.
                 </p>
               </div>
 
@@ -732,7 +669,7 @@ const Usuarios: React.FC = () => {
                   onClick={confirmDelete}
                   className="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-xl font-medium shadow-sm transition-colors"
                 >
-                  Sí, eliminar
+                  Sí, desactivar
                 </button>
               </div>
             </div>

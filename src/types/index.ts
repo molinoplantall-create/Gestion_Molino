@@ -7,11 +7,11 @@ export type MaintenanceType = 'PREVENTIVO' | 'CORRECTIVO';
 
 export interface User {
   id: string;
-  nombre: string;
   email: string;
-  rol: UserRole;
-  createdAt: Date;
-  isActive: boolean;
+  role: UserRole;
+  nombre?: string;
+  is_active: boolean;
+  created_at?: string;
 }
 
 export interface Mill {

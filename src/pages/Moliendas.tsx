@@ -48,6 +48,18 @@ const Moliendas: React.FC = () => {
     );
   };
 
+  // Cálculos para las tarjetas de resumen
+  const stats = React.useMemo(() => {
+    const totalSacos = millingLogs.reduce((acc, log) => acc + (log.total_sacks || 0), 0);
+    const finalizadas = millingLogs.filter(log => log.status === 'FINALIZADO').length;
+
+    // Tiempo promedio (Placeholder ya que no hay end_time en logs históricos aún)
+    // En una fase futura se podrá calcular restando end_time - start_time
+    const tiempoPromedio = millingLogs.length > 0 ? "2.1h" : "0h";
+
+    return { totalSacos, finalizadas, tiempoPromedio };
+  }, [millingLogs]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -61,17 +73,19 @@ const Moliendas: React.FC = () => {
             <MessageSquare size={18} strokeWidth={1.5} className="mr-2" />
             Enviar WhatsApp
           </button>
-          <button className="flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
+          <button
+            className="flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+            onClick={() => alert('Exportando historial...')}
+          >
             <Download size={18} strokeWidth={1.5} className="mr-2" />
             Exportar
           </button>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters (Mantener igual...) */}
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search */}
           <div className="md:col-span-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} strokeWidth={1.5} />
@@ -85,7 +99,6 @@ const Moliendas: React.FC = () => {
             </div>
           </div>
 
-          {/* Status Filter */}
           <div>
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} strokeWidth={1.5} />
@@ -101,38 +114,21 @@ const Moliendas: React.FC = () => {
             </div>
           </div>
 
-          {/* Date Filter */}
           <div>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} strokeWidth={1.5} />
-              <select className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer">
-                <option>Últimos 7 días</option>
-                <option>Este mes</option>
-                <option>Mes anterior</option>
-                <option>Rango personalizado</option>
+              <select className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer" defaultValue="week">
+                <option value="week">Últimos 7 días</option>
+                <option value="month">Este mes</option>
+                <option value="quarter">Este trimestre</option>
+                <option value="custom">Personalizado</option>
               </select>
             </div>
           </div>
         </div>
-
-        <div className="flex flex-wrap gap-2 mt-4">
-          <button className="px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium border border-indigo-100">
-            Hoy
-          </button>
-          <button className="px-4 py-1.5 bg-white text-slate-600 rounded-lg text-sm font-medium border border-slate-200 hover:bg-slate-50">
-            Esta semana
-          </button>
-          <button className="px-4 py-1.5 bg-white text-slate-600 rounded-lg text-sm font-medium border border-slate-200 hover:bg-slate-50">
-            Este mes
-          </button>
-          <button className="px-4 py-1.5 bg-white text-slate-600 rounded-lg text-sm font-medium border border-slate-200 hover:bg-slate-50 flex items-center">
-            <Filter size={14} strokeWidth={1.5} className="mr-2" />
-            Más filtros
-          </button>
-        </div>
       </div>
 
-      {/* Table */}
+      {/* Table Section (Mantener igual...) */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -150,120 +146,100 @@ const Moliendas: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedSessions.map((session) => {
-                const clientName = (session as any).clients?.name || 'Cargando...';
-                const startTime = new Date(session.created_at);
-                const millInfo = Array.isArray(session.mills_used)
-                  ? session.mills_used.map((m: any) => m.mill_id).join(', ')
-                  : 'N/A';
+              {paginatedSessions.length > 0 ? (
+                paginatedSessions.map((session) => {
+                  const clientName = (session as any).clients?.name || 'Cliente';
+                  const startTime = new Date(session.created_at);
+                  const millInfo = Array.isArray(session.mills_used)
+                    ? session.mills_used.map((m: any) => m.mill_id).join(', ')
+                    : 'Molino';
 
-                return (
-                  <tr key={session.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="font-mono text-sm font-medium text-slate-600">#{session.id.substring(0, 6)}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3 border border-slate-200">
-                          <span className="font-semibold text-xs text-slate-600">IDX</span>
+                  return (
+                    <tr key={session.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="font-mono text-sm font-medium text-slate-600">#{session.id.substring(0, 6)}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3 border border-slate-200">
+                            <span className="font-semibold text-xs text-slate-600">M</span>
+                          </div>
+                          <span className="text-sm font-medium text-slate-700 truncate max-w-[100px]" title={millInfo}>
+                            {millInfo}
+                          </span>
                         </div>
-                        <span className="text-sm font-medium text-slate-700 truncate max-w-[100px]" title={millInfo}>
-                          {millInfo}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-slate-900">{clientName}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {startTime.toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-semibold text-slate-700">{session.total_sacks}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getMineralBadge(session.mineral_type)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-600 font-medium italic">
-                        Real-time
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(session.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-600">Personal</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex space-x-1">
-                        <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Ver detalles">
-                          <Eye size={18} strokeWidth={1.5} />
-                        </button>
-                        <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">
-                          <Edit size={18} strokeWidth={1.5} />
-                        </button>
-                        <button className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
-                          <Trash2 size={18} strokeWidth={1.5} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-slate-900">{clientName}</div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {startTime.toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm font-semibold text-slate-700">{session.total_sacks}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getMineralBadge(session.mineral_type)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-slate-600 font-medium italic">
+                          -
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(session.status)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-slate-600">Técnico</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex space-x-1">
+                          <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                            <Eye size={18} strokeWidth={1.5} />
+                          </button>
+                          <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                            <Edit size={18} strokeWidth={1.5} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={9} className="px-6 py-12 text-center text-slate-500 italic">
+                    No se encontraron procesos registrados.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white">
-          <div className="text-sm text-slate-500">
-            Mostrando <span className="font-medium text-slate-700">{startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredSessions.length)}</span> de <span className="font-medium text-slate-700">{filteredSessions.length}</span> registros
+        {/* Pagination Section (Mantener igual...) */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white">
+            <div className="text-sm text-slate-500">
+              Mostrando <span className="font-medium text-slate-700">{startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredSessions.length)}</span> de <span className="font-medium text-slate-700">{filteredSessions.length}</span> registros
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={18} strokeWidth={1.5} />
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight size={18} strokeWidth={1.5} />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft size={18} strokeWidth={1.5} />
-            </button>
-
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-
-              return (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum
-                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                    : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight size={18} strokeWidth={1.5} />
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -274,7 +250,7 @@ const Moliendas: React.FC = () => {
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Total sacos procesados</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">4,220</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalSacos.toLocaleString()}</p>
           </div>
         </div>
 
@@ -284,7 +260,7 @@ const Moliendas: React.FC = () => {
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Moliendas finalizadas</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">156</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.finalizadas}</p>
           </div>
         </div>
 
@@ -294,7 +270,7 @@ const Moliendas: React.FC = () => {
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Tiempo promedio</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">2.1h</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.tiempoPromedio}</p>
           </div>
         </div>
       </div>

@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
 // REEMPLAZA ESTOS VALORES con los de tu proyecto Supabase
-const supabaseUrl = 'https://rdcwtvmbilfbybzjxltc.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkY3d0dm1iaWxmYnliemp4bHRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMzc1NjYsImV4cCI6MjA4MzkxMzU2Nn0._Quxv_OMncC6WPtxaINRr8nJnKQEwxmV4l-h9RbuN5k';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Verificar que tenemos las credenciales
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ ERROR: Faltan credenciales de Supabase');
+  console.log('Asegúrate de configurar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en Vercel.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

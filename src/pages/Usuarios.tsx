@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { Users, UserPlus, Mail, Shield, Edit, Trash2, CheckCircle, XCircle, Search, Filter, Key, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { UserRole, User } from '@/types';
 import { USER_ROLES } from '@/constants';
@@ -7,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 const Usuarios: React.FC = () => {
-  const { users, loading, fetchUsers, updateUserRole, toggleUserStatus, updateUserNombre } = useUserStore();
+  const { users, loading, fetchUsers, updateUser, updateUserRole, toggleUserStatus, updateUserNombre } = useUserStore();
   const [search, setSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState<UserRole | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
@@ -104,16 +105,25 @@ const Usuarios: React.FC = () => {
     try {
       if (modalMode === 'create') {
         if (formData.password.length < 6) {
-          alert('La contraseña debe tener al menos 6 caracteres');
+          setSuccessInfo({ title: 'Error', message: 'La contraseña debe tener al menos 6 caracteres' });
+          setShowSuccessModal(true);
           return;
         }
         if (formData.password !== formData.confirmPassword) {
-          alert('Las contraseñas no coinciden');
+          setSuccessInfo({ title: 'Error', message: 'Las contraseñas no coinciden' });
+          setShowSuccessModal(true);
           return;
         }
 
-        // 1. Create user in Auth
-        const { data, error: authError } = await supabase.auth.signUp({
+        // 1. Create a non-persistent client to avoid logging out the current admin
+        const tempSupabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_ANON_KEY,
+          { auth: { persistSession: false } }
+        );
+
+        // 2. Create user in Auth using the temp client
+        const { data, error: authError } = await tempSupabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
@@ -125,25 +135,32 @@ const Usuarios: React.FC = () => {
 
         if (authError) throw authError;
 
-        // El trigger handle_new_user debería crear el perfil.
-        // Pero el rol por defecto es OPERADOR. Si el admin eligió otro, actualizamos.
-        if (data.user && formData.rol !== 'OPERADOR') {
-          await updateUserRole(data.user.id, formData.rol);
+        if (data.user) {
+          const updates: any = {};
+          if (formData.rol !== 'OPERADOR') updates.role = formData.rol;
+          if (formData.nombre) updates.nombre = formData.nombre;
+
+          if (Object.keys(updates).length > 0) {
+            await updateUser(data.user.id, updates);
+          }
         }
 
-        if (data.user && formData.nombre) {
-          await updateUserNombre(data.user.id, formData.nombre);
-        }
       } else if (selectedUser) {
-        // Actualizar datos existentes
+        // Actualizar datos existentes (incluyendo mayúsculas/minúsculas)
+        const updates: any = {};
+
         if (formData.nombre !== selectedUser.nombre) {
-          await updateUserNombre(selectedUser.id, formData.nombre);
+          updates.nombre = formData.nombre;
         }
         if (formData.rol !== selectedUser.role) {
-          await updateUserRole(selectedUser.id, formData.rol);
+          updates.role = formData.rol;
         }
         if (formData.isActive !== selectedUser.is_active) {
-          await toggleUserStatus(selectedUser.id, formData.isActive);
+          updates.is_active = formData.isActive;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await updateUser(selectedUser.id, updates);
         }
       }
 
@@ -153,7 +170,7 @@ const Usuarios: React.FC = () => {
       setSuccessInfo({
         title: modalMode === 'create' ? 'Usuario Creado' : 'Cambios Guardados',
         message: modalMode === 'create'
-          ? 'El usuario se ha registrado correctamente en el sistema.'
+          ? `El usuario ${formData.nombre || formData.email} se ha registrado correctamente.`
           : 'Los datos del usuario han sido actualizados con éxito.'
       });
       setShowSuccessModal(true);

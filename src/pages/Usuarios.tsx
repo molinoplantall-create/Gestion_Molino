@@ -136,11 +136,15 @@ const Usuarios: React.FC = () => {
         if (authError) throw authError;
 
         if (data.user) {
+          // Pequeña espera para asegurar que el trigger handle_new_user haya terminado
+          await new Promise(resolve => setTimeout(resolve, 800));
+
           const updates: any = {};
           if (formData.rol !== 'OPERADOR') updates.role = formData.rol;
           if (formData.nombre) updates.nombre = formData.nombre;
 
           if (Object.keys(updates).length > 0) {
+            console.log('Aplicando actualizaciones iniciales al perfil:', updates);
             await updateUser(data.user.id, updates);
           }
         }
@@ -779,6 +783,19 @@ const Usuarios: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Éxito / Error (Feedback para el usuario) */}
+      <ConfirmationModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onConfirm={() => setShowSuccessModal(false)}
+        title={successInfo.title}
+        message={successInfo.message}
+        confirmText="Entendido"
+        showCancel={false}
+        type={successInfo.title === 'Error' ? 'danger' : 'info'}
+        icon={successInfo.title === 'Error' ? 'alert' : 'info'}
+      />
     </div>
   );
 };

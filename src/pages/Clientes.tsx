@@ -30,7 +30,8 @@ const Clientes: React.FC = () => {
     direccion: '',
     zona: '',
     tipoCliente: '',
-    stockInicial: 0,
+    stockCuarzo: 0,
+    stockLlampo: 0,
     tipoMineral: '',
     observaciones: ''
   });
@@ -124,7 +125,8 @@ const Clientes: React.FC = () => {
         address: nuevoCliente.direccion,
         zone: nuevoCliente.zona,
         client_type: nuevoCliente.tipoCliente,
-        stock_cuarzo: nuevoCliente.stockInicial,
+        stock_cuarzo: nuevoCliente.stockCuarzo,
+        stock_llampo: nuevoCliente.stockLlampo,
         observations: nuevoCliente.observaciones,
         is_active: true
       });
@@ -142,7 +144,7 @@ const Clientes: React.FC = () => {
 
       setNuevoCliente({
         nombre: '', contacto: '', telefono: '', email: '', ruc: '',
-        direccion: '', zona: '', tipoCliente: '', stockInicial: 0,
+        direccion: '', zona: '', tipoCliente: '', stockCuarzo: 0, stockLlampo: 0,
         tipoMineral: '', observaciones: ''
       });
     } catch (error: any) {
@@ -414,7 +416,7 @@ const Clientes: React.FC = () => {
               <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
                 {/* Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre/Razón Social *</label>
                     <input
                       type="text"
@@ -456,13 +458,35 @@ const Clientes: React.FC = () => {
                       value={nuevoCliente.telefono}
                       onChange={handleNuevoClienteChange}
                       className="input-field"
-                      placeholder="Ej: +51 987 654 321"
+                      placeholder="Ej: 987654321"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={nuevoCliente.email}
+                      onChange={handleNuevoClienteChange}
+                      className="input-field"
+                      placeholder="ejemplo@correo.com"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Dirección</label>
+                    <input
+                      type="text"
+                      name="direccion"
+                      value={nuevoCliente.direccion}
+                      onChange={handleNuevoClienteChange}
+                      className="input-field"
+                      placeholder="Dirección del cliente..."
                     />
                   </div>
                 </div>
 
                 {/* Additional Details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex justify-between">
                       <span>Zona *</span>
@@ -480,6 +504,7 @@ const Clientes: React.FC = () => {
                         value={nuevoCliente.zona}
                         onChange={handleNuevoClienteChange}
                         className="input-field"
+                        required
                       >
                         <option value="">Seleccionar zona</option>
                         {zones.map(z => (
@@ -519,17 +544,46 @@ const Clientes: React.FC = () => {
                       <option value="PALLAQUERO">Pallaquero</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Stock Inicial (Sacos) *</label>
-                    <input
-                      type="number"
-                      name="stockInicial"
-                      value={nuevoCliente.stockInicial}
-                      onChange={handleNuevoClienteChange}
-                      className="input-field"
-                      placeholder="0"
-                      required
-                    />
+                </div>
+
+                {/* Stock Info */}
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center">
+                    <Package size={18} className="mr-2 text-indigo-600" />
+                    Inventario Inicial (Opcional)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Stock Cuarzo (Sacos)</label>
+                      <input
+                        type="number"
+                        name="stockCuarzo"
+                        value={nuevoCliente.stockCuarzo}
+                        onChange={handleNuevoClienteChange}
+                        className="input-field bg-white"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Stock Llampo (Sacos)</label>
+                      <input
+                        type="number"
+                        name="stockLlampo"
+                        value={nuevoCliente.stockLlampo}
+                        onChange={handleNuevoClienteChange}
+                        className="input-field bg-white"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="bg-indigo-600 p-4 rounded-xl shadow-md flex flex-col justify-center text-white">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Total Inicial</span>
+                      <div className="flex items-baseline">
+                        <span className="text-2xl font-black">
+                          {(nuevoCliente.stockCuarzo + nuevoCliente.stockLlampo).toLocaleString()}
+                        </span>
+                        <span className="ml-2 text-xs font-medium opacity-80 text-white">Sacos</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

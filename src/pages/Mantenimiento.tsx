@@ -8,6 +8,7 @@ import {
 import { MILLS } from '@/constants';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { supabase } from '@/lib/supabase';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 // Interfaces para el sistema de mantenimiento
 interface MaintenanceRecord {
@@ -69,6 +70,13 @@ const Mantenimiento: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [selectedMillHistory, setSelectedMillHistory] = useState<any | null>(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackInfo, setFeedbackInfo] = useState({
+    title: '',
+    message: '',
+    type: 'success' as 'success' | 'info' | 'warning' | 'danger',
+    onConfirm: () => setShowFeedbackModal(false)
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
 
@@ -185,6 +193,13 @@ const Mantenimiento: React.FC = () => {
 
     if (success) {
       setShowNewRecordModal(false);
+      setFeedbackInfo({
+        title: 'Orden Creada',
+        message: 'La orden de mantenimiento se ha registrado correctamente.',
+        type: 'success',
+        onConfirm: () => setShowFeedbackModal(false)
+      });
+      setShowFeedbackModal(true);
       setNewRecord({
         molinoId: '',
         tipo: 'PREVENTIVO',
@@ -225,10 +240,22 @@ const Mantenimiento: React.FC = () => {
   };
 
   const handleDeleteRecord = (id: string) => {
-    if (confirm('¿Está seguro de eliminar este registro?')) {
-      console.log('Eliminando registro:', id);
-      alert('Registro eliminado exitosamente');
-    }
+    setFeedbackInfo({
+      title: 'Eliminar Registro',
+      message: '¿Está seguro de eliminar este registro de mantenimiento? Esta acción no se puede deshacer.',
+      type: 'danger',
+      onConfirm: () => {
+        console.log('Eliminando registro:', id);
+        setFeedbackInfo({
+          title: 'Eliminado',
+          message: 'El registro ha sido eliminado exitosamente.',
+          type: 'success',
+          onConfirm: () => setShowFeedbackModal(false)
+        });
+        setShowFeedbackModal(true);
+      }
+    });
+    setShowFeedbackModal(true);
   };
 
   const handleExportExcel = () => {
@@ -245,12 +272,24 @@ const Mantenimiento: React.FC = () => {
     }));
 
     console.log('Exportando a Excel:', data);
-    alert('Archivo Excel generado. Descargando...');
+    setFeedbackInfo({
+      title: 'Exportando',
+      message: 'Archivo Excel generado. Descargando...',
+      type: 'success',
+      onConfirm: () => setShowFeedbackModal(false)
+    });
+    setShowFeedbackModal(true);
   };
 
   const handleGeneratePDF = () => {
     console.log('Generando PDF del reporte');
-    alert('Generando documento PDF... Se descargará automáticamente.');
+    setFeedbackInfo({
+      title: 'Generando PDF',
+      message: 'Generando documento PDF... Se descargará automáticamente.',
+      type: 'info',
+      onConfirm: () => setShowFeedbackModal(false)
+    });
+    setShowFeedbackModal(true);
   };
 
   const handlePrint = () => {
@@ -292,7 +331,13 @@ const Mantenimiento: React.FC = () => {
   const handleSaveRepuesto = () => {
     console.log('Solicitando repuesto:', newRepuesto);
     const totalCosto = newRepuesto.cantidad * newRepuesto.costoUnitario;
-    alert(`Repuesto solicitado exitosamente\nTotal: $${totalCosto.toLocaleString()}\nSe envió orden de compra a ${newRepuesto.proveedor}`);
+    setFeedbackInfo({
+      title: 'Repuesto Solicitado',
+      message: `Repuesto solicitado exitosamente\nTotal: $${totalCosto.toLocaleString()}\nSe envió orden de compra a ${newRepuesto.proveedor}`,
+      type: 'success',
+      onConfirm: () => setShowFeedbackModal(false)
+    });
+    setShowFeedbackModal(true);
     setShowRepuestoModal(false);
     setNewRepuesto({
       nombre: '',
@@ -310,7 +355,13 @@ const Mantenimiento: React.FC = () => {
   };
 
   const handleControlStock = () => {
-    alert('Abriendo panel de control de stock...');
+    setFeedbackInfo({
+      title: 'Control de Stock',
+      message: 'Abriendo panel de control de stock...',
+      type: 'info',
+      onConfirm: () => setShowFeedbackModal(false)
+    });
+    setShowFeedbackModal(true);
   };
 
   const handleEnviarWhatsApp = () => {
@@ -327,12 +378,24 @@ const Mantenimiento: React.FC = () => {
   };
 
   const handleGenerarQR = () => {
-    alert('Generando código QR para el equipo...');
+    setFeedbackInfo({
+      title: 'Código QR',
+      message: 'Generando código QR para el equipo...',
+      type: 'success',
+      onConfirm: () => setShowFeedbackModal(false)
+    });
+    setShowFeedbackModal(true);
   };
 
   const handleAplicarFiltros = () => {
     console.log('Aplicando filtros:', { filterType, filterStatus, selectedMill, search });
-    alert('Filtros aplicados correctamente');
+    setFeedbackInfo({
+      title: 'Filtros Aplicados',
+      message: 'Los filtros se han aplicado correctamente.',
+      type: 'success',
+      onConfirm: () => setShowFeedbackModal(false)
+    });
+    setShowFeedbackModal(true);
   };
 
   const handleLimpiarFiltros = () => {
@@ -340,7 +403,13 @@ const Mantenimiento: React.FC = () => {
     setFilterType('all');
     setFilterStatus('all');
     setSelectedMill('all');
-    alert('Filtros limpiados');
+    setFeedbackInfo({
+      title: 'Filtros Limpiados',
+      message: 'Se han restablecido los filtros de búsqueda.',
+      type: 'info',
+      onConfirm: () => setShowFeedbackModal(false)
+    });
+    setShowFeedbackModal(true);
   };
 
   // Componente Modal de Calendario
@@ -1469,6 +1538,17 @@ const Mantenimiento: React.FC = () => {
       {/* Modal Calendario */}
       {showCalendarModal && <CalendarModal />}
 
+      <ConfirmationModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        onConfirm={feedbackInfo.onConfirm}
+        title={feedbackInfo.title}
+        message={feedbackInfo.message}
+        type={feedbackInfo.type}
+        confirmText="Entendido"
+        showCancel={feedbackInfo.type === 'danger'}
+        icon={feedbackInfo.type === 'success' ? 'success' : feedbackInfo.type === 'danger' ? 'trash' : 'alert'}
+      />
     </div>
   );
 };

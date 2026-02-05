@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { supabase } from '@/lib/supabase';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { Loader2 } from 'lucide-react';
 
 const Clientes: React.FC = () => {
   const { clients, zones, loading, fetchClients, fetchZones, addZone } = useSupabaseStore();
@@ -14,7 +16,10 @@ const Clientes: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterZone, setFilterZone] = useState('all');
   const [showNuevoClienteModal, setShowNuevoClienteModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackInfo, setFeedbackInfo] = useState({ title: '', message: '', type: 'success' as any });
   const [isAddingZone, setIsAddingZone] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newZoneName, setNewZoneName] = useState('');
   const [nuevoCliente, setNuevoCliente] = useState({
     nombre: '',
@@ -98,11 +103,17 @@ const Clientes: React.FC = () => {
 
   const handleSubmitNuevoCliente = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nuevoCliente.nombre) {
-      alert('Por favor complete el nombre del cliente');
+    if (!nuevoCliente.nombre || !nuevoCliente.zona || !nuevoCliente.tipoCliente) {
+      setFeedbackInfo({
+        title: 'Campos requeridos',
+        message: 'Por favor complete todos los campos obligatorios (*)',
+        type: 'warning'
+      });
+      setShowFeedbackModal(true);
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const { error } = await supabase.from('clients').insert({
         name: nuevoCliente.nombre,
@@ -113,14 +124,19 @@ const Clientes: React.FC = () => {
         address: nuevoCliente.direccion,
         zone: nuevoCliente.zona,
         client_type: nuevoCliente.tipoCliente,
-        stock_cuarzo: nuevoCliente.stockInicial, // Assuming initial stock is cuarzo for now or needs split
+        stock_cuarzo: nuevoCliente.stockInicial,
         observations: nuevoCliente.observaciones,
         is_active: true
       });
 
       if (error) throw error;
 
-      alert(`Cliente ${nuevoCliente.nombre} registrado exitosamente!`);
+      setFeedbackInfo({
+        title: 'Cliente Registrado',
+        message: `El cliente ${nuevoCliente.nombre} ha sido registrado exitosamente.`,
+        type: 'success'
+      });
+      setShowFeedbackModal(true);
       fetchClients();
       setShowNuevoClienteModal(false);
 
@@ -130,7 +146,14 @@ const Clientes: React.FC = () => {
         tipoMineral: '', observaciones: ''
       });
     } catch (error: any) {
-      alert('Error al registrar cliente: ' + error.message);
+      setFeedbackInfo({
+        title: 'Error',
+        message: 'No se pudo registrar el cliente: ' + error.message,
+        type: 'danger'
+      });
+      setShowFeedbackModal(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -415,7 +438,7 @@ const Clientes: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Contacto Principal *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Contacto Principal</label>
                     <input
                       type="text"
                       name="contacto"
@@ -423,11 +446,10 @@ const Clientes: React.FC = () => {
                       onChange={handleNuevoClienteChange}
                       className="input-field"
                       placeholder="Ej: Juan Rodríguez"
-                      required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono</label>
                     <input
                       type="tel"
                       name="telefono"
@@ -435,7 +457,6 @@ const Clientes: React.FC = () => {
                       onChange={handleNuevoClienteChange}
                       className="input-field"
                       placeholder="Ej: +51 987 654 321"
-                      required
                     />
                   </div>
                 </div>
@@ -444,7 +465,7 @@ const Clientes: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex justify-between">
-                      <span>Zona</span>
+                      <span>Zona *</span>
                       <button
                         type="button"
                         onClick={() => setIsAddingZone(!isAddingZone)}
@@ -485,12 +506,13 @@ const Clientes: React.FC = () => {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de Cliente</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de Cliente *</label>
                     <select
                       name="tipoCliente"
                       value={nuevoCliente.tipoCliente}
                       onChange={handleNuevoClienteChange}
                       className="input-field"
+                      required
                     >
                       <option value="">Seleccionar tipo</option>
                       <option value="MINERO">Minero</option>
@@ -498,7 +520,7 @@ const Clientes: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Stock Inicial (Sacos)</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Stock Inicial (Sacos) *</label>
                     <input
                       type="number"
                       name="stockInicial"
@@ -506,6 +528,7 @@ const Clientes: React.FC = () => {
                       onChange={handleNuevoClienteChange}
                       className="input-field"
                       placeholder="0"
+                      required
                     />
                   </div>
                 </div>
@@ -532,15 +555,30 @@ const Clientes: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary"
+                  disabled={isSubmitting}
+                  className="btn-primary flex items-center"
                 >
-                  Guardar Cliente
+                  {isSubmitting && <Loader2 size={18} className="mr-2 animate-spin" />}
+                  {isSubmitting ? 'Guardando...' : 'Guardar Cliente'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Feedback Modal */}
+      <ConfirmationModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        onConfirm={() => setShowFeedbackModal(false)}
+        title={feedbackInfo.title}
+        message={feedbackInfo.message}
+        type={feedbackInfo.type}
+        confirmText="Entendido"
+        showCancel={false}
+        icon={feedbackInfo.type === 'success' ? 'success' : 'alert'}
+      />
     </div>
   );
 };

@@ -93,11 +93,12 @@ const RegistroMolienda: React.FC = () => {
     isOpen: false,
     title: '',
     message: '',
-    type: 'info' as 'info' | 'warning' | 'danger',
+    type: 'info' as 'info' | 'warning' | 'danger' | 'success',
     onConfirm: () => { },
     showCancel: false,
     confirmText: 'Aceptar',
-    cancelText: 'Cancelar'
+    cancelText: 'Cancelar',
+    icon: 'alert' as 'alert' | 'trash' | 'logout' | 'success'
   });
 
   // Init fetch
@@ -106,7 +107,7 @@ const RegistroMolienda: React.FC = () => {
     fetchClients();
   }, [fetchMills, fetchClients]);
 
-  const showAlert = (title: string, message: string, type: 'info' | 'warning' | 'danger' = 'warning') => {
+  const showAlert = (title: string, message: string, type: 'info' | 'warning' | 'danger' | 'success' = 'warning') => {
     setModalConfig({
       isOpen: true,
       title,
@@ -115,7 +116,8 @@ const RegistroMolienda: React.FC = () => {
       onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
       showCancel: false,
       confirmText: 'Aceptar',
-      cancelText: ''
+      cancelText: '',
+      icon: type === 'success' ? 'success' : 'alert'
     });
   };
 
@@ -537,14 +539,15 @@ const RegistroMolienda: React.FC = () => {
           `Hora inicio: ${horaInicio}\n` +
           `Hora fin estimada: ${horaFinGlobal}\n\n` +
           `DETALLE:\n${detalleMolinos}`,
-        type: 'info',
+        type: 'success',
         onConfirm: () => {
           setModalConfig(prev => ({ ...prev, isOpen: false }));
           resetFormulario();
         },
         showCancel: false,
         confirmText: 'Aceptar',
-        cancelText: ''
+        cancelText: '',
+        icon: 'success'
       });
     } else {
       showAlert('Error', 'Hubo un error al registrar la molienda. Inténtelo de nuevo.', 'danger');
@@ -1370,7 +1373,7 @@ terminan a la misma hora.
         cancelText={modalConfig.cancelText}
         showCancel={modalConfig.showCancel}
         type={modalConfig.type}
-        icon={modalConfig.type === 'danger' ? 'alert' : modalConfig.type === 'warning' ? 'alert' : 'alert'}
+        icon={modalConfig.icon as any}
       />
 
       {/* Sección Resumen de Procesos Activos (NUEVA) */}

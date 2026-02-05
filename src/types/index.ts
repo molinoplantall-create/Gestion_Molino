@@ -41,6 +41,8 @@ export interface Client {
   zone?: string;
   stock_cuarzo: number;
   stock_llampo: number;
+  last_intake_date?: string;
+  last_intake_zone?: string;
   is_active: boolean;
   observations?: string;
   created_at?: string;

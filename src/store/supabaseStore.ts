@@ -39,7 +39,9 @@ interface SupabaseStore {
   ) => Promise<boolean>;
   registerMaintenance: (data: any) => Promise<boolean>;
   updateMillStatus: (id: string, status: string) => Promise<void>;
-  addClientStock: (clientId: string, cuarzo: number, llampo: number) => Promise<boolean>;
+  updateClient: (id: string, clientData: Partial<Client>) => Promise<boolean>;
+  deleteClient: (id: string) => Promise<boolean>;
+  addClientStock: (clientId: string, cuarzo: number, llampo: number, zone?: string) => Promise<boolean>;
   addZone: (name: string) => Promise<boolean>;
 }
 
@@ -269,7 +271,48 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  addClientStock: async (clientId: string, cuarzo: number, llampo: number) => {
+  updateClient: async (id, clientData) => {
+    set({ loading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update(clientData)
+        .eq('id', id);
+
+      if (error) throw error;
+      await get().fetchClients();
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error updateClient:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  deleteClient: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      // Soft delete: just set is_active to false
+      const { error } = await supabase
+        .from('clients')
+        .update({ is_active: false })
+        .eq('id', id);
+
+      if (error) throw error;
+      await get().fetchClients();
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error deleteClient:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  addClientStock: async (clientId, cuarzo, llampo, zone) => {
     set({ loading: true, error: null });
     try {
       const { data: client, error: fetchError } = await supabase
@@ -280,12 +323,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (fetchError) throw fetchError;
 
+      const updateData: any = {
+        stock_cuarzo: (client.stock_cuarzo || 0) + cuarzo,
+        stock_llampo: (client.stock_llampo || 0) + llampo,
+        last_intake_date: new Date().toISOString(),
+      };
+
+      if (zone) {
+        updateData.last_intake_zone = zone;
+      }
+
       const { error: updateError } = await supabase
         .from('clients')
-        .update({
-          stock_cuarzo: (client.stock_cuarzo || 0) + cuarzo,
-          stock_llampo: (client.stock_llampo || 0) + llampo,
-        })
+        .update(updateData)
         .eq('id', clientId);
 
       if (updateError) throw updateError;

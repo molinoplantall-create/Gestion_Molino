@@ -87,6 +87,12 @@ export interface Notification {
   createdAt: Date;
 }
 
+export interface Zone {
+  id: string;
+  name: string;
+  created_at?: string;
+}
+
 export interface ReportFilter {
   fechaInicio?: Date;
   fechaFin?: Date;

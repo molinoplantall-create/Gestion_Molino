@@ -9,10 +9,13 @@ import { useSupabaseStore } from '@/store/supabaseStore';
 import { supabase } from '@/lib/supabase';
 
 const Clientes: React.FC = () => {
-  const { clients, loading, fetchClients } = useSupabaseStore();
+  const { clients, zones, loading, fetchClients, fetchZones, addZone } = useSupabaseStore();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterZone, setFilterZone] = useState('all');
   const [showNuevoClienteModal, setShowNuevoClienteModal] = useState(false);
+  const [isAddingZone, setIsAddingZone] = useState(false);
+  const [newZoneName, setNewZoneName] = useState('');
   const [nuevoCliente, setNuevoCliente] = useState({
     nombre: '',
     contacto: '',
@@ -29,7 +32,8 @@ const Clientes: React.FC = () => {
 
   useEffect(() => {
     fetchClients();
-  }, [fetchClients]);
+    fetchZones();
+  }, [fetchClients, fetchZones]);
 
   // KPIs
   const totalClientes = clients.length;
@@ -43,7 +47,8 @@ const Clientes: React.FC = () => {
       (client.contact_name || '').toLowerCase().includes(lowerCaseSearch) ||
       (client.phone || '').toLowerCase().includes(lowerCaseSearch);
     const matchesStatus = filterStatus === 'all' || (client.is_active === true ? 'ACTIVO' : 'INACTIVO') === filterStatus;
-    return matchesSearch && matchesStatus;
+    const matchesZone = filterZone === 'all' || client.zone === filterZone;
+    return matchesSearch && matchesStatus && matchesZone;
   });
 
   const getStatusBadge = (isActive: boolean) => {
@@ -55,7 +60,8 @@ const Clientes: React.FC = () => {
   };
 
   const getZoneBadge = (zona: string) => {
-    const colors = {
+    const defaultColors = 'bg-gray-100 text-gray-800';
+    const zoneColors: Record<string, string> = {
       'Norte': 'bg-blue-100 text-blue-800',
       'Sur': 'bg-green-100 text-green-800',
       'Centro': 'bg-purple-100 text-purple-800',
@@ -63,10 +69,21 @@ const Clientes: React.FC = () => {
       'Oeste': 'bg-red-100 text-red-800',
     };
     return (
-      <span className={`px-2 py-1 text-xs rounded-full ${colors[zona as keyof typeof colors] || 'bg-gray-100'}`}>
+      <span className={`px-2 py-1 text-xs rounded-full ${zoneColors[zona] || defaultColors}`}>
         {zona || 'N/A'}
       </span>
     );
+  };
+
+  const handleAddZone = async () => {
+    if (!newZoneName.trim()) return;
+    const success = await addZone(newZoneName.trim());
+    if (success) {
+      setNewZoneName('');
+      setIsAddingZone(false);
+    } else {
+      alert('Error al agregar la zona. Podría ya existir.');
+    }
   };
 
   // ... rest of helper functions ...
@@ -219,13 +236,15 @@ const Clientes: React.FC = () => {
           </div>
 
           <div>
-            <select className="input-field">
+            <select
+              value={filterZone}
+              onChange={(e) => setFilterZone(e.target.value)}
+              className="input-field"
+            >
               <option value="all">Todas las zonas</option>
-              <option value="Norte">Norte</option>
-              <option value="Sur">Sur</option>
-              <option value="Centro">Centro</option>
-              <option value="Este">Este</option>
-              <option value="Oeste">Oeste</option>
+              {zones.map(z => (
+                <option key={z.id} value={z.name}>{z.name}</option>
+              ))}
             </select>
           </div>
 
@@ -234,6 +253,7 @@ const Clientes: React.FC = () => {
               onClick={() => {
                 setSearch('');
                 setFilterStatus('all');
+                setFilterZone('all');
               }}
               className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
@@ -423,18 +443,46 @@ const Clientes: React.FC = () => {
                 {/* Additional Details */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Zona</label>
-                    <select
-                      name="zona"
-                      value={nuevoCliente.zona}
-                      onChange={handleNuevoClienteChange}
-                      className="input-field"
-                    >
-                      <option value="">Seleccionar zona</option>
-                      <option value="Norte">Norte</option>
-                      <option value="Sur">Sur</option>
-                      <option value="Centro">Centro</option>
-                    </select>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex justify-between">
+                      <span>Zona</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingZone(!isAddingZone)}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        {isAddingZone ? 'Cancelar' : '+ Nueva Zona'}
+                      </button>
+                    </label>
+                    {!isAddingZone ? (
+                      <select
+                        name="zona"
+                        value={nuevoCliente.zona}
+                        onChange={handleNuevoClienteChange}
+                        className="input-field"
+                      >
+                        <option value="">Seleccionar zona</option>
+                        {zones.map(z => (
+                          <option key={z.id} value={z.name}>{z.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="flex space-x-2">
+                        <input
+                          type="text"
+                          value={newZoneName}
+                          onChange={(e) => setNewZoneName(e.target.value)}
+                          placeholder="Nombre de zona"
+                          className="input-field flex-1"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddZone}
+                          className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-bold"
+                        >
+                          OK
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de Cliente</label>

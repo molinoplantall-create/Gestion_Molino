@@ -1,21 +1,24 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
-import { Mill, Client, MillingLog } from '@/types';
+import { Mill, Client, MillingLog, Zone } from '@/types';
 
 interface SupabaseStore {
   mills: Mill[];
   clients: Client[];
+  zones: Zone[];
   millingLogs: MillingLog[];
   maintenanceLogs: any[];
   loading: boolean;
   millsLoading: boolean;
   clientsLoading: boolean;
+  zonesLoading: boolean;
   logsLoading: boolean;
   error: string | null;
 
   // Actions
   fetchMills: () => Promise<void>;
   fetchClients: () => Promise<void>;
+  fetchZones: () => Promise<void>;
   fetchMillingLogs: (limit?: number) => Promise<void>;
   fetchMaintenanceLogs: () => Promise<void>;
   registerMilling: (
@@ -37,16 +40,19 @@ interface SupabaseStore {
   registerMaintenance: (data: any) => Promise<boolean>;
   updateMillStatus: (id: string, status: string) => Promise<void>;
   addClientStock: (clientId: string, cuarzo: number, llampo: number) => Promise<boolean>;
+  addZone: (name: string) => Promise<boolean>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   mills: [],
   clients: [],
+  zones: [],
   millingLogs: [],
   maintenanceLogs: [],
   loading: false,
   millsLoading: false,
   clientsLoading: false,
+  zonesLoading: false,
   logsLoading: false,
   error: null,
 
@@ -84,6 +90,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       set({ error: error.message });
     } finally {
       set({ clientsLoading: false });
+    }
+  },
+
+  fetchZones: async () => {
+    set({ zonesLoading: true, error: null });
+    try {
+      const { data, error } = await supabase
+        .from('zones')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      set({ zones: data as Zone[] });
+    } catch (error: any) {
+      console.error('❌ Error fetchZones:', error);
+      set({ error: error.message });
+    } finally {
+      set({ zonesLoading: false });
     }
   },
 
@@ -270,6 +294,26 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return true;
     } catch (error: any) {
       console.error('❌ Error addClientStock:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  addZone: async (name: string) => {
+    set({ loading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('zones')
+        .insert({ name });
+
+      if (error) throw error;
+
+      await get().fetchZones();
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error addZone:', error);
       set({ error: error.message });
       return false;
     } finally {

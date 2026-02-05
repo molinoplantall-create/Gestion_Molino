@@ -12,6 +12,7 @@ interface UserStore {
     updateUserRole: (id: string, role: UserRole) => Promise<boolean>;
     toggleUserStatus: (id: string, active: boolean) => Promise<boolean>;
     updateUserNombre: (id: string, nombre: string) => Promise<boolean>;
+    deleteUser: (id: string) => Promise<boolean>;
 }
 
 export const useUserStore = create<UserStore>((set, get) => ({
@@ -99,6 +100,23 @@ export const useUserStore = create<UserStore>((set, get) => ({
             return true;
         } catch (error: any) {
             console.error('Error updating name:', error);
+            return false;
+        }
+    },
+
+    deleteUser: async (id) => {
+        try {
+            const { error } = await supabase
+                .from('user_profiles')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            get().fetchUsers();
+            return true;
+        } catch (error: any) {
+            console.error('Error deleting user:', error);
             return false;
         }
     }

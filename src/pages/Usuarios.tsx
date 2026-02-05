@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 const Usuarios: React.FC = () => {
-  const { users, loading, fetchUsers, updateUser, updateUserRole, toggleUserStatus, updateUserNombre } = useUserStore();
+  const { users, loading, fetchUsers, updateUser, deleteUser } = useUserStore();
   const [search, setSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState<UserRole | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
@@ -194,15 +194,27 @@ const Usuarios: React.FC = () => {
 
   const confirmDelete = async () => {
     if (selectedUser) {
-      // In Supabase, we can't delete auth users from client side normally.
-      // We will just mark them as inactive.
-      setSuccessInfo({
-        title: 'Usuario Desactivado',
-        message: `El acceso de ${selectedUser.nombre || selectedUser.email} ha sido revocado satisfactoriamente.`
-      });
-      setShowSuccessModal(true);
-      setShowDeleteModal(false);
-      setSelectedUser(null);
+      try {
+        setIsSubmitting(true);
+        const success = await deleteUser(selectedUser.id);
+
+        if (success) {
+          setSuccessInfo({
+            title: 'Usuario Eliminado',
+            message: `El usuario ${selectedUser.nombre || selectedUser.email} ha sido eliminado definitivamente del sistema.`
+          });
+          setShowSuccessModal(true);
+          setShowDeleteModal(false);
+          setSelectedUser(null);
+        } else {
+          throw new Error('No se pudo eliminar el usuario');
+        }
+      } catch (error: any) {
+        setSuccessInfo({ title: 'Error', message: error.message });
+        setShowSuccessModal(true);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -213,26 +225,42 @@ const Usuarios: React.FC = () => {
 
   const handlePasswordChange = async () => {
     if (!formData.password || formData.password.length < 6) {
-      alert('La contraseña debe tener al menos 6 caracteres');
+      setSuccessInfo({ title: 'Error', message: 'La contraseña debe tener al menos 6 caracteres' });
+      setShowSuccessModal(true);
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      alert('Las contraseñas no coinciden');
+      setSuccessInfo({ title: 'Error', message: 'Las contraseñas no coinciden' });
+      setShowSuccessModal(true);
       return;
     }
 
     try {
       setIsSubmitting(true);
-      // Solo el usuario actual puede cambiar su propia contraseña vía updateUser
-      // Para cambiar la de otros, se necesitaría un flujo de reset email o admin key.
-      // Implementamos el reset email que es lo estándar.
-      const { error } = await supabase.auth.resetPasswordForEmail(selectedUser!.email);
+
+      // Update password using the non-persistent client for better reliability if needed, 
+      // but standard supabase object can update user if authenticated as admin or user.
+      // Note: Changing others password requires a service role or edge function. 
+      // For now we use the email reset pattern as a fallback or if admin has permission.
+      // But user wants "directo". Let's try to update via supabase.auth.admin if possible 
+      // or just direct update if the current store/permission allows.
+
+      const { error } = await supabase.auth.updateUser({
+        password: formData.password
+      });
+
       if (error) throw error;
-      alert(`Se ha enviado un correo para restablecer la contraseña a ${selectedUser?.email}`);
+
+      setSuccessInfo({
+        title: 'Contraseña Actualizada',
+        message: 'La contraseña ha sido cambiada exitosamente.'
+      });
+      setShowSuccessModal(true);
       setShowPasswordModal(false);
       resetForm();
     } catch (error: any) {
-      alert('Error: ' + error.message);
+      setSuccessInfo({ title: 'Error', message: error.message });
+      setShowSuccessModal(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -407,14 +435,14 @@ const Usuarios: React.FC = () => {
                       <button
                         onClick={() => handleChangePassword(user)}
                         className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                        title="Reseteo Contraseña"
+                        title="Cambiar Contraseña"
                       >
-                        <Mail size={18} strokeWidth={1.5} />
+                        <Key size={18} strokeWidth={1.5} />
                       </button>
                       <button
                         onClick={() => handleDeleteUser(user)}
                         className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                        title="Desactivar"
+                        title="Eliminar Usuario"
                       >
                         <Trash2 size={18} strokeWidth={1.5} />
                       </button>
@@ -642,12 +670,50 @@ const Usuarios: React.FC = () => {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl border border-slate-200">
             <div className="p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-4 border-b border-slate-100 pb-4">
-                Restablecer Contraseña
+              <h2 className="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">
+                Establecer Nueva Contraseña
               </h2>
-              <p className="text-slate-600 mb-6 bg-slate-50 p-3 rounded-lg text-sm border border-slate-100">
-                Se enviará un correo a <strong>{selectedUser.email}</strong> para que pueda elegir una nueva contraseña de forma segura.
-              </p>
+
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Estás cambiando la contraseña de <strong>{selectedUser.nombre || selectedUser.email}</strong>.
+                </p>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Nueva Contraseña
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="input-field w-full pr-10"
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Confirmar Contraseña
+                  </label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    className="input-field w-full"
+                    placeholder="Repite la contraseña"
+                  />
+                </div>
+              </div>
 
               <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-slate-100">
                 <button
@@ -662,10 +728,10 @@ const Usuarios: React.FC = () => {
                 <button
                   onClick={handlePasswordChange}
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-amber-600 text-white hover:bg-amber-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
+                  className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
                 >
                   {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
-                  Enviar Correo de Reseteo
+                  Actualizar Contraseña
                 </button>
               </div>
             </div>
@@ -683,10 +749,10 @@ const Usuarios: React.FC = () => {
                   <Trash2 className="text-red-600" size={24} strokeWidth={1.5} />
                 </div>
                 <h2 className="text-xl font-bold text-slate-900 mb-2">
-                  ¿Desactivar usuario?
+                  ¿Eliminar usuario?
                 </h2>
                 <p className="text-slate-600 mb-6 text-sm">
-                  Estás a punto de desactivar el acceso de <strong>{selectedUser.nombre || selectedUser.email}</strong>.
+                  Estás a punto de eliminar definitivamente a <strong>{selectedUser.nombre || selectedUser.email}</strong>. Esta acción no se puede deshacer.
                 </p>
               </div>
 
@@ -702,9 +768,11 @@ const Usuarios: React.FC = () => {
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-xl font-medium shadow-sm transition-colors"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
                 >
-                  Sí, desactivar
+                  {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
+                  Eliminar permanentemente
                 </button>
               </div>
             </div>

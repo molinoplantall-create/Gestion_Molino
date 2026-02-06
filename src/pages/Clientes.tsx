@@ -10,6 +10,8 @@ import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
 import { ClientForm } from '@/components/clientes/ClientForm';
 import { ClientTable } from '@/components/clientes/ClientTable';
 import { ClientFilters } from '@/components/clientes/ClientFilters';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { clientSchema } from '@/schemas/clientSchema';
 
 const Clientes: React.FC = () => {
   const { clients, zones, loading, fetchClients, fetchZones, addZone, updateClient, deleteClient } = useSupabaseStore();
@@ -43,6 +45,10 @@ const Clientes: React.FC = () => {
     observaciones: ''
   });
 
+  const { errors, validate, clearErrors, validateField } = useFormValidation({
+    schema: clientSchema
+  });
+
   useEffect(() => {
     fetchClients();
     fetchZones();
@@ -72,6 +78,8 @@ const Clientes: React.FC = () => {
       ...prev,
       [name]: type === 'number' ? parseFloat(value) || 0 : value
     }));
+    // Real-time validation
+    validateField(name, value);
   };
 
   const resetForm = () => {
@@ -79,6 +87,7 @@ const Clientes: React.FC = () => {
       nombre: '', contacto: '', telefono: '', email: '', ruc: '',
       direccion: '', zona: '', tipoCliente: '', observaciones: ''
     });
+    clearErrors();
   };
 
   const handleAddZone = async () => {
@@ -95,8 +104,11 @@ const Clientes: React.FC = () => {
 
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nombre || !formData.zona || !formData.tipoCliente) {
-      toast.warning('Campos requeridos', 'Por favor complete todos los campos obligatorios (*)');
+
+    // Zod validation
+    const isValid = await validate(formData);
+    if (!isValid) {
+      toast.warning('Validación fallida', 'Por favor revise los errores en el formulario');
       return;
     }
 
@@ -145,8 +157,11 @@ const Clientes: React.FC = () => {
 
   const handleUpdateClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nombre || !formData.zona || !formData.tipoCliente) {
-      toast.warning('Campos requeridos', 'Por favor complete todos los campos obligatorios (*)');
+
+    // Zod validation
+    const isValid = await validate(formData);
+    if (!isValid) {
+      toast.warning('Validación fallida', 'Por favor revise los errores en el formulario');
       return;
     }
 
@@ -318,7 +333,7 @@ const Clientes: React.FC = () => {
       <ClientForm
         isOpen={createModal.isOpen}
         onClose={createModal.close}
-        onSubmit={handleCreateClient}
+        onSubmit={() => handleCreateClient({ preventDefault: () => { } } as any)}
         formData={formData}
         onChange={handleFormChange}
         zones={zones}
@@ -329,6 +344,7 @@ const Clientes: React.FC = () => {
         newZoneName={newZoneName}
         onNewZoneNameChange={setNewZoneName}
         onToggleAddZone={() => setIsAddingZone(!isAddingZone)}
+        errors={errors}
       />
 
       {/* Edit Client Modal */}
@@ -338,12 +354,13 @@ const Clientes: React.FC = () => {
           editModal.close();
           resetForm();
         }}
-        onSubmit={handleUpdateClient}
+        onSubmit={() => handleUpdateClient({ preventDefault: () => { } } as any)}
         formData={formData}
         onChange={handleFormChange}
         zones={zones}
         isLoading={isSubmitting}
         isEditing={true}
+        errors={errors}
       />
 
       {/* Delete Confirmation Modal */}

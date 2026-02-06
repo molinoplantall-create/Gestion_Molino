@@ -17,7 +17,7 @@ interface ClientFormData {
 interface ClientFormProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (e: React.FormEvent) => void | Promise<void>;
+    onSubmit: () => void | Promise<void>;
     formData: ClientFormData;
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
     zones: Array<{ id: string; name: string }>;
@@ -28,6 +28,7 @@ interface ClientFormProps {
     newZoneName?: string;
     onNewZoneNameChange?: (value: string) => void;
     onToggleAddZone?: () => void;
+    errors?: Record<string, string>;
 }
 
 export const ClientForm: React.FC<ClientFormProps> = ({
@@ -43,7 +44,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     isAddingZone = false,
     newZoneName = '',
     onNewZoneNameChange,
-    onToggleAddZone
+    onToggleAddZone,
+    errors = {}
 }) => {
     const isValid = formData.nombre && formData.zona && formData.tipoCliente;
 
@@ -71,10 +73,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                             name="nombre"
                             value={formData.nombre}
                             onChange={onChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.nombre ? 'border-red-500 ring-red-100' : 'border-gray-300'}`}
                             placeholder="Ej: Minera Andina SA"
                             required
                         />
+                        {errors.nombre && <p className="text-xs text-red-500 mt-1">{errors.nombre}</p>}
                     </div>
 
                     <div>
@@ -158,7 +161,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                                 name="zona"
                                 value={formData.zona}
                                 onChange={onChange}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.zona ? 'border-red-500 ring-red-100' : 'border-gray-300'}`}
                                 required
                             >
                                 <option value="">Seleccionar zona</option>
@@ -184,6 +187,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                                 </button>
                             </div>
                         )}
+                        {errors.zona && <p className="text-xs text-red-500 mt-1">{errors.zona}</p>}
                     </div>
 
                     <div>
@@ -194,13 +198,14 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                             name="tipoCliente"
                             value={formData.tipoCliente}
                             onChange={onChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.tipoCliente ? 'border-red-500 ring-red-100' : 'border-gray-300'}`}
                             required
                         >
                             <option value="">Seleccionar tipo</option>
                             <option value="MINERO">Minero</option>
                             <option value="PALLAQUERO">Pallaquero</option>
                         </select>
+                        {errors.tipoCliente && <p className="text-xs text-red-500 mt-1">{errors.tipoCliente}</p>}
                     </div>
                 </div>
 

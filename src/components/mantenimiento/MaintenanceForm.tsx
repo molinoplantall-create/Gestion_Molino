@@ -22,6 +22,7 @@ interface MaintenanceFormProps {
     mills: any[];
     isLoading?: boolean;
     isEditing?: boolean;
+    errors?: Record<string, string>;
 }
 
 export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
@@ -32,7 +33,8 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     onChange,
     mills,
     isLoading = false,
-    isEditing = false
+    isEditing = false,
+    errors = {}
 }) => {
     const isValid = formData.molinoId && formData.descripcion && formData.asignadoA;
 
@@ -67,6 +69,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             </option>
                         ))}
                     </select>
+                    {errors.molinoId && <p className="text-xs text-red-500 mt-1">{errors.molinoId}</p>}
                 </div>
 
                 {/* Tipo */}
@@ -126,9 +129,10 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         value={formData.asignadoA}
                         onChange={(e) => onChange('asignadoA', e.target.value)}
                         placeholder="Nombre del técnico"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.asignadoA ? 'border-red-500 ring-red-100' : 'border-gray-300'}`}
                         required
                     />
+                    {errors.asignadoA && <p className="text-xs text-red-500 mt-1">{errors.asignadoA}</p>}
                 </div>
 
                 {/* Descripción */}
@@ -141,9 +145,10 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         onChange={(e) => onChange('descripcion', e.target.value)}
                         placeholder="Describa el problema o tarea de mantenimiento..."
                         rows={4}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none ${errors.descripcion ? 'border-red-500 ring-red-100' : 'border-gray-300'}`}
                         required
                     />
+                    {errors.descripcion && <p className="text-xs text-red-500 mt-1">{errors.descripcion}</p>}
                 </div>
             </div>
         </FormModal>

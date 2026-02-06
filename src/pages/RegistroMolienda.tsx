@@ -10,6 +10,8 @@ import { MillSelector } from '@/components/molienda/MillSelector';
 import { ProcessSummary } from '@/components/molienda/ProcessSummary';
 import { ReceiptModal } from '@/components/molienda/ReceiptModal';
 import { TIPO_CLIENTE, MINERAL_TYPES_STOCK } from '../constants';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { millingProcessSchema } from '@/schemas/millingSchema';
 
 // Types
 interface MolinoProceso {
@@ -93,6 +95,10 @@ const RegistroMolienda: React.FC = () => {
     procesoIniciado: false,
     procesoId: null,
     estado: 'PROCESANDO'
+  });
+
+  const { validate, errors } = useFormValidation({
+    schema: millingProcessSchema
   });
 
   // Fetch data
@@ -303,17 +309,25 @@ const RegistroMolienda: React.FC = () => {
   };
 
   // Validation
-  const validarRegistro = (): boolean => {
-    if (!molienda.clienteId) {
-      toast.warning('Faltan Datos', 'Debe seleccionar un cliente para continuar.');
+  const validarRegistro = async (): Promise<boolean> => {
+    // 1. Zod Basic Validation
+    const basicData = {
+      clientId: molienda.clienteId,
+      mineral: molienda.mineral,
+      totalSacos: molienda.totalSacos,
+      totalCuarzo: molienda.totalCuarzo,
+      totalLlampo: molienda.totalLlampo,
+      observaciones: molienda.observaciones
+    };
+
+    const isValid = await validate(basicData);
+    if (!isValid) {
+      const firstError = Object.values(errors)[0];
+      toast.warning('Datos Inválidos', firstError || 'Por favor revise los campos del formulario');
       return false;
     }
 
-    if (!molienda.mineral) {
-      toast.warning('Faltan Datos', 'Debe seleccionar el tipo de mineral.');
-      return false;
-    }
-
+    // 2. Business Logic Validation
     if (molienda.mineral === 'OXIDO' && !molienda.tiempos.oxido.hora40 && !molienda.tiempos.oxido.hora00) {
       toast.warning('Tiempo no seleccionado', 'Debe seleccionar al menos un tiempo para Óxido.');
       return false;
@@ -362,7 +376,8 @@ const RegistroMolienda: React.FC = () => {
 
   // Register milling
   const registrarMolienda = async () => {
-    if (!validarRegistro()) return;
+    const isValid = await validarRegistro();
+    if (!isValid) return;
 
     const ahora = new Date();
     const horaInicio = ahora.toTimeString().slice(0, 5);
@@ -370,7 +385,7 @@ const RegistroMolienda: React.FC = () => {
 
     const success = await registerMilling({
       clientId: molienda.clienteId,
-      mineralType: molienda.mineral,
+      mineralType: molienda.mineral as 'OXIDO' | 'SULFURO',
       totalSacos: molienda.totalSacos,
       totalCuarzo: molienda.totalCuarzo,
       totalLlampo: molienda.totalLlampo,
@@ -540,7 +555,7 @@ const RegistroMolienda: React.FC = () => {
       <ReceiptModal
         isOpen={receiptModal.isOpen}
         onClose={receiptModal.close}
-        moliendaData={molienda}
+        moliendaData={molienda as any}
         userEmail={user?.email}
       />
     </div>

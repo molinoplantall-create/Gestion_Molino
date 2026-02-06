@@ -9,6 +9,8 @@ import { MaintenanceForm } from '@/components/mantenimiento/MaintenanceForm';
 import { MaintenanceTable } from '@/components/mantenimiento/MaintenanceTable';
 import { MaintenanceFilters } from '@/components/mantenimiento/MaintenanceFilters';
 import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { maintenanceSchema } from '@/schemas/maintenanceSchema';
 
 interface MaintenanceRecord {
   id: string;
@@ -60,6 +62,10 @@ const Mantenimiento: React.FC = () => {
     asignadoA: ''
   });
 
+  const { errors, validate, clearErrors, validateField } = useFormValidation({
+    schema: maintenanceSchema
+  });
+
   useEffect(() => {
     fetchMills();
     fetchMaintenanceLogs();
@@ -86,6 +92,7 @@ const Mantenimiento: React.FC = () => {
   // Handlers
   const handleFormChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    validateField(field, value);
   };
 
   const resetForm = () => {
@@ -99,11 +106,13 @@ const Mantenimiento: React.FC = () => {
       horasEstimadas: 4,
       asignadoA: ''
     });
+    clearErrors();
   };
 
   const handleCreateRecord = async () => {
-    if (!formData.molinoId || !formData.descripcion || !formData.asignadoA) {
-      toast.warning('Campos requeridos', 'Por favor complete todos los campos obligatorios');
+    const isValid = await validate(formData);
+    if (!isValid) {
+      toast.warning('Validación fallida', 'Por favor revise los errores en el formulario');
       return;
     }
 
@@ -412,8 +421,11 @@ const Mantenimiento: React.FC = () => {
         totalPages={totalPages}
         onPageChange={setCurrentPage}
         onView={(record) => toast.info('Ver Detalle', 'Función en desarrollo')}
-        onEdit={handleEditClick}
-        onDelete={handleDeleteClick}
+        onEdit={(record) => handleEditClick(record)}
+        onDelete={(id) => {
+          const record = maintenanceLogs.find(l => l.id === id);
+          if (record) handleDeleteClick(record);
+        }}
       />
 
       {/* Create Maintenance Modal */}
@@ -429,6 +441,7 @@ const Mantenimiento: React.FC = () => {
         mills={mills}
         isLoading={isSubmitting}
         isEditing={false}
+        errors={errors}
       />
 
       {/* Edit Maintenance Modal */}
@@ -444,6 +457,7 @@ const Mantenimiento: React.FC = () => {
         mills={mills}
         isLoading={isSubmitting}
         isEditing={true}
+        errors={errors}
       />
 
       {/* Delete Confirmation Modal */}

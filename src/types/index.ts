@@ -43,6 +43,7 @@ export interface Client {
   stock_llampo: number;
   last_intake_date?: string;
   last_intake_zone?: string;
+  last_mineral_type?: string;
   is_active: boolean;
   observations?: string;
   created_at?: string;

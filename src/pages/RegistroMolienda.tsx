@@ -226,11 +226,20 @@ const RegistroMolienda: React.FC = () => {
     const cliente = clients.find(c => c.id === clienteId);
     if (cliente) {
       const stockTotal = (cliente.stock_cuarzo || 0) + (cliente.stock_llampo || 0);
+
+      // Auto-set mineral type if available
+      const mineralType = cliente.last_mineral_type as 'OXIDO' | 'SULFURO' || '';
+
+      // Set current time if horaInicio is null
+      const currentHora = molienda.horaInicio || new Date().toTimeString().slice(0, 5);
+
       setMolienda(prev => ({
         ...prev,
         clienteId: cliente.id,
         clienteNombre: cliente.name,
         tipoCliente: (cliente.client_type || 'MINERO') as any,
+        mineral: mineralType || prev.mineral,
+        horaInicio: currentHora,
         stockTotal,
         stockCuarzo: cliente.stock_cuarzo || 0,
         stockLlampo: cliente.stock_llampo || 0,

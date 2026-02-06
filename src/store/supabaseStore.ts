@@ -41,7 +41,7 @@ interface SupabaseStore {
   updateMillStatus: (id: string, status: string) => Promise<void>;
   updateClient: (id: string, clientData: Partial<Client>) => Promise<boolean>;
   deleteClient: (id: string) => Promise<boolean>;
-  addClientStock: (clientId: string, cuarzo: number, llampo: number, zone?: string) => Promise<boolean>;
+  addClientStock: (clientId: string, cuarzo: number, llampo: number, zone?: string, mineralType?: string) => Promise<boolean>;
   addZone: (name: string) => Promise<boolean>;
 }
 
@@ -312,7 +312,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  addClientStock: async (clientId, cuarzo, llampo, zone) => {
+  addClientStock: async (clientId, cuarzo, llampo, zone, mineralType) => {
     set({ loading: true, error: null });
     try {
       const { data: client, error: fetchError } = await supabase
@@ -331,6 +331,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (zone) {
         updateData.last_intake_zone = zone;
+      }
+
+      if (mineralType) {
+        updateData.last_mineral_type = mineralType;
       }
 
       const { error: updateError } = await supabase

@@ -22,9 +22,12 @@ import {
 import { useAuthStore } from '../store/authStore';
 import { useSupabaseStore } from '../store/supabaseStore';
 
+import { useToast } from '../hooks/useToast';
+
 const Stock: React.FC = () => {
   const { user } = useAuthStore();
   const { clients, zones, loading, fetchClients, fetchZones, addClientStock } = useSupabaseStore();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState('all');
@@ -41,6 +44,7 @@ const Stock: React.FC = () => {
     clienteId: '',
     zona: '',
     mineral: '',
+    mineralType: 'OXIDO' as 'OXIDO' | 'SULFURO',
     cuarzo: 0,
     llampo: 0,
     total: 0,
@@ -77,6 +81,7 @@ const Stock: React.FC = () => {
       clienteId: '',
       zona: '',
       mineral: '',
+      mineralType: 'OXIDO',
       cuarzo: 0,
       llampo: 0,
       total: 0,
@@ -91,11 +96,11 @@ const Stock: React.FC = () => {
   // Guardar ingreso
   const guardarIngreso = async () => {
     if (!nuevoIngreso.clienteId) {
-      alert('Debe seleccionar un cliente');
+      toast.error('Error', 'Debe seleccionar un cliente');
       return;
     }
     if (nuevoIngreso.total <= 0) {
-      alert('Debe ingresar al menos una cantidad de Cuarzo o Llampo');
+      toast.error('Error', 'Debe ingresar al menos una cantidad de Cuarzo o Llampo');
       return;
     }
 
@@ -103,14 +108,15 @@ const Stock: React.FC = () => {
       nuevoIngreso.clienteId,
       nuevoIngreso.cuarzo,
       nuevoIngreso.llampo,
-      nuevoIngreso.zona
+      nuevoIngreso.zona,
+      nuevoIngreso.mineralType
     );
 
     if (success) {
       setShowModal(false);
-      alert('Ingreso de mineral registrado exitosamente');
+      toast.success('Ingreso Exitoso', `Se ha registrado el ingreso de ${nuevoIngreso.total} sacos para ${nuevoIngreso.clienteNombre}`);
     } else {
-      alert('Error al registrar el ingreso');
+      toast.error('Error', 'No se pudo registrar el ingreso de mineral');
     }
   };
 
@@ -417,6 +423,25 @@ const Stock: React.FC = () => {
                       <option key={z.id} value={z.name}>{z.name}</option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Tipo de Mineral *</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {MINERAL_TYPES_STOCK.map((type) => (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => setNuevoIngreso({ ...nuevoIngreso, mineralType: type.value as 'OXIDO' | 'SULFURO' })}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${nuevoIngreso.mineralType === type.value
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          }`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

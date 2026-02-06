@@ -164,13 +164,15 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
 
                                     {/* Total and Time */}
                                     <div className="pt-3 border-t border-slate-200">
-                                        <div className="flex justify-between text-sm mb-2">
-                                            <span className="text-slate-600">Total:</span>
-                                            <span className="font-bold text-slate-900">{molino.total} sacos</span>
+                                        <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg mb-3">
+                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Carga Total</div>
+                                            <div className="text-sm font-black text-slate-900">
+                                                {molino.total} <span className="text-[10px] font-bold text-slate-400">SACOS</span>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between text-sm mb-2">
-                                            <span className="text-slate-600">Capacidad:</span>
-                                            <span className="text-slate-700">{molino.capacidadMaxima}</span>
+                                        <div className="flex justify-between text-[11px] mb-2 px-1">
+                                            <span className="text-slate-500 font-medium">Capacidad Máx:</span>
+                                            <span className="text-slate-700 font-bold">{molino.capacidadMaxima}</span>
                                         </div>
                                         {molino.tiempoEstimado > 0 && (
                                             <>

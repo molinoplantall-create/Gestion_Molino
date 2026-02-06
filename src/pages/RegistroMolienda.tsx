@@ -308,6 +308,28 @@ const RegistroMolienda: React.FC = () => {
     });
   };
 
+  const handleReplicate = (sourceMolinoId: string) => {
+    setMolienda(prev => {
+      const sourceMolino = prev.molinos.find(m => m.id === sourceMolinoId);
+      if (!sourceMolino) return prev;
+
+      const nuevosMolinos = prev.molinos.map(molino => {
+        if (molino.activo && molino.id !== sourceMolinoId) {
+          return {
+            ...molino,
+            cuarzo: Math.min(sourceMolino.cuarzo, molino.capacidadMaxima),
+            llampo: Math.min(sourceMolino.llampo, molino.capacidadMaxima),
+            total: Math.min(sourceMolino.total, molino.capacidadMaxima)
+          };
+        }
+        return molino;
+      });
+
+      toast.info('Configuración Replicada', 'Se ha copiado la carga a todos los molinos activos.');
+      return { ...prev, molinos: nuevosMolinos };
+    });
+  };
+
   // Validation
   const validarRegistro = async (): Promise<boolean> => {
     // 1. Zod Basic Validation
@@ -518,6 +540,7 @@ const RegistroMolienda: React.FC = () => {
       <MillSelector
         molinos={molienda.molinos}
         onMolinoChange={handleMolinoChange}
+        onReplicate={handleReplicate}
         disabled={molienda.procesoIniciado}
       />
 

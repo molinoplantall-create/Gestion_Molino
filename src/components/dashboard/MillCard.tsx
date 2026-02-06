@@ -145,40 +145,67 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
     }
   };
 
-  // Calcular tiempo restante si está ocupado
-  const calcularTiempoRestante = () => {
-    if (!normalizedMill.horaFinEstimada || estadoReal !== 'ocupado') return null;
+  const [timeRemaining, setTimeRemaining] = React.useState<string | null>(null);
+  const [percentProgress, setPercentProgress] = React.useState<number>(0);
 
-    try {
-      const fin = new Date(normalizedMill.horaFinEstimada);
-      const ahora = new Date();
-      const diffMs = fin.getTime() - ahora.getTime();
+  // Update countdown and progress
+  React.useEffect(() => {
+    if (estadoReal !== 'ocupado' || !normalizedMill.horaFinEstimada || !normalizedMill.horaInicio) return;
 
-      if (diffMs <= 0) return 'Completado';
+    const calculateValues = () => {
+      try {
+        const start = new Date(normalizedMill.horaInicio).getTime();
+        const end = new Date(normalizedMill.horaFinEstimada).getTime();
+        const now = new Date().getTime();
 
-      const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
-      const diffMinutos = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        const totalDuration = end - start;
+        const elapsed = now - start;
 
-      return `${diffHoras}h ${diffMinutos}m`;
-    } catch {
-      return null;
-    }
-  };
+        // Progress percentage
+        const progress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+        setPercentProgress(progress);
 
-  const tiempoRestante = calcularTiempoRestante();
+        // Time remaining
+        const diffMs = end - now;
+        if (diffMs <= 0) {
+          setTimeRemaining('Finalizado');
+        } else {
+          const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+          const diffMinutos = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          setTimeRemaining(`${diffHoras > 0 ? `${diffHoras}h ` : ''}${diffMinutos}m`);
+        }
+      } catch (e) {
+        console.error('Error calculating mill progress:', e);
+      }
+    };
+
+    calculateValues();
+    const interval = setInterval(calculateValues, 30000); // Update every 30s
+    return () => clearInterval(interval);
+  }, [estadoReal, normalizedMill.horaFinEstimada, normalizedMill.horaInicio]);
 
   return (
-    <div className={`card-hover border rounded-xl p-5 ${config.color} h-full flex flex-col transition-all hover:shadow-sm`}>
+    <div className={`card-hover border rounded-xl p-5 ${config.color} h-full flex flex-col transition-all hover:shadow-sm group`}>
+      {/* ProgressBar for process */}
+      {estadoReal === 'ocupado' && percentProgress < 100 && (
+        <div className="absolute top-0 left-0 w-full h-1 bg-slate-200 overflow-hidden rounded-t-xl">
+          <div
+            className="h-full bg-orange-500 transition-all duration-1000 ease-linear"
+            style={{ width: `${percentProgress}%` }}
+          />
+        </div>
+      )}
+
       {/* HEADER: Nombre y Estado */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <div className={`p-2.5 rounded-lg ${config.badge} mr-3`}>
+          <div className={`p-2.5 rounded-lg ${config.badge} mr-3 group-hover:scale-110 transition-transform`}>
             {React.cloneElement(config.icon as React.ReactElement, { strokeWidth: 1.5 })}
           </div>
           <div>
             <h3 className="font-bold text-slate-900 text-lg">{normalizedMill.nombre}</h3>
             <div className="flex items-center mt-1">
-              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${config.badge}`}>
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${config.badge}`}>
                 {config.label}
               </span>
             </div>
@@ -187,59 +214,59 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
 
         {/* Indicador de capacidad */}
         <div className="text-right">
-          <div className="text-xl font-bold text-slate-900">{normalizedMill.capacidad}</div>
-          <div className="text-xs text-slate-500">sacos/h</div>
+          <div className="text-xl font-black text-slate-900">{normalizedMill.capacidad}</div>
+          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">sacos/h</div>
         </div>
       </div>
 
       {/* SECCIÓN 1: INFORMACIÓN OPERATIVA */}
-      <div className="space-y-3 mb-4">
+      <div className="space-y-3 mb-4 flex-1">
         {/* Cliente actual (SOLO si está ocupado) */}
         {estadoReal === 'ocupado' && normalizedMill.clienteActual && (
-          <div className="flex items-center p-3 bg-white/50 rounded-lg border border-slate-200/50">
-            <User className="text-slate-400 mr-3" size={16} strokeWidth={1.5} />
+          <div className="flex items-center p-3 bg-white/60 rounded-xl border border-orange-100 shadow-sm">
+            <User className="text-orange-400 mr-3" size={16} strokeWidth={1.5} />
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-slate-900 truncate" title={normalizedMill.clienteActual}>
+              <div className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-0.5">Cliente</div>
+              <div className="text-sm font-bold text-slate-900 truncate" title={normalizedMill.clienteActual}>
                 {normalizedMill.clienteActual}
               </div>
-              <div className="text-xs text-slate-500">Cliente actual</div>
             </div>
           </div>
         )}
 
-        {/* Sacos procesando (SOLO si está ocupado y NO en mantenimiento) */}
+        {/* Sacos procesando */}
         {estadoReal === 'ocupado' && normalizedMill.sacosProcesando > 0 && (
-          <div className="flex items-center justify-between p-3 bg-white/50 rounded-lg border border-slate-200/50">
+          <div className="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-orange-100 shadow-sm">
             <div className="flex items-center">
-              <Package className="text-slate-400 mr-3" size={16} strokeWidth={1.5} />
+              <Package className="text-orange-400 mr-3" size={16} strokeWidth={1.5} />
               <div>
-                <div className="text-sm text-slate-700">Sacos procesando</div>
-                <div className="text-xs text-slate-500">
-                  {normalizedMill.capacidad * 8} max/día
-                </div>
+                <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Sacos</div>
+                <div className="text-[10px] text-slate-400 font-medium">En proceso</div>
               </div>
             </div>
-            <div className="font-bold text-lg text-slate-900">
+            <div className="text-xl font-black text-slate-900">
               {normalizedMill.sacosProcesando}
             </div>
           </div>
         )}
 
-        {/* Horarios si está ocupado */}
+        {/* Horarios y Cuenta Regresiva */}
         {estadoReal === 'ocupado' && (
-          <div className="grid grid-cols-2 gap-3 bg-white/50 p-3 rounded-lg border border-slate-200/50">
-            <div>
-              <div className="text-xs text-slate-500">Inicio</div>
-              <div className="text-sm font-semibold text-slate-900">
-                {formatTime(normalizedMill.horaInicio)}
+          <div className="bg-orange-600/5 p-3 rounded-xl border border-orange-200/50">
+            <div className="flex justify-between items-end">
+              <div>
+                <div className="text-[10px] text-orange-600 font-black uppercase tracking-widest mb-1 flex items-center">
+                  <Clock size={10} className="mr-1" /> Tiempo Restante
+                </div>
+                <div className="text-2xl font-black text-orange-700 tracking-tighter">
+                  {timeRemaining || '--:--'}
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500">
-                {tiempoRestante ? 'Finaliza en' : 'Fin estimado'}
-              </div>
-              <div className="text-sm font-semibold text-slate-900">
-                {tiempoRestante || formatTime(normalizedMill.horaFinEstimada)}
+              <div className="text-right">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Finaliza</div>
+                <div className="text-sm font-bold text-slate-900">
+                  {formatTime(normalizedMill.horaFinEstimada)}
+                </div>
               </div>
             </div>
           </div>

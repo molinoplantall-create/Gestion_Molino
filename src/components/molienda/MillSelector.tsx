@@ -20,12 +20,14 @@ interface MolinoProceso {
 interface MillSelectorProps {
     molinos: MolinoProceso[];
     onMolinoChange: (molinoId: string, campo: string, valor: any) => void;
+    onReplicate?: (sourceMolinoId: string) => void;
     disabled?: boolean;
 }
 
 export const MillSelector: React.FC<MillSelectorProps> = ({
     molinos,
     onMolinoChange,
+    onReplicate,
     disabled = false
 }) => {
     const formatTiempo = (totalMinutos: number): string => {
@@ -39,10 +41,15 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
 
     return (
         <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center">
-                <Factory size={20} strokeWidth={1.5} className="mr-2 text-indigo-600" />
-                Selección de Molinos
-            </h2>
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                <div>
+                    <h2 className="text-lg font-bold text-slate-900 flex items-center">
+                        <Factory size={20} strokeWidth={1.5} className="mr-2 text-indigo-600" />
+                        Configuración de Molinos
+                    </h2>
+                    <p className="text-xs text-slate-500 font-medium">Configure la carga individual para cada molino activo (I, II, III, IV)</p>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {molinos.map((molino) => {
@@ -53,30 +60,30 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                         <div
                             key={molino.id}
                             className={`border-2 rounded-xl p-4 transition-all ${molino.activo
-                                    ? 'border-indigo-500 bg-indigo-50'
-                                    : isBusy
-                                        ? 'border-red-200 bg-red-50'
-                                        : 'border-slate-200 bg-white hover:border-slate-300'
+                                ? 'border-indigo-500 bg-indigo-50'
+                                : isBusy
+                                    ? 'border-red-200 bg-red-50'
+                                    : 'border-slate-200 bg-white hover:border-slate-300'
                                 } ${isDisabled ? 'opacity-60' : ''}`}
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center">
                                     <div
-                                        className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${molino.activo
-                                                ? 'bg-indigo-600 text-white'
-                                                : isBusy
-                                                    ? 'bg-red-100 text-red-700'
-                                                    : 'bg-slate-100 text-slate-700'
+                                        className={`w-10 h-10 rounded-xl flex items-center justify-center mr-3 shadow-inner ${molino.activo
+                                            ? 'bg-indigo-600 text-white'
+                                            : isBusy
+                                                ? 'bg-red-100 text-red-700'
+                                                : 'bg-slate-100 text-slate-700'
                                             }`}
                                     >
-                                        <span className="font-bold text-sm">{molino.nombre.substring(0, 2)}</span>
+                                        <span className="font-black text-xs">{molino.nombre.toUpperCase()}</span>
                                     </div>
                                     <div>
-                                        <div className="font-bold text-slate-900">{molino.nombre}</div>
-                                        <div className={`text-xs font-medium ${isBusy ? 'text-red-600' : 'text-green-600'
+                                        <div className="font-bold text-slate-900 tracking-tight">{molino.nombre}</div>
+                                        <div className={`text-[10px] font-black uppercase tracking-widest ${isBusy ? 'text-red-600' : 'text-emerald-600'
                                             }`}>
-                                            {isBusy ? '🔴 Ocupado' : '🟢 Disponible'}
+                                            {isBusy ? 'Ocupado' : 'Disponible'}
                                         </div>
                                     </div>
                                 </div>
@@ -97,10 +104,11 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
 
                             {/* Busy Mill Info */}
                             {isBusy && (
-                                <div className="mb-3 p-2 bg-red-100 border border-red-200 rounded-lg">
-                                    <div className="text-xs text-red-700">
-                                        <div className="font-medium">Cliente: {molino.current_client || 'N/A'}</div>
-                                        <div>Sacos: {molino.current_sacks || 0}</div>
+                                <div className="mb-3 p-3 bg-red-50/50 border border-red-100 rounded-xl">
+                                    <div className="text-[10px] text-red-700 font-bold uppercase tracking-widest mb-1">En proceso</div>
+                                    <div className="text-xs text-slate-600">
+                                        <div className="font-bold text-slate-900 truncate">{molino.current_client || 'N/A'}</div>
+                                        <div>{molino.current_sacks || 0} sacos</div>
                                     </div>
                                 </div>
                             )}
@@ -108,36 +116,50 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                             {/* Input Fields - Only show if active */}
                             {molino.activo && (
                                 <div className="space-y-3">
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-700 mb-1">
-                                            Cuarzo (sacos)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max={molino.capacidadMaxima}
-                                            value={molino.cuarzo}
-                                            onChange={(e) => onMolinoChange(molino.id, 'cuarzo', parseInt(e.target.value) || 0)}
-                                            disabled={isDisabled}
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                            placeholder="0"
-                                        />
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Carga Manual</span>
+                                        {onReplicate && molinos.filter(m => m.activo && m.id !== molino.id).length > 0 && (
+                                            <button
+                                                onClick={() => onReplicate(molino.id)}
+                                                className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg font-bold hover:bg-indigo-100 transition-colors border border-indigo-100"
+                                                title="Copiar esta carga a todos los molinos activos"
+                                            >
+                                                REPLICAR TODOS
+                                            </button>
+                                        )}
                                     </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                                                Cuarzo
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max={molino.capacidadMaxima}
+                                                value={molino.cuarzo}
+                                                onChange={(e) => onMolinoChange(molino.id, 'cuarzo', parseInt(e.target.value) || 0)}
+                                                disabled={isDisabled}
+                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-300"
+                                                placeholder="0"
+                                            />
+                                        </div>
 
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-700 mb-1">
-                                            Llampo (sacos)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max={molino.capacidadMaxima}
-                                            value={molino.llampo}
-                                            onChange={(e) => onMolinoChange(molino.id, 'llampo', parseInt(e.target.value) || 0)}
-                                            disabled={isDisabled}
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                            placeholder="0"
-                                        />
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                                                Llampo
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max={molino.capacidadMaxima}
+                                                value={molino.llampo}
+                                                onChange={(e) => onMolinoChange(molino.id, 'llampo', parseInt(e.target.value) || 0)}
+                                                disabled={isDisabled}
+                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-300"
+                                                placeholder="0"
+                                            />
+                                        </div>
                                     </div>
 
                                     {/* Total and Time */}

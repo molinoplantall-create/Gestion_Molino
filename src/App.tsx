@@ -11,6 +11,7 @@ import Mantenimiento from './pages/Mantenimiento';
 import Clientes from './pages/Clientes';
 import Usuarios from './pages/Usuarios';
 import { useAuthStore } from './store/authStore';
+import { ToastContainer } from './components/common/Toast';
 
 function App() {
   const { user, initialized, loading, initialize } = useAuthStore();
@@ -32,6 +33,7 @@ function App() {
 
   return (
     <Router>
+      <ToastContainer />
       <Routes>
         {/* Ruta pública */}
         <Route

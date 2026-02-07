@@ -173,27 +173,33 @@ const RegistroMolienda: React.FC = () => {
 
   // Initialize and Sync mills from store
   useEffect(() => {
+    console.log('🔄 RegistroMolienda: mills from store:', mills);
+
     if (mills.length > 0) {
       setMolienda(prev => {
+        console.log('🔧 RegistroMolienda: Initializing/Syncing molinos. Current length:', prev.molinos.length);
+
         // If we haven't initialized mills yet
         if (prev.molinos.length === 0) {
+          const initialMolinos = mills.map(m => ({
+            id: m.id,
+            nombre: m.name || m.id,
+            activo: false,
+            cuarzo: 0,
+            llampo: 0,
+            total: 0,
+            capacidadMaxima: m.capacity || 150,
+            disponible: m.status && m.status.toLowerCase() === 'libre',
+            estado: m.status as any,
+            tiempoEstimado: 0,
+            horaFin: null,
+            current_client: m.current_client,
+            current_sacks: m.current_sacks
+          }));
+          console.log('✅ RegistroMolienda: Initialized molinos:', initialMolinos);
           return {
             ...prev,
-            molinos: mills.map(m => ({
-              id: m.id,
-              nombre: m.name,
-              activo: false,
-              cuarzo: 0,
-              llampo: 0,
-              total: 0,
-              capacidadMaxima: m.capacity,
-              disponible: m.status && m.status.toLowerCase() === 'libre',
-              estado: m.status as any,
-              tiempoEstimado: 0,
-              horaFin: null,
-              current_client: m.current_client,
-              current_sacks: m.current_sacks
-            }))
+            molinos: initialMolinos
           };
         }
 
@@ -206,28 +212,28 @@ const RegistroMolienda: React.FC = () => {
               ...localM,
               disponible: !isNowBusy,
               estado: storeM.status as any,
-              // If it became busy externally, uncheck it if it was checked but not by this form session
               activo: isNowBusy ? false : localM.activo,
-              current_client: storeM.current_client,
-              current_sacks: storeM.current_sacks
+              current_client: storeM.current_client || localM.current_client,
+              current_sacks: storeM.current_sacks || localM.current_sacks
             };
           }
           return localM;
         });
 
-        // Add any NEW mills that might have been added to DB but aren't in state
+        // Add any NEW mills
         const existingIds = prev.molinos.map(m => m.id);
         const newMillsInStore = mills.filter(m => !existingIds.includes(m.id));
 
         if (newMillsInStore.length > 0) {
+          console.log('🆕 RegistroMolienda: Adding new mills from store:', newMillsInStore.length);
           const extraMolinos = newMillsInStore.map(m => ({
             id: m.id,
-            nombre: m.name,
+            nombre: m.name || m.id,
             activo: false,
             cuarzo: 0,
             llampo: 0,
             total: 0,
-            capacidadMaxima: m.capacity,
+            capacidadMaxima: m.capacity || 150,
             disponible: m.status && m.status.toLowerCase() === 'libre',
             estado: m.status as any,
             tiempoEstimado: 0,
@@ -240,6 +246,8 @@ const RegistroMolienda: React.FC = () => {
 
         return { ...prev, molinos: updatedMolinos };
       });
+    } else {
+      console.log('⚠️ RegistroMolienda: mills is empty in store');
     }
   }, [mills]);
 

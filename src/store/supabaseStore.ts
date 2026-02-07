@@ -90,13 +90,32 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   fetchMills: async () => {
     set({ millsLoading: true, error: null });
     try {
+      // First try to fetch all data without a specific order to avoid crashing if 'name' doesn't exist
       const { data, error } = await supabase
         .from('mills')
-        .select('*')
-        .order('name');
+        .select('*');
 
-      if (error) throw error;
-      set({ mills: data as Mill[] });
+      if (error) {
+        console.error('❌ Supabase error in fetchMills:', error);
+        throw error;
+      }
+
+      if (!data) {
+        set({ mills: [] });
+        return;
+      }
+
+      // Normalize data: handle both 'name' and 'nombre' columns
+      const normalizedMills = (data as any[]).map(m => ({
+        ...m,
+        name: m.name || m.nombre || `Molino ${m.id}`
+      })) as Mill[];
+
+      // Sort alphabetically by name
+      normalizedMills.sort((a, b) => a.name.localeCompare(b.name));
+
+      set({ mills: normalizedMills });
+      console.log('✅ store: mills loaded and normalized:', normalizedMills.length);
     } catch (error: any) {
       console.error('❌ Error fetchMills:', error);
       set({ error: error.message });

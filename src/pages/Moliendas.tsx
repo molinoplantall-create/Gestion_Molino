@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, Download, MessageSquare, Eye, Edit, Trash2, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MillingLog } from '@/types';
 import { useSupabaseStore } from '@/store/supabaseStore';
+import { Table } from '@/components/common/Table';
 
 const Moliendas: React.FC = () => {
   const { millingLogs, logsCount, logsLoading, fetchMillingLogs } = useSupabaseStore();

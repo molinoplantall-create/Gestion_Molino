@@ -376,7 +376,7 @@ const Stock: React.FC = () => {
             </div>
 
             <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Cliente *</label>
                   <select
@@ -425,17 +425,17 @@ const Stock: React.FC = () => {
                   </select>
                 </div>
 
-                <div>
+                <div className="lg:col-span-3">
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Tipo de Mineral *</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
                     {MINERAL_TYPES_STOCK.map((type) => (
                       <button
                         key={type.value}
                         type="button"
                         onClick={() => setNuevoIngreso({ ...nuevoIngreso, mineralType: type.value as 'OXIDO' | 'SULFURO' })}
                         className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${nuevoIngreso.mineralType === type.value
-                            ? 'bg-indigo-600 text-white border-indigo-600'
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                           }`}
                       >
                         {type.label}

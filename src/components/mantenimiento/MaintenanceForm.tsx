@@ -50,7 +50,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             isLoading={isLoading}
             isValid={!!isValid}
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Molino */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -120,7 +120,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </div>
 
                 {/* Técnico Asignado */}
-                <div className="md:col-span-2">
+                <div className="md:col-span-2 lg:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Técnico Asignado <span className="text-red-500">*</span>
                     </label>

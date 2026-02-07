@@ -63,8 +63,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({
         >
             <div className="space-y-6">
                 {/* Información Básica */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 lg:col-span-3">
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Nombre/Razón Social <span className="text-red-500">*</span>
                         </label>
@@ -128,8 +128,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                         />
                     </div>
 
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Dirección</label>
+                    <div className="md:col-span-2 lg:col-span-2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 text-left">Dirección</label>
                         <input
                             type="text"
                             name="direccion"

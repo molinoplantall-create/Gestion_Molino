@@ -308,42 +308,44 @@ const Usuarios: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-        <div className="flex items-center">
-          <div className="p-3 bg-indigo-50 rounded-xl mr-4 border border-indigo-100">
-            <Users className="text-indigo-600" size={24} strokeWidth={1.5} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Total Usuarios</p>
-            <p className="text-2xl font-bold text-slate-900">{users.length}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-        <div className="flex items-center">
-          <div className="p-3 bg-emerald-50 rounded-xl mr-4 border border-emerald-100">
-            <CheckCircle className="text-emerald-600" size={24} strokeWidth={1.5} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Activos</p>
-            <p className="text-2xl font-bold text-slate-900">
-              {users.filter(u => u.is_active).length}
-            </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div className="flex items-center">
+            <div className="p-3 bg-indigo-50 rounded-xl mr-4 border border-indigo-100">
+              <Users className="text-indigo-600" size={24} strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Total Usuarios</p>
+              <p className="text-2xl font-bold text-slate-900">{users.length}</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-        <div className="flex items-center">
-          <div className="p-3 bg-violet-50 rounded-xl mr-4 border border-violet-100">
-            <Shield className="text-violet-600" size={24} strokeWidth={1.5} />
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div className="flex items-center">
+            <div className="p-3 bg-emerald-50 rounded-xl mr-4 border border-emerald-100">
+              <CheckCircle className="text-emerald-600" size={24} strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Activos</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {users.filter(u => u.is_active).length}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Administradores</p>
-            <p className="text-2xl font-bold text-slate-900">
-              {users.filter(u => u.role === 'ADMIN').length}
-            </p>
+        </div>
+
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div className="flex items-center">
+            <div className="p-3 bg-violet-50 rounded-xl mr-4 border border-violet-100">
+              <Shield className="text-violet-600" size={24} strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Administradores</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {users.filter(u => u.role === 'ADMIN').length}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -543,13 +545,13 @@ const Usuarios: React.FC = () => {
       {
         showModal && (
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl border border-slate-200">
+            <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl border border-slate-200">
               <div className="p-6">
                 <h2 className="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">
                   {modalMode === 'create' ? 'Nuevo Usuario' : 'Editar Usuario'}
                 </h2>
 
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       Nombre completo
@@ -592,6 +594,19 @@ const Usuarios: React.FC = () => {
                     </select>
                   </div>
 
+                  <div className="flex items-center pt-8">
+                    <input
+                      type="checkbox"
+                      id="isActive"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300"
+                    />
+                    <label htmlFor="isActive" className="ml-2 text-sm text-slate-700">
+                      Usuario activo
+                    </label>
+                  </div>
+
                   {modalMode === 'create' && (
                     <>
                       <div>
@@ -630,19 +645,6 @@ const Usuarios: React.FC = () => {
                       </div>
                     </>
                   )}
-
-                  <div className="flex items-center pt-2">
-                    <input
-                      type="checkbox"
-                      id="isActive"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300"
-                    />
-                    <label htmlFor="isActive" className="ml-2 text-sm text-slate-700">
-                      Usuario activo
-                    </label>
-                  </div>
                 </div>
 
                 <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-slate-100">
@@ -793,8 +795,8 @@ const Usuarios: React.FC = () => {
         message={successInfo.message}
         confirmText="Entendido"
         showCancel={false}
-        type={successInfo.title === 'Error' ? 'danger' : 'info'}
-        icon={successInfo.title === 'Error' ? 'alert' : 'info'}
+        type={successInfo.title === 'Error' ? 'warning' : 'success'}
+        icon={successInfo.title === 'Error' ? 'alert' : 'success'}
       />
     </div>
   );

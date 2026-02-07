@@ -523,27 +523,30 @@ const RegistroMolienda: React.FC = () => {
         </div>
       </div>
 
-      {/* Client Selector */}
-      <ClientSelector
-        clients={clients}
-        selectedClientId={molienda.clienteId}
-        onClientChange={handleClienteChange}
-        stockInfo={molienda.clienteId ? {
-          total: molienda.stockTotal,
-          cuarzo: molienda.stockCuarzo,
-          llampo: molienda.stockLlampo
-        } : undefined}
-        disabled={molienda.procesoIniciado}
-      />
+      {/* Top Selectors Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Client Selector */}
+        <ClientSelector
+          clients={clients}
+          selectedClientId={molienda.clienteId}
+          onClientChange={handleClienteChange}
+          stockInfo={molienda.clienteId ? {
+            total: molienda.stockTotal,
+            cuarzo: molienda.stockCuarzo,
+            llampo: molienda.stockLlampo
+          } : undefined}
+          disabled={molienda.procesoIniciado}
+        />
 
-      {/* Mineral Type Selector */}
-      <MineralTypeSelector
-        mineralType={molienda.mineral}
-        onMineralChange={handleMineralChange}
-        tiempos={molienda.tiempos}
-        onTiempoChange={handleTiempoChange}
-        disabled={molienda.procesoIniciado}
-      />
+        {/* Mineral Type Selector */}
+        <MineralTypeSelector
+          mineralType={molienda.mineral}
+          onMineralChange={handleMineralChange}
+          tiempos={molienda.tiempos}
+          onTiempoChange={handleTiempoChange}
+          disabled={molienda.procesoIniciado}
+        />
+      </div>
 
       {/* Mill Selector */}
       <MillSelector

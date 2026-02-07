@@ -107,51 +107,6 @@ const RegistroMolienda: React.FC = () => {
     fetchClients();
   }, [fetchMills, fetchClients]);
 
-  // Initialize mills
-  useEffect(() => {
-    if (mills.length > 0) {
-      setMolienda(prev => {
-        if (prev.molinos.length === 0) {
-          return {
-            ...prev,
-            molinos: mills.map(m => ({
-              id: m.id,
-              nombre: m.name,
-              activo: false,
-              cuarzo: 0,
-              llampo: 0,
-              total: 0,
-              capacidadMaxima: m.capacity,
-              disponible: m.status === 'libre',
-              estado: m.status as any,
-              tiempoEstimado: 0,
-              horaFin: null,
-              current_client: m.current_client,
-              current_sacks: m.current_sacks
-            }))
-          };
-        }
-
-        // Update availability
-        const updatedMolinos = prev.molinos.map(localM => {
-          const storeM = mills.find(sm => sm.id === localM.id);
-          if (storeM) {
-            const isNowBusy = storeM.status !== 'libre';
-            return {
-              ...localM,
-              disponible: !isNowBusy,
-              estado: storeM.status as any,
-              activo: isNowBusy ? false : localM.activo
-            };
-          }
-          return localM;
-        });
-
-        return { ...prev, molinos: updatedMolinos };
-      });
-    }
-  }, [mills]);
-
   // Utility functions
   const calcularHoraFin = (horaInicio: string, minutosTotales: number): string => {
     if (!horaInicio || minutosTotales <= 0) return '--:--';
@@ -177,8 +132,8 @@ const RegistroMolienda: React.FC = () => {
     return 0;
   };
 
-  // Calculate totals
-  useEffect(() => {
+  // Derived state for totals and calculations
+  const totalCalculado = React.useMemo(() => {
     let totalSacos = 0;
     let totalCuarzo = 0;
     let totalLlampo = 0;
@@ -201,14 +156,7 @@ const RegistroMolienda: React.FC = () => {
       horaFinGlobal = calcularHoraFin(molienda.horaInicio, tiempoPorMolino);
     }
 
-    const nuevosMolinos = molienda.molinos.map(molino => ({
-      ...molino,
-      horaFin: molino.activo && molienda.horaInicio ? horaFinGlobal : null,
-      tiempoEstimado: molino.activo ? tiempoPorMolino : 0
-    }));
-
-    setMolienda(prev => ({
-      ...prev,
+    return {
       totalSacos,
       totalCuarzo,
       totalLlampo,
@@ -216,10 +164,84 @@ const RegistroMolienda: React.FC = () => {
       stockRestanteCuarzo,
       stockRestanteLlampo,
       tiempoPorMolino,
-      horaFin: horaFinGlobal,
-      molinos: nuevosMolinos
-    }));
+      horaFin: horaFinGlobal
+    };
   }, [molienda.molinos, molienda.stockTotal, molienda.stockCuarzo, molienda.stockLlampo, molienda.tiempos, molienda.mineral, molienda.horaInicio]);
+
+  // Update mill calculations (time and end hour) within the list when inputs change
+  // This is handled in handleMolinoChange to avoid infinite loops
+
+  // Initialize and Sync mills from store
+  useEffect(() => {
+    if (mills.length > 0) {
+      setMolienda(prev => {
+        // If we haven't initialized mills yet
+        if (prev.molinos.length === 0) {
+          return {
+            ...prev,
+            molinos: mills.map(m => ({
+              id: m.id,
+              nombre: m.name,
+              activo: false,
+              cuarzo: 0,
+              llampo: 0,
+              total: 0,
+              capacidadMaxima: m.capacity,
+              disponible: m.status && m.status.toLowerCase() === 'libre',
+              estado: m.status as any,
+              tiempoEstimado: 0,
+              horaFin: null,
+              current_client: m.current_client,
+              current_sacks: m.current_sacks
+            }))
+          };
+        }
+
+        // Sync availability and status for existing mills
+        const updatedMolinos = prev.molinos.map(localM => {
+          const storeM = mills.find(sm => sm.id === localM.id);
+          if (storeM) {
+            const isNowBusy = storeM.status && storeM.status.toLowerCase() !== 'libre';
+            return {
+              ...localM,
+              disponible: !isNowBusy,
+              estado: storeM.status as any,
+              // If it became busy externally, uncheck it if it was checked but not by this form session
+              activo: isNowBusy ? false : localM.activo,
+              current_client: storeM.current_client,
+              current_sacks: storeM.current_sacks
+            };
+          }
+          return localM;
+        });
+
+        // Add any NEW mills that might have been added to DB but aren't in state
+        const existingIds = prev.molinos.map(m => m.id);
+        const newMillsInStore = mills.filter(m => !existingIds.includes(m.id));
+
+        if (newMillsInStore.length > 0) {
+          const extraMolinos = newMillsInStore.map(m => ({
+            id: m.id,
+            nombre: m.name,
+            activo: false,
+            cuarzo: 0,
+            llampo: 0,
+            total: 0,
+            capacidadMaxima: m.capacity,
+            disponible: m.status && m.status.toLowerCase() === 'libre',
+            estado: m.status as any,
+            tiempoEstimado: 0,
+            horaFin: null,
+            current_client: m.current_client,
+            current_sacks: m.current_sacks
+          }));
+          return { ...prev, molinos: [...updatedMolinos, ...extraMolinos] };
+        }
+
+        return { ...prev, molinos: updatedMolinos };
+      });
+    }
+  }, [mills]);
 
   // Handlers
   const handleClienteChange = (clienteId: string) => {
@@ -345,9 +367,9 @@ const RegistroMolienda: React.FC = () => {
     const basicData = {
       clientId: molienda.clienteId,
       mineral: molienda.mineral,
-      totalSacos: molienda.totalSacos,
-      totalCuarzo: molienda.totalCuarzo,
-      totalLlampo: molienda.totalLlampo,
+      totalSacos: totalCalculado.totalSacos,
+      totalCuarzo: totalCalculado.totalCuarzo,
+      totalLlampo: totalCalculado.totalLlampo,
       observaciones: molienda.observaciones
     };
 
@@ -381,17 +403,17 @@ const RegistroMolienda: React.FC = () => {
       return false;
     }
 
-    if (molienda.stockRestanteTotal < 0) {
+    if (totalCalculado.stockRestanteTotal < 0) {
       toast.error('Stock Insuficiente', 'La cantidad total de sacos excede el stock disponible del cliente.');
       return false;
     }
 
-    if (molienda.stockRestanteCuarzo < 0) {
+    if (totalCalculado.stockRestanteCuarzo < 0) {
       toast.error('Falta Cuarzo', 'No hay suficiente stock de mineral Cuarzo para cubrir la demanda.');
       return false;
     }
 
-    if (molienda.stockRestanteLlampo < 0) {
+    if (totalCalculado.stockRestanteLlampo < 0) {
       toast.error('Falta Llampo', 'No hay suficiente stock de mineral Llampo para cubrir la demanda.');
       return false;
     }
@@ -417,9 +439,9 @@ const RegistroMolienda: React.FC = () => {
     const success = await registerMilling({
       clientId: molienda.clienteId,
       mineralType: molienda.mineral as 'OXIDO' | 'SULFURO',
-      totalSacos: molienda.totalSacos,
-      totalCuarzo: molienda.totalCuarzo,
-      totalLlampo: molienda.totalLlampo,
+      totalSacos: totalCalculado.totalSacos,
+      totalCuarzo: totalCalculado.totalCuarzo,
+      totalLlampo: totalCalculado.totalLlampo,
       mills: molinosActivos.map(m => ({
         id: m.id,
         cuarzo: m.cuarzo,
@@ -485,9 +507,9 @@ const RegistroMolienda: React.FC = () => {
     mensaje += `*Tipo Cliente:* ${TIPO_CLIENTE.find(t => t.value === molienda.tipoCliente)?.label}\n`;
     mensaje += `*Mineral:* ${MINERAL_TYPES_STOCK.find(m => m.value === molienda.mineral)?.label}\n\n`;
     mensaje += `*TOTALES:*\n`;
-    mensaje += `• Total sacos: ${molienda.totalSacos}\n`;
-    mensaje += `• Cuarzo: ${molienda.totalCuarzo} sacos\n`;
-    mensaje += `• Llampo: ${molienda.totalLlampo} sacos\n`;
+    mensaje += `• Total sacos: ${totalCalculado.totalSacos}\n`;
+    mensaje += `• Cuarzo: ${totalCalculado.totalCuarzo} sacos\n`;
+    mensaje += `• Llampo: ${totalCalculado.totalLlampo} sacos\n`;
     mensaje += `• Molinos activos: ${molienda.molinos.filter(m => m.activo).length}\n\n`;
     mensaje += `📋 *Vista Previa* - ${new Date().toLocaleString()}\n`;
 
@@ -558,17 +580,17 @@ const RegistroMolienda: React.FC = () => {
 
       {/* Process Summary */}
       <ProcessSummary
-        totalSacos={molienda.totalSacos}
-        totalCuarzo={molienda.totalCuarzo}
-        totalLlampo={molienda.totalLlampo}
+        totalSacos={totalCalculado.totalSacos}
+        totalCuarzo={totalCalculado.totalCuarzo}
+        totalLlampo={totalCalculado.totalLlampo}
         stockRestante={{
-          total: molienda.stockRestanteTotal,
-          cuarzo: molienda.stockRestanteCuarzo,
-          llampo: molienda.stockRestanteLlampo
+          total: totalCalculado.stockRestanteTotal,
+          cuarzo: totalCalculado.stockRestanteCuarzo,
+          llampo: totalCalculado.stockRestanteLlampo
         }}
-        tiempoPorMolino={molienda.tiempoPorMolino}
+        tiempoPorMolino={totalCalculado.tiempoPorMolino}
         horaInicio={molienda.horaInicio}
-        horaFin={molienda.horaFin}
+        horaFin={totalCalculado.horaFin}
         molinosActivos={molienda.molinos.filter(m => m.activo).length}
         observaciones={molienda.observaciones}
         onObservacionesChange={(value) => setMolienda(prev => ({ ...prev, observaciones: value }))}

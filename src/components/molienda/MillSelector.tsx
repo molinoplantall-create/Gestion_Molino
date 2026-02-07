@@ -113,18 +113,18 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                                 </div>
                             )}
 
-                            {/* Input Fields - Only show if active */}
-                            {molino.activo && (
-                                <div className="space-y-3">
+                            {/* Input Fields - Show if available */}
+                            {molino.disponible && (
+                                <div className="space-y-3 mt-4 pt-4 border-t border-slate-100">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Carga Manual</span>
-                                        {onReplicate && molinos.filter(m => m.activo && m.id !== molino.id).length > 0 && (
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Carga de Mineral</span>
+                                        {onReplicate && molino.activo && molinos.filter(m => m.activo && m.id !== molino.id).length > 0 && (
                                             <button
                                                 onClick={() => onReplicate(molino.id)}
                                                 className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg font-bold hover:bg-indigo-100 transition-colors border border-indigo-100"
                                                 title="Copiar esta carga a todos los molinos activos"
                                             >
-                                                REPLICAR TODOS
+                                                REPLICAR
                                             </button>
                                         )}
                                     </div>
@@ -138,9 +138,14 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                                                 min="0"
                                                 max={molino.capacidadMaxima}
                                                 value={molino.cuarzo}
-                                                onChange={(e) => onMolinoChange(molino.id, 'cuarzo', parseInt(e.target.value) || 0)}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 0;
+                                                    onMolinoChange(molino.id, 'cuarzo', val);
+                                                    if (val > 0 && !molino.activo) onMolinoChange(molino.id, 'activo', true);
+                                                }}
                                                 disabled={isDisabled}
-                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-300"
+                                                className={`w-full px-3 py-2 border rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-300 ${molino.activo ? 'bg-white border-indigo-200' : 'bg-slate-50 border-slate-200'
+                                                    }`}
                                                 placeholder="0"
                                             />
                                         </div>
@@ -154,41 +159,44 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                                                 min="0"
                                                 max={molino.capacidadMaxima}
                                                 value={molino.llampo}
-                                                onChange={(e) => onMolinoChange(molino.id, 'llampo', parseInt(e.target.value) || 0)}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 0;
+                                                    onMolinoChange(molino.id, 'llampo', val);
+                                                    if (val > 0 && !molino.activo) onMolinoChange(molino.id, 'activo', true);
+                                                }}
                                                 disabled={isDisabled}
-                                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-300"
+                                                className={`w-full px-3 py-2 border rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-300 ${molino.activo ? 'bg-white border-indigo-200' : 'bg-slate-50 border-slate-200'
+                                                    }`}
                                                 placeholder="0"
                                             />
                                         </div>
                                     </div>
 
                                     {/* Total and Time */}
-                                    <div className="pt-3 border-t border-slate-200">
-                                        <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg mb-3">
+                                    <div className="pt-3">
+                                        <div className={`flex items-center justify-between p-2 rounded-lg mb-3 ${molino.activo ? 'bg-indigo-100/50' : 'bg-slate-50'
+                                            }`}>
                                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Carga Total</div>
                                             <div className="text-sm font-black text-slate-900">
                                                 {molino.total} <span className="text-[10px] font-bold text-slate-400">SACOS</span>
                                             </div>
                                         </div>
-                                        <div className="flex justify-between text-[11px] mb-2 px-1">
-                                            <span className="text-slate-500 font-medium">Capacidad Máx:</span>
-                                            <span className="text-slate-700 font-bold">{molino.capacidadMaxima}</span>
-                                        </div>
-                                        {molino.tiempoEstimado > 0 && (
-                                            <>
-                                                <div className="flex justify-between text-sm mb-2">
-                                                    <span className="text-slate-600">Tiempo:</span>
-                                                    <span className="text-indigo-700 font-medium">
+
+                                        {molino.activo && molino.tiempoEstimado > 0 && (
+                                            <div className="space-y-1 px-1">
+                                                <div className="flex justify-between text-[11px]">
+                                                    <span className="text-slate-500">Tiempo est.:</span>
+                                                    <span className="text-indigo-700 font-bold">
                                                         {formatTiempo(molino.tiempoEstimado)}
                                                     </span>
                                                 </div>
                                                 {molino.horaFin && (
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="text-slate-600">Hora fin:</span>
-                                                        <span className="text-indigo-700 font-medium">{molino.horaFin}</span>
+                                                    <div className="flex justify-between text-[11px]">
+                                                        <span className="text-slate-500">Finaliza a las:</span>
+                                                        <span className="text-indigo-700 font-bold">{molino.horaFin}</span>
                                                     </div>
                                                 )}
-                                            </>
+                                            </div>
                                         )}
                                     </div>
 

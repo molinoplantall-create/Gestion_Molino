@@ -3,82 +3,82 @@ import { BaseModal } from '../ui/BaseModal';
 import { Printer, FileText } from 'lucide-react';
 
 interface MolinoProceso {
-    id: string;
-    nombre: string;
-    activo: boolean;
-    cuarzo: number;
-    llampo: number;
-    total: number;
-    tiempoEstimado: number;
-    horaFin: string | null;
+  id: string;
+  nombre: string;
+  activo: boolean;
+  cuarzo: number;
+  llampo: number;
+  total: number;
+  tiempoEstimado: number;
+  horaFin: string | null;
 }
 
 interface TiemposProceso {
-    oxido: {
-        hora40: boolean;
-        hora00: boolean;
-    };
-    sulfuro: {
-        hora00: boolean;
-        hora30: boolean;
-    };
+  oxido: {
+    hora40: boolean;
+    hora00: boolean;
+  };
+  sulfuro: {
+    hora00: boolean;
+    hora30: boolean;
+  };
 }
 
 interface MoliendaData {
-    clienteNombre: string;
-    tipoCliente: string;
-    mineral: 'OXIDO' | 'SULFURO';
-    tiempos: TiemposProceso;
-    fechaInicio: string | null;
-    horaInicio: string | null;
-    horaFin: string | null;
-    stockTotal: number;
-    totalSacos: number;
-    totalCuarzo: number;
-    totalLlampo: number;
-    stockRestanteTotal: number;
-    tiempoPorMolino: number;
-    molinos: MolinoProceso[];
-    observaciones: string;
-    procesoId: string | null;
-    estado: string;
+  clienteNombre: string;
+  tipoCliente: string;
+  mineral: 'OXIDO' | 'SULFURO';
+  tiempos: TiemposProceso;
+  fechaInicio: string | null;
+  horaInicio: string | null;
+  horaFin: string | null;
+  stockTotal: number;
+  totalSacos: number;
+  totalCuarzo: number;
+  totalLlampo: number;
+  stockRestanteTotal: number;
+  tiempoPorMolino: number;
+  molinos: MolinoProceso[];
+  observaciones: string;
+  procesoId: string | null;
+  estado: string;
 }
 
 interface ReceiptModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    moliendaData: MoliendaData;
-    userEmail?: string;
+  isOpen: boolean;
+  onClose: () => void;
+  moliendaData: MoliendaData;
+  userEmail?: string;
 }
 
 export const ReceiptModal: React.FC<ReceiptModalProps> = ({
-    isOpen,
-    onClose,
-    moliendaData,
-    userEmail
+  isOpen,
+  onClose,
+  moliendaData,
+  userEmail
 }) => {
-    const [firmaOperador, setFirmaOperador] = useState('');
-    const [firmaCliente, setFirmaCliente] = useState('');
+  const [firmaOperador, setFirmaOperador] = useState('');
+  const [firmaCliente, setFirmaCliente] = useState('');
 
-    const formatTiempo = (totalMinutos: number): string => {
-        const horas = Math.floor(totalMinutos / 60);
-        const minutos = totalMinutos % 60;
-        if (horas > 0) {
-            return `${horas}h ${minutos}min`;
-        }
-        return `${minutos}min`;
-    };
+  const formatTiempo = (totalMinutos: number): string => {
+    const horas = Math.floor(totalMinutos / 60);
+    const minutos = totalMinutos % 60;
+    if (horas > 0) {
+      return `${horas}h ${minutos}min`;
+    }
+    return `${minutos}min`;
+  };
 
-    const handlePrint = () => {
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
 
-        const molinosActivos = moliendaData.molinos.filter(m => m.activo);
-        const tiemposText = moliendaData.mineral === 'OXIDO'
-            ? `Óxido: ${moliendaData.tiempos.oxido.hora40 ? '☑ 1:40' : '☐ 1:40'} | ${moliendaData.tiempos.oxido.hora00 ? '☑ 1:00' : '☐ 1:00'}`
-            : `Sulfuro: ${moliendaData.tiempos.sulfuro.hora00 ? '☑ 2:00' : '☐ 2:00'} | ${moliendaData.tiempos.sulfuro.hora30 ? '☑ 2:30' : '☐ 2:30'}`;
+    const molinosActivos = moliendaData.molinos.filter(m => m.activo);
+    const tiemposText = moliendaData.mineral === 'OXIDO'
+      ? `Óxido: ${moliendaData.tiempos.oxido.hora40 ? '☑ 1:40' : '☐ 1:40'} | ${moliendaData.tiempos.oxido.hora00 ? '☑ 1:00' : '☐ 1:00'}`
+      : `Sulfuro: ${moliendaData.tiempos.sulfuro.hora00 ? '☑ 2:00' : '☐ 2:00'} | ${moliendaData.tiempos.sulfuro.hora30 ? '☑ 2:30' : '☐ 2:30'}`;
 
-        printWindow.document.write(`
+    printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -100,22 +100,36 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               overflow: hidden;
             }
             .header {
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white;
-              padding: 30px;
+              background: #f8fafc;
+              color: #1e293b;
+              padding: 40px 30px;
               text-align: center;
+              border-bottom: 4px solid #4f46e5;
             }
-            .header h1 { font-size: 24px; margin-bottom: 8px; }
-            .header h2 { font-size: 18px; font-weight: 600; opacity: 0.95; }
+            .header h1 { 
+              font-size: 20px; 
+              margin-bottom: 4px; 
+              letter-spacing: 1px;
+              color: #4f46e5;
+            }
+            .header h2 { 
+              font-size: 28px; 
+              font-weight: 800; 
+              color: #0f172a;
+              text-transform: uppercase;
+            }
             .header .numero { 
               margin-top: 15px; 
-              padding: 8px 16px; 
-              background: rgba(255,255,255,0.2); 
+              padding: 6px 14px; 
+              background: #4f46e5; 
+              color: white;
               border-radius: 6px; 
               display: inline-block;
-              font-size: 14px;
+              font-size: 13px;
+              font-weight: 800;
+              letter-spacing: 0.5px;
             }
-            .content { padding: 30px; }
+            .content { padding: 40px; }
             .section {
               margin-bottom: 24px;
               padding-bottom: 24px;
@@ -337,75 +351,75 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       </html>
     `);
 
-        printWindow.document.close();
-        printWindow.print();
-        onClose();
-    };
+    printWindow.document.close();
+    printWindow.print();
+    onClose();
+  };
 
-    return (
-        <BaseModal
-            isOpen={isOpen}
-            onClose={onClose}
-            title="Comprobante de Molienda"
-            size="lg"
-        >
-            <div className="space-y-6">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-start">
-                        <FileText className="text-blue-600 mr-3 mt-0.5" size={20} />
-                        <div>
-                            <h4 className="text-sm font-bold text-blue-900 mb-1">Generar Comprobante</h4>
-                            <p className="text-sm text-blue-700">
-                                Complete las firmas opcionales y presione "Imprimir" para generar el comprobante.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Firma Operador (Opcional)
-                        </label>
-                        <input
-                            type="text"
-                            value={firmaOperador}
-                            onChange={(e) => setFirmaOperador(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            placeholder={userEmail || "Nombre del operador"}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Firma Cliente (Opcional)
-                        </label>
-                        <input
-                            type="text"
-                            value={firmaCliente}
-                            onChange={(e) => setFirmaCliente(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            placeholder={moliendaData.clienteNombre}
-                        />
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        onClick={handlePrint}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
-                    >
-                        <Printer size={18} className="mr-2" />
-                        Imprimir
-                    </button>
-                </div>
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Comprobante de Molienda"
+      size="lg"
+    >
+      <div className="space-y-6">
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start">
+            <FileText className="text-blue-600 mr-3 mt-0.5" size={20} />
+            <div>
+              <h4 className="text-sm font-bold text-blue-900 mb-1">Generar Comprobante</h4>
+              <p className="text-sm text-blue-700">
+                Complete las firmas opcionales y presione "Imprimir" para generar el comprobante.
+              </p>
             </div>
-        </BaseModal>
-    );
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Firma Operador (Opcional)
+            </label>
+            <input
+              type="text"
+              value={firmaOperador}
+              onChange={(e) => setFirmaOperador(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder={userEmail || "Nombre del operador"}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Firma Cliente (Opcional)
+            </label>
+            <input
+              type="text"
+              value={firmaCliente}
+              onChange={(e) => setFirmaCliente(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder={moliendaData.clienteNombre}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handlePrint}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
+          >
+            <Printer size={18} className="mr-2" />
+            Imprimir
+          </button>
+        </div>
+      </div>
+    </BaseModal>
+  );
 };

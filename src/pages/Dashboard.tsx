@@ -27,7 +27,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchMills();
     fetchClients();
-    fetchMillingLogs(5);
+    fetchMillingLogs({ pageSize: 15 });
   }, [fetchMills, fetchClients, fetchMillingLogs]);
 
   if (millsLoading && mills.length === 0) {
@@ -42,12 +42,29 @@ const Dashboard: React.FC = () => {
   }
 
   // Cálculos dinámicos
-  const totalMoliendoSemana = millingLogs.reduce((acc, log) => acc + (log.total_sacks || 0), 0);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const totalSacosHoy = millingLogs
+    .filter(log => new Date(log.created_at) >= today)
+    .reduce((acc, log) => acc + (log.total_sacks || 0), 0);
+
+  const totalSacosAyer = millingLogs
+    .filter(log => {
+      const d = new Date(log.created_at);
+      return d >= yesterday && d < today;
+    })
+    .reduce((acc, log) => acc + (log.total_sacks || 0), 0);
+
+  const diffAyer = totalSacosHoy - totalSacosAyer;
+  const trendHoy = diffAyer >= 0 ? "up" : "down";
+  const changeHoy = `${Math.abs(diffAyer)} sacos ${diffAyer >= 0 ? 'más' : 'menos'} que ayer`;
+
   const totalStockSacos = clients.reduce((acc, client) => acc + (client.stock_cuarzo || 0) + (client.stock_llampo || 0), 0);
   const totalClientes = clients.length;
-
-  // Por ahora mantenemos ingresos como placeholder calculado o estático mejorado
-  const ingresosEstimados = millingLogs.length * 1500; // Ejemplo de cálculo
+  const ingresosEstimados = millingLogs.reduce((acc, log) => acc + (log.total_sacks || 0), 0) * 12.5; // Ejemplo: 12.5 por saco
 
   return (
     <div className="space-y-6 pb-10">
@@ -77,13 +94,13 @@ const Dashboard: React.FC = () => {
       {/* SECCIÓN 1: 4 TARJETAS DE ESTADÍSTICAS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
-          title="Molienda Reciente"
-          value={totalMoliendoSemana.toLocaleString()}
-          change={millingLogs.length > 0 ? "Actualizado" : "Sin datos"}
-          icon={Factory}
+          title="Producción Hoy"
+          value={totalSacosHoy.toLocaleString()}
+          change={changeHoy}
+          icon={TrendingUp}
           color="blue"
-          description="sacos registrados"
-          trend="up"
+          description="registrados hoy"
+          trend={trendHoy}
         />
         <StatsCard
           title="Stock en Bodega"
@@ -100,16 +117,16 @@ const Dashboard: React.FC = () => {
           change={(clients?.filter(c => c.is_active).length || 0).toString()}
           icon={Users}
           color="green"
-          description="en el sistema"
+          description="registrados"
           trend="up"
         />
         <StatsCard
-          title="Estimado Mensual"
+          title="Ingresos Estimados"
           value={`$${ingresosEstimados.toLocaleString()}`}
-          change="Proyectado"
+          change="Basado en sacos"
           icon={DollarSign}
           color="purple"
-          description="según moliendas"
+          description="molienda histórica"
           trend="up"
         />
       </div>

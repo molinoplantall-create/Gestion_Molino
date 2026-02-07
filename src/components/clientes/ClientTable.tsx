@@ -14,6 +14,8 @@ interface Client {
     client_type?: string;
     is_active: boolean;
     observations?: string;
+    stock_cuarzo?: number;
+    stock_llampo?: number;
 }
 
 interface ClientTableProps {
@@ -103,6 +105,27 @@ export const ClientTable: React.FC<ClientTableProps> = ({
             label: 'Zona',
             className: 'text-center',
             render: (client: Client) => getZoneBadge(client.zone)
+        },
+        {
+            key: 'stock',
+            label: 'Stock (Sacos)',
+            className: 'text-center',
+            render: (client: Client) => {
+                const total = (client.stock_cuarzo || 0) + (client.stock_llampo || 0);
+                const isLow = total < 50;
+                return (
+                    <div className="flex flex-col items-center">
+                        <span className={`text-sm font-bold ${isLow ? 'text-rose-600' : 'text-slate-700'}`}>
+                            {total}
+                        </span>
+                        {isLow && (
+                            <span className="text-[10px] text-rose-500 font-black uppercase tracking-tighter bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-100 mt-1">
+                                Bajo
+                            </span>
+                        )}
+                    </div>
+                );
+            }
         },
         {
             key: 'is_active',

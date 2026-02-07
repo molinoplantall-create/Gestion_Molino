@@ -1,82 +1,100 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, AreaChart, Area
+} from 'recharts';
 import { useSupabaseStore } from '@/store/supabaseStore';
+import { format, parseISO, subDays, startOfDay, isSameDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const ActivityChart: React.FC = () => {
-  const { mills, millingLogs } = useSupabaseStore();
+  const { millingLogs } = useSupabaseStore();
 
-  // Colores predefinidos para los molinos
-  const colors = [
-    'bg-blue-500',
-    'bg-emerald-500',
-    'bg-orange-500',
-    'bg-purple-500',
-    'bg-rose-500',
-    'bg-amber-500'
-  ];
+  const chartData = useMemo(() => {
+    if (!millingLogs || millingLogs.length === 0) return [];
 
-  // Calculamos el total de sacos procesados por cada molino
-  const chartData = mills.map((mill, index) => {
-    let totalSacos = 0;
+    // Group by date for the last 7 days
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = subDays(new Date(), i);
+      return {
+        date: startOfDay(date),
+        displayDate: format(date, 'EEE dd', { locale: es }),
+        total: 0
+      };
+    }).reverse();
 
     millingLogs.forEach(log => {
-      if (Array.isArray(log.mills_used)) {
-        const usage = log.mills_used.find((m: any) => m.mill_id === mill.id);
-        if (usage) {
-          totalSacos += (usage.cuarzo || 0) + (usage.llampo || 0);
-        }
+      const logDate = startOfDay(parseISO(log.created_at));
+      const dayData = last7Days.find(d => isSameDay(d.date, logDate));
+      if (dayData) {
+        dayData.total += (log.total_sacks || 0);
       }
     });
 
-    return {
-      name: mill.name,
-      value: totalSacos,
-      color: colors[index % colors.length]
-    };
-  });
+    return last7Days;
+  }, [millingLogs]);
 
-  const maxValue = Math.max(...chartData.map(d => d.value), 1);
+  if (!millingLogs || millingLogs.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-slate-400 font-medium italic">
+        {/* 
+        - [x] Detalle de carga por molino con Suma Total visible
+
+        ## Fase 10: Dashboard Visual y Analítica (Solicitud Usuario)
+        - [/] Implementar gráfica de producción (Sacos por día)
+        - [ ] Alertas visuales de Stock Bajo en Clientes
+        - [ ] Refinar diseño de Recibos para impresión
+        - [ ] KPIs avanzados en Dashboard (Hoy vs Ayer)
+        */}
+        No hay datos de producción suficientes...
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="space-y-5">
-        {chartData.map((item, index) => (
-          <div key={index} className="flex items-center">
-            <div className="w-24 shrink-0">
-              <span className="text-sm font-bold text-slate-700 truncate block" title={item.name}>
-                {item.name}
-              </span>
-            </div>
-            <div className="flex-1 ml-4">
-              <div className="relative">
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
-                  <span className="text-slate-600 italic">{item.value.toLocaleString()} sacos</span>
-                  <span>{((item.value / maxValue) * 100).toFixed(0)}%</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200 shadow-inner">
-                  <div
-                    className={`h-full rounded-full ${item.color} transition-all duration-1000 ease-out shadow-sm`}
-                    style={{ width: `${(item.value / maxValue) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-        {chartData.length === 0 && (
-          <div className="py-20 text-center text-slate-400 font-medium italic">
-            Esperando datos de molienda...
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-wrap justify-center gap-4 mt-8">
-        {chartData.map((item, index) => (
-          <div key={index} className="flex items-center bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 shadow-sm">
-            <div className={`w-2 h-2 rounded-full ${item.color} mr-2 shadow-sm`}></div>
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-tight">{item.name}</span>
-          </div>
-        ))}
-      </div>
+    <div className="h-full w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1} />
+              <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+          <XAxis
+            dataKey="displayDate"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+            dy={10}
+          />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+          />
+          <Tooltip
+            contentStyle={{
+              borderRadius: '12px',
+              border: 'none',
+              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+              fontSize: '12px'
+            }}
+            labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
+          />
+          <Area
+            type="monotone"
+            dataKey="total"
+            name="Sacos"
+            stroke="#4f46e5"
+            strokeWidth={3}
+            fillOpacity={1}
+            fill="url(#colorTotal)"
+            animationDuration={1500}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 };

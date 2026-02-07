@@ -14,10 +14,22 @@ import { useFormValidation } from '@/hooks/useFormValidation';
 import { clientSchema } from '@/schemas/clientSchema';
 
 const Clientes: React.FC = () => {
-  const { clients, zones, loading, fetchClients, fetchZones, addZone, updateClient, deleteClient } = useSupabaseStore();
+  const {
+    clients,
+    clientsCount,
+    zones,
+    clientsLoading: loading,
+    fetchClients,
+    fetchZones,
+    addZone,
+    updateClient,
+    deleteClient
+  } = useSupabaseStore();
   const toast = useToast();
 
-  // Filters
+  // Pagination & Filters
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterZone, setFilterZone] = useState('all');
@@ -49,27 +61,31 @@ const Clientes: React.FC = () => {
     schema: clientSchema
   });
 
+  // Fetch data on filters/pagination change
   useEffect(() => {
-    fetchClients();
+    fetchClients({
+      page: currentPage,
+      pageSize,
+      search,
+      status: filterStatus,
+      zone: filterZone
+    });
+  }, [fetchClients, currentPage, search, filterStatus, filterZone]);
+
+  useEffect(() => {
     fetchZones();
-  }, [fetchClients, fetchZones]);
+  }, [fetchZones]);
 
-  // KPIs
-  const totalClientes = clients.length;
-  const clientesActivos = clients.filter(c => c.is_active).length;
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterStatus, filterZone]);
+
+  // KPIs (Now using store counts or derived from current page)
+  const totalClientes = clientsCount;
+  const clientesActivos = clients.filter(c => c.is_active).length; // This is only for the current page, might need a separate count if needed
   const stockBajo = clients.filter(c => (c.stock_cuarzo || 0) < 100).length;
-  const totalZonas = new Set(clients.map(c => c.zone).filter(Boolean)).size;
-
-  // Filtered clients
-  const filteredClients = clients.filter(client => {
-    const lowerCaseSearch = search.toLowerCase();
-    const matchesSearch = (client.name || '').toLowerCase().includes(lowerCaseSearch) ||
-      (client.contact_name || '').toLowerCase().includes(lowerCaseSearch) ||
-      (client.phone || '').toLowerCase().includes(lowerCaseSearch);
-    const matchesStatus = filterStatus === 'all' || (client.is_active === true ? 'ACTIVO' : 'INACTIVO') === filterStatus;
-    const matchesZone = filterZone === 'all' || client.zone === filterZone;
-    return matchesSearch && matchesStatus && matchesZone;
-  });
+  const totalZonas = zones.length;
 
   // Handlers
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -306,10 +322,17 @@ const Clientes: React.FC = () => {
 
       {/* Clients Table */}
       <ClientTable
-        clients={filteredClients}
+        clients={clients}
         loading={loading}
         onEdit={handleEditClick}
         onDelete={handleDeleteClick}
+        pagination={{
+          currentPage,
+          totalPages: Math.ceil(totalClientes / pageSize),
+          pageSize,
+          totalItems: totalClientes,
+          onPageChange: setCurrentPage
+        }}
       />
 
       {/* Add Client CTA */}

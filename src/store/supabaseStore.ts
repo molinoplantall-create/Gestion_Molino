@@ -8,6 +8,8 @@ interface SupabaseStore {
   zones: Zone[];
   millingLogs: MillingLog[];
   maintenanceLogs: any[];
+  clientsCount: number;
+  logsCount: number;
   loading: boolean;
   millsLoading: boolean;
   clientsLoading: boolean;
@@ -17,9 +19,21 @@ interface SupabaseStore {
 
   // Actions
   fetchMills: () => Promise<void>;
-  fetchClients: () => Promise<void>;
+  fetchClients: (options?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string;
+    zone?: string;
+  }) => Promise<void>;
   fetchZones: () => Promise<void>;
-  fetchMillingLogs: (limit?: number) => Promise<void>;
+  fetchMillingLogs: (options?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string;
+    limit?: number; // legacy support
+  }) => Promise<void>;
   fetchMaintenanceLogs: () => Promise<void>;
   registerMilling: (
     data: {
@@ -51,6 +65,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   zones: [],
   millingLogs: [],
   maintenanceLogs: [],
+  clientsCount: 0,
+  logsCount: 0,
   loading: false,
   millsLoading: false,
   clientsLoading: false,
@@ -76,17 +92,38 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  fetchClients: async () => {
+  fetchClients: async (options = {}) => {
+    const { page = 1, pageSize = 20, search, status, zone } = options;
     set({ clientsLoading: true, error: null });
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('clients')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
+        .select('*', { count: 'exact' });
+
+      if (status && status !== 'all') {
+        const isActive = status === 'ACTIVO';
+        query = query.eq('is_active', isActive);
+      } else {
+        query = query.eq('is_active', true);
+      }
+
+      if (zone && zone !== 'all') {
+        query = query.eq('zone', zone);
+      }
+
+      if (search) {
+        query = query.ilike('name', `%${search}%`);
+      }
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, count, error } = await query
+        .order('name')
+        .range(from, to);
 
       if (error) throw error;
-      set({ clients: data as Client[] });
+      set({ clients: data as Client[], clientsCount: count || 0 });
     } catch (error: any) {
       console.error('❌ Error fetchClients:', error);
       set({ error: error.message });
@@ -113,22 +150,52 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  fetchMillingLogs: async (limit = 20) => {
+  fetchMillingLogs: async (options = {}) => {
+    // Handle both legacy (number as limit) and new options object
+    let page = 1;
+    let pageSize = 20;
+    let search = '';
+    let status = 'all';
+
+    if (typeof options === 'number') {
+      pageSize = options;
+    } else {
+      page = options.page || 1;
+      pageSize = options.pageSize || options.limit || 20;
+      search = options.search || '';
+      status = options.status || 'all';
+    }
+
     set({ logsLoading: true, error: null });
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('milling_logs')
         .select(`
           *,
           clients (
             name
           )
-        `)
+        `, { count: 'exact' });
+
+      if (status && status !== 'all') {
+        query = query.eq('status', status);
+      }
+
+      if (search) {
+        // Since we are searching by client name and it's a join, 
+        // we might need to handle this differently or search by ID/mineral
+        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%`);
+      }
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, count, error } = await query
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .range(from, to);
 
       if (error) throw error;
-      set({ millingLogs: data || [] });
+      set({ millingLogs: data || [], logsCount: count || 0 });
     } catch (error: any) {
       console.error('❌ Error fetchMillingLogs:', error);
       set({ error: error.message });
@@ -222,7 +289,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       await get().fetchMills();
       await get().fetchClients();
-      await get().fetchMillingLogs(10);
+      await get().fetchMillingLogs({ pageSize: 10 });
 
       return true;
     } catch (error: any) {

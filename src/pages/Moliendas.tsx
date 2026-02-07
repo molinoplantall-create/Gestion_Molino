@@ -4,33 +4,33 @@ import { MillingLog } from '@/types';
 import { useSupabaseStore } from '@/store/supabaseStore';
 
 const Moliendas: React.FC = () => {
-  const { millingLogs, fetchMillingLogs } = useSupabaseStore();
+  const { millingLogs, logsCount, logsLoading, fetchMillingLogs } = useSupabaseStore();
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const pageSize = 10;
 
   useEffect(() => {
-    fetchMillingLogs(100); // Fetch initial 100 logs
-  }, [fetchMillingLogs]);
+    fetchMillingLogs({
+      page: currentPage,
+      pageSize,
+      search,
+      status: selectedStatus
+    });
+  }, [fetchMillingLogs, currentPage, search, selectedStatus]);
 
-  const filteredSessions = (millingLogs || []).filter(session => {
-    const clientName = (session as any).clients?.name || '';
-    const matchesSearch = clientName.toLowerCase().includes(search.toLowerCase()) ||
-      session.id.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || session.status === selectedStatus;
-    return matchesSearch && matchesStatus;
-  });
-
-  const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedSessions = filteredSessions.slice(startIndex, startIndex + itemsPerPage);
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedStatus]);
 
   const getStatusBadge = (estado: string) => {
     switch (estado) {
       case 'EN_PROCESO':
+      case 'IN_PROGRESS':
         return <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 text-xs font-semibold rounded-full">En Proceso</span>;
       case 'FINALIZADO':
+      case 'COMPLETED':
         return <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-semibold rounded-full">Finalizado</span>;
       default:
         return <span className="px-2.5 py-0.5 bg-slate-50 text-slate-700 border border-slate-100 text-xs font-semibold rounded-full">{estado}</span>;
@@ -48,15 +48,99 @@ const Moliendas: React.FC = () => {
     );
   };
 
+  const columns = [
+    {
+      key: 'id',
+      label: 'ID',
+      render: (session: MillingLog) => (
+        <span className="font-mono text-sm font-medium text-slate-600">#{session.id.substring(0, 6)}</span>
+      )
+    },
+    {
+      key: 'mill_id',
+      label: 'Molino',
+      render: (session: MillingLog) => {
+        const millInfo = Array.isArray(session.mills_used)
+          ? session.mills_used.map((m: any) => m.mill_id).join(', ')
+          : 'Molino';
+        return (
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3 border border-slate-200">
+              <span className="font-semibold text-xs text-slate-600">M</span>
+            </div>
+            <span className="text-sm font-medium text-slate-700 truncate max-w-[100px]" title={millInfo}>
+              {millInfo}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'client_id',
+      label: 'Cliente',
+      render: (session: MillingLog) => {
+        const clientName = (session as any).clients?.name || 'Cliente';
+        const startTime = new Date(session.created_at);
+        return (
+          <div>
+            <div className="text-sm font-medium text-slate-900">{clientName}</div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              {startTime.toLocaleDateString()}
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'total_sacks',
+      label: 'Sacos',
+      render: (session: MillingLog) => (
+        <span className="text-sm font-semibold text-slate-700">{session.total_sacks}</span>
+      )
+    },
+    {
+      key: 'mineral_type',
+      label: 'Mineral',
+      render: (session: MillingLog) => getMineralBadge(session.mineral_type)
+    },
+    {
+      key: 'duration',
+      label: 'Duración',
+      render: () => <span className="text-sm text-slate-600 font-medium italic">-</span>
+    },
+    {
+      key: 'status',
+      label: 'Estado',
+      render: (session: MillingLog) => getStatusBadge(session.status)
+    },
+    {
+      key: 'operator',
+      label: 'Operador',
+      render: () => <div className="text-sm text-slate-600">Técnico</div>
+    },
+    {
+      key: 'actions',
+      label: 'Acciones',
+      className: 'text-right',
+      render: (session: MillingLog) => (
+        <div className="flex space-x-1 justify-end">
+          <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+            <Eye size={18} strokeWidth={1.5} />
+          </button>
+          <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+            <Edit size={18} strokeWidth={1.5} />
+          </button>
+        </div>
+      )
+    }
+  ];
+
   // Cálculos para las tarjetas de resumen
   const stats = React.useMemo(() => {
+    // Keep it simple for now, as we don't have global stats in the store yet
     const totalSacos = millingLogs.reduce((acc, log) => acc + (log.total_sacks || 0), 0);
-    const finalizadas = millingLogs.filter(log => log.status === 'FINALIZADO').length;
-
-    // Tiempo promedio (Placeholder ya que no hay end_time en logs históricos aún)
-    // En una fase futura se podrá calcular restando end_time - start_time
+    const finalizadas = millingLogs.filter(log => log.status === 'FINALIZADO' || log.status === 'COMPLETED').length;
     const tiempoPromedio = millingLogs.length > 0 ? "2.1h" : "0h";
-
     return { totalSacos, finalizadas, tiempoPromedio };
   }, [millingLogs]);
 
@@ -83,7 +167,7 @@ const Moliendas: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters (Mantener igual...) */}
+      {/* Filters */}
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
@@ -91,7 +175,7 @@ const Moliendas: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} strokeWidth={1.5} />
               <input
                 type="text"
-                placeholder="Buscar por cliente, ID, molino..."
+                placeholder="Buscar por observaciones, mineral..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
@@ -108,8 +192,8 @@ const Moliendas: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
               >
                 <option value="all">Todos los estados</option>
-                <option value="EN_PROCESO">En Proceso</option>
-                <option value="FINALIZADO">Finalizado</option>
+                <option value="IN_PROGRESS">En Proceso</option>
+                <option value="COMPLETED">Finalizado</option>
               </select>
             </div>
           </div>
@@ -128,119 +212,20 @@ const Moliendas: React.FC = () => {
         </div>
       </div>
 
-      {/* Table Section (Mantener igual...) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Molino</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Sacos</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mineral</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Duración</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Operador</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {paginatedSessions.length > 0 ? (
-                paginatedSessions.map((session) => {
-                  const clientName = (session as any).clients?.name || 'Cliente';
-                  const startTime = new Date(session.created_at);
-                  const millInfo = Array.isArray(session.mills_used)
-                    ? session.mills_used.map((m: any) => m.mill_id).join(', ')
-                    : 'Molino';
-
-                  return (
-                    <tr key={session.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-mono text-sm font-medium text-slate-600">#{session.id.substring(0, 6)}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3 border border-slate-200">
-                            <span className="font-semibold text-xs text-slate-600">M</span>
-                          </div>
-                          <span className="text-sm font-medium text-slate-700 truncate max-w-[100px]" title={millInfo}>
-                            {millInfo}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-slate-900">{clientName}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">
-                          {startTime.toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-semibold text-slate-700">{session.total_sacks}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getMineralBadge(session.mineral_type)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-slate-600 font-medium italic">
-                          -
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(session.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-slate-600">Técnico</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex space-x-1">
-                          <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                            <Eye size={18} strokeWidth={1.5} />
-                          </button>
-                          <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                            <Edit size={18} strokeWidth={1.5} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-slate-500 italic">
-                    No se encontraron procesos registrados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Section (Mantener igual...) */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white">
-            <div className="text-sm text-slate-500">
-              Mostrando <span className="font-medium text-slate-700">{startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredSessions.length)}</span> de <span className="font-medium text-slate-700">{filteredSessions.length}</span> registros
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft size={18} strokeWidth={1.5} />
-              </button>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight size={18} strokeWidth={1.5} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Table Section */}
+      <Table
+        data={millingLogs}
+        columns={columns}
+        loading={logsLoading}
+        pagination={{
+          currentPage,
+          totalPages: Math.ceil(logsCount / pageSize),
+          pageSize,
+          totalItems: logsCount,
+          onPageChange: setCurrentPage
+        }}
+        emptyMessage="No se encontraron procesos registrados."
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

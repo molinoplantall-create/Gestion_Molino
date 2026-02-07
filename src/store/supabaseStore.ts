@@ -70,6 +70,7 @@ interface SupabaseStore {
   addZone: (name: string) => Promise<boolean>;
   updateZone: (id: string, name: string) => Promise<boolean>;
   deleteZone: (id: string) => Promise<boolean>;
+  seedMills: () => Promise<boolean>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -551,14 +552,36 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (error) throw error;
 
-      await get().fetchZones();
+      set({ zones: get().zones.filter(z => z.id !== id) });
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Error deleteZone:', error);
-      set({ error: error.message });
       return false;
     } finally {
       set({ loading: false });
+    }
+  },
+
+  seedMills: async () => {
+    try {
+      const defaultMills = [
+        { nombre: 'Molino I', estado: 'LIBRE', sacos_procesados: 0, horas_trabajadas: 0 },
+        { nombre: 'Molino II', estado: 'LIBRE', sacos_procesados: 0, horas_trabajadas: 0 },
+        { nombre: 'Molino III', estado: 'LIBRE', sacos_procesados: 0, horas_trabajadas: 0 },
+        { nombre: 'Molino IV', estado: 'LIBRE', sacos_procesados: 0, horas_trabajadas: 0 }
+      ];
+
+      const { error } = await supabase
+        .from('mills')
+        .insert(defaultMills);
+
+      if (error) throw error;
+
+      await get().fetchMills();
+      return true;
+    } catch (error) {
+      console.error('❌ Error seedMills:', error);
+      return false;
     }
   }
 }));

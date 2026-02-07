@@ -525,57 +525,70 @@ const RegistroMolienda: React.FC = () => {
     window.open(`https://wa.me/?text=${mensajeCodificado}`, '_blank');
   };
 
+  const handleSeed = async () => {
+    const success = await useSupabaseStore.getState().seedMills();
+    if (success) {
+      toast.success('Molinos Inicializados', 'Se han creado los 4 molinos principales correctamente.');
+    } else {
+      toast.error('Error', 'No se pudieron inicializar los molinos. Verifique su conexión.');
+    }
+  };
+
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-20 max-w-[1600px] mx-auto px-4 sm:px-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Nueva Molienda</h1>
-          <p className="text-slate-500 mt-1">Registro de proceso de molienda</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Nueva Molienda</h1>
+          <p className="text-slate-500 mt-1 font-medium">Registro de proceso de molienda</p>
         </div>
 
-        <div className="flex space-x-3 mt-4 md:mt-0">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => receiptModal.open()}
-            className="flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
-            disabled={molienda.totalSacos === 0}
+            className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all shadow-sm font-bold text-sm"
+            disabled={totalCalculado.totalSacos === 0}
           >
-            <Printer size={18} strokeWidth={1.5} className="mr-2" />
-            Imprimir Comprobante
+            <Printer size={18} strokeWidth={2} className="mr-2" />
+            Ticket
           </button>
           <button
             onClick={generarReporteWhatsApp}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-sm font-bold text-sm"
           >
-            <MessageSquare size={18} strokeWidth={1.5} className="mr-2" />
-            Enviar WhatsApp
+            <MessageSquare size={18} strokeWidth={2} className="mr-2" />
+            WhatsApp
           </button>
         </div>
       </div>
 
       {/* Top Selectors Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Client Selector */}
-        <ClientSelector
-          clients={clients}
-          selectedClientId={molienda.clienteId}
-          onClientChange={handleClienteChange}
-          stockInfo={molienda.clienteId ? {
-            total: molienda.stockTotal,
-            cuarzo: molienda.stockCuarzo,
-            llampo: molienda.stockLlampo
-          } : undefined}
-          disabled={molienda.procesoIniciado}
-        />
+        <div className="lg:col-span-3">
+          <ClientSelector
+            clients={clients}
+            selectedClientId={molienda.clienteId}
+            onClientChange={handleClienteChange}
+            stockInfo={molienda.clienteId ? {
+              total: molienda.stockTotal,
+              cuarzo: molienda.stockCuarzo,
+              llampo: molienda.stockLlampo
+            } : undefined}
+            disabled={molienda.procesoIniciado}
+          />
+        </div>
 
         {/* Mineral Type Selector */}
-        <MineralTypeSelector
-          mineralType={molienda.mineral}
-          onMineralChange={handleMineralChange}
-          tiempos={molienda.tiempos}
-          onTiempoChange={handleTiempoChange}
-          disabled={molienda.procesoIniciado}
-        />
+        <div className="lg:col-span-2 text-sm">
+          <MineralTypeSelector
+            mineralType={molienda.mineral}
+            onMineralChange={handleMineralChange}
+            tiempos={molienda.tiempos}
+            onTiempoChange={handleTiempoChange}
+            disabled={molienda.procesoIniciado}
+          />
+        </div>
       </div>
 
       {/* Mill Selector */}
@@ -583,6 +596,8 @@ const RegistroMolienda: React.FC = () => {
         molinos={molienda.molinos}
         onMolinoChange={handleMolinoChange}
         onReplicate={handleReplicate}
+        onSeed={handleSeed}
+        loading={useSupabaseStore.getState().millsLoading}
         disabled={molienda.procesoIniciado}
       />
 

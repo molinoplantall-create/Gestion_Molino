@@ -67,24 +67,24 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
                 )}
 
                 {/* Stock Display */}
-                {stockInfo && stockInfo.total > 0 && (
+                {stockInfo && (
                     <div className="lg:col-span-4">
                         <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center">
                             <Package size={16} className="mr-1" />
                             Stock Disponible
                         </label>
                         <div className="grid grid-cols-3 gap-2">
-                            <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                                <div className="text-xs text-blue-600 font-medium">Total</div>
-                                <div className="text-lg font-bold text-blue-900">{stockInfo.total}</div>
+                            <div className="px-2 py-2 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                                <div className="text-[10px] text-blue-600 font-bold uppercase tracking-tight">Total</div>
+                                <div className="text-base md:text-lg font-black text-blue-900 leading-tight">{stockInfo.total}</div>
                             </div>
-                            <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-center">
-                                <div className="text-xs text-amber-600 font-medium">Cuarzo</div>
-                                <div className="text-lg font-bold text-amber-900">{stockInfo.cuarzo}</div>
+                            <div className="px-2 py-2 bg-amber-50 border border-amber-200 rounded-lg text-center">
+                                <div className="text-[10px] text-amber-600 font-bold uppercase tracking-tight">Cuarzo</div>
+                                <div className="text-base md:text-lg font-black text-amber-900 leading-tight">{stockInfo.cuarzo}</div>
                             </div>
-                            <div className="px-3 py-2 bg-purple-50 border border-purple-200 rounded-lg text-center">
-                                <div className="text-xs text-purple-600 font-medium">Llampo</div>
-                                <div className="text-lg font-bold text-purple-900">{stockInfo.llampo}</div>
+                            <div className="px-2 py-2 bg-purple-50 border border-purple-200 rounded-lg text-center">
+                                <div className="text-[10px] text-purple-600 font-bold uppercase tracking-tight">Llampo</div>
+                                <div className="text-base md:text-lg font-black text-purple-900 leading-tight">{stockInfo.llampo}</div>
                             </div>
                         </div>
                     </div>

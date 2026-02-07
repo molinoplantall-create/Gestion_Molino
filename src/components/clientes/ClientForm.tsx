@@ -1,6 +1,6 @@
 import React from 'react';
 import { FormModal } from '../ui/FormModal';
-import { UserPlus, Edit } from 'lucide-react';
+import { UserPlus, Edit, Settings } from 'lucide-react';
 
 interface ClientFormData {
     nombre: string;
@@ -28,6 +28,7 @@ interface ClientFormProps {
     newZoneName?: string;
     onNewZoneNameChange?: (value: string) => void;
     onToggleAddZone?: () => void;
+    onManageZones?: () => void;
     errors?: Record<string, string>;
 }
 
@@ -45,6 +46,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     newZoneName = '',
     onNewZoneNameChange,
     onToggleAddZone,
+    onManageZones,
     errors = {}
 }) => {
     const isValid = formData.nombre && formData.zona && formData.tipoCliente;
@@ -56,7 +58,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
             onSubmit={onSubmit}
             title={isEditing ? 'Editar Cliente' : 'Registro de Nuevo Cliente'}
             icon={isEditing ? Edit : UserPlus}
-            size="2xl"
+            size="xl"
             submitLabel={isEditing ? 'Actualizar Cliente' : 'Guardar Cliente'}
             isLoading={isLoading}
             isValid={!!isValid}
@@ -144,17 +146,28 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                 {/* Detalles Adicionales */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex justify-between">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex justify-between items-center">
                             <span>Zona <span className="text-red-500">*</span></span>
-                            {!isEditing && onToggleAddZone && (
+                            <div className="flex space-x-2">
+                                {!isEditing && onToggleAddZone && (
+                                    <button
+                                        type="button"
+                                        onClick={onToggleAddZone}
+                                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                                    >
+                                        {isAddingZone ? 'Cancelar' : '+ Nueva'}
+                                    </button>
+                                )}
                                 <button
                                     type="button"
-                                    onClick={onToggleAddZone}
-                                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                                    onClick={onManageZones}
+                                    className="text-xs text-slate-500 hover:text-indigo-600 flex items-center"
+                                    title="Gestionar Zonas"
                                 >
-                                    {isAddingZone ? 'Cancelar' : '+ Nueva Zona'}
+                                    <Settings size={14} className="mr-1" />
+                                    Gestionar
                                 </button>
-                            )}
+                            </div>
                         </label>
                         {!isAddingZone || isEditing ? (
                             <select

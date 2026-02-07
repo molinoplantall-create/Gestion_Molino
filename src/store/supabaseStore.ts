@@ -57,6 +57,8 @@ interface SupabaseStore {
   deleteClient: (id: string) => Promise<boolean>;
   addClientStock: (clientId: string, cuarzo: number, llampo: number, zone?: string, mineralType?: string) => Promise<boolean>;
   addZone: (name: string) => Promise<boolean>;
+  updateZone: (id: string, name: string) => Promise<boolean>;
+  deleteZone: (id: string) => Promise<boolean>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({

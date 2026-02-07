@@ -12,6 +12,7 @@ import { ClientTable } from '@/components/clientes/ClientTable';
 import { ClientFilters } from '@/components/clientes/ClientFilters';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { clientSchema } from '@/schemas/clientSchema';
+import { ZoneManagerModal } from '@/components/clientes/ZoneManagerModal';
 
 const Clientes: React.FC = () => {
   const {
@@ -38,6 +39,7 @@ const Clientes: React.FC = () => {
   const createModal = useModal();
   const editModal = useModal<any>();
   const deleteModal = useModal<any>();
+  const zoneManagerModal = useModal();
 
   // Zone management
   const [isAddingZone, setIsAddingZone] = useState(false);
@@ -367,6 +369,7 @@ const Clientes: React.FC = () => {
         newZoneName={newZoneName}
         onNewZoneNameChange={setNewZoneName}
         onToggleAddZone={() => setIsAddingZone(!isAddingZone)}
+        onManageZones={() => zoneManagerModal.open()}
         errors={errors}
       />
 
@@ -383,6 +386,7 @@ const Clientes: React.FC = () => {
         zones={zones}
         isLoading={isSubmitting}
         isEditing={true}
+        onManageZones={() => zoneManagerModal.open()}
         errors={errors}
       />
 
@@ -393,6 +397,12 @@ const Clientes: React.FC = () => {
         onConfirm={handleConfirmDelete}
         itemName={deleteModal.data?.name || ''}
         message="Esta acción marcará al cliente como inactivo."
+      />
+
+      {/* Zone Manager Modal */}
+      <ZoneManagerModal
+        isOpen={zoneManagerModal.isOpen}
+        onClose={zoneManagerModal.close}
       />
     </div>
   );

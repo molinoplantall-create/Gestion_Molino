@@ -38,6 +38,8 @@ const Mantenimiento: React.FC = () => {
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedMill, setSelectedMill] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,26 +70,26 @@ const Mantenimiento: React.FC = () => {
 
   useEffect(() => {
     fetchMills();
-    fetchMaintenanceLogs();
-  }, [fetchMills, fetchMaintenanceLogs]);
+  }, [fetchMills]);
 
-  // Filtered and paginated logs
-  const filteredLogs = (maintenanceLogs || []).filter(log => {
-    const millName = log.mills?.name || '';
-    const matchesSearch = millName.toLowerCase().includes(search.toLowerCase()) ||
-      (log.description || '').toLowerCase().includes(search.toLowerCase()) ||
-      log.id.toLowerCase().includes(search.toLowerCase());
-    const matchesType = filterType === 'all' || log.type === filterType;
-    const matchesStatus = filterStatus === 'all' || log.status === filterStatus;
-    const matchesMill = selectedMill === 'all' || log.mill_id === selectedMill;
-    return matchesSearch && matchesType && matchesStatus && matchesMill;
-  });
+  useEffect(() => {
+    fetchMaintenanceLogs({
+      page: currentPage,
+      pageSize: recordsPerPage,
+      search,
+      millId: selectedMill,
+      startDate,
+      endDate
+    });
+  }, [fetchMaintenanceLogs, currentPage, search, selectedMill, startDate, endDate]);
 
-  const totalPages = Math.ceil(filteredLogs.length / recordsPerPage);
-  const paginatedLogs = filteredLogs.slice(
-    (currentPage - 1) * recordsPerPage,
-    currentPage * recordsPerPage
-  );
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedMill, startDate, endDate]);
+
+  const totalPages = Math.ceil(maintenanceLogs.length / recordsPerPage); // This should probably use a count from store if we had one
+  const paginatedLogs = maintenanceLogs; // Store already paginates
 
   // Handlers
   const handleFormChange = (field: string, value: any) => {
@@ -209,6 +211,8 @@ const Mantenimiento: React.FC = () => {
     setFilterType('all');
     setFilterStatus('all');
     setSelectedMill('all');
+    setStartDate('');
+    setEndDate('');
     toast.info('Filtros Limpiados', 'Se han restablecido los filtros de búsqueda.');
   };
 

@@ -32,9 +32,20 @@ interface SupabaseStore {
     pageSize?: number;
     search?: string;
     status?: string;
+    millId?: string;
+    mineralType?: string;
+    startDate?: string;
+    endDate?: string;
     limit?: number; // legacy support
   }) => Promise<void>;
-  fetchMaintenanceLogs: () => Promise<void>;
+  fetchMaintenanceLogs: (options?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    millId?: string;
+    startDate?: string;
+    endDate?: string;
+  }) => Promise<void>;
   registerMilling: (
     data: {
       clientId: string;
@@ -158,6 +169,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     let pageSize = 20;
     let search = '';
     let status = 'all';
+    let millId = '';
+    let mineralType = '';
+    let startDate = '';
+    let endDate = '';
 
     if (typeof options === 'number') {
       pageSize = options;
@@ -166,6 +181,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       pageSize = options.pageSize || options.limit || 20;
       search = options.search || '';
       status = options.status || 'all';
+      millId = options.millId || '';
+      mineralType = options.mineralType || '';
+      startDate = options.startDate || '';
+      endDate = options.endDate || '';
     }
 
     set({ logsLoading: true, error: null });
@@ -184,9 +203,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        // Since we are searching by client name and it's a join, 
-        // we might need to handle this differently or search by ID/mineral
         query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%`);
+      }
+
+      if (millId && millId !== 'all') {
+        // mills_used is a jsonb array, searching for mill_id inside it
+        query = query.contains('mills_used', [{ mill_id: millId }]);
+      }
+
+      if (mineralType && mineralType !== 'all') {
+        query = query.eq('mineral_type', mineralType);
+      }
+
+      if (startDate) {
+        query = query.gte('created_at', `${startDate}T00:00:00`);
+      }
+
+      if (endDate) {
+        query = query.lte('created_at', `${endDate}T23:59:59`);
       }
 
       const from = (page - 1) * pageSize;
@@ -206,18 +240,41 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  fetchMaintenanceLogs: async () => {
+  fetchMaintenanceLogs: async (options = {}) => {
+    const { page = 1, pageSize = 20, search, millId, startDate, endDate } = options;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('maintenance_logs')
         .select(`
           *,
           mills (
             name
           )
-        `)
-        .order('created_at', { ascending: false });
+        `, { count: 'exact' });
+
+      if (millId && millId !== 'all') {
+        query = query.eq('mill_id', millId);
+      }
+
+      if (search) {
+        query = query.ilike('description', `%${search}%`);
+      }
+
+      if (startDate) {
+        query = query.gte('created_at', `${startDate}T00:00:00`);
+      }
+
+      if (endDate) {
+        query = query.lte('created_at', `${endDate}T23:59:59`);
+      }
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, count, error } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
       set({ maintenanceLogs: data || [] });
@@ -437,6 +494,48 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return true;
     } catch (error: any) {
       console.error('❌ Error addZone:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  updateZone: async (id: string, name: string) => {
+    set({ loading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('zones')
+        .update({ name })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await get().fetchZones();
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error updateZone:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  deleteZone: async (id: string) => {
+    set({ loading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('zones')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await get().fetchZones();
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error deleteZone:', error);
       set({ error: error.message });
       return false;
     } finally {

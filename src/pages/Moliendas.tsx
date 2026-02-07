@@ -5,25 +5,37 @@ import { useSupabaseStore } from '@/store/supabaseStore';
 import { Table } from '@/components/common/Table';
 
 const Moliendas: React.FC = () => {
-  const { millingLogs, logsCount, logsLoading, fetchMillingLogs } = useSupabaseStore();
+  const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills } = useSupabaseStore();
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedMill, setSelectedMill] = useState<string>('all');
+  const [selectedMineral, setSelectedMineral] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+
+  useEffect(() => {
+    fetchMills();
+  }, [fetchMills]);
 
   useEffect(() => {
     fetchMillingLogs({
       page: currentPage,
       pageSize,
       search,
-      status: selectedStatus
+      status: selectedStatus,
+      millId: selectedMill,
+      mineralType: selectedMineral,
+      startDate,
+      endDate
     });
-  }, [fetchMillingLogs, currentPage, search, selectedStatus]);
+  }, [fetchMillingLogs, currentPage, search, selectedStatus, selectedMill, selectedMineral, startDate, endDate]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, selectedStatus]);
+  }, [search, selectedStatus, selectedMill, selectedMineral, startDate, endDate]);
 
   const getStatusBadge = (estado: string) => {
     switch (estado) {
@@ -140,7 +152,7 @@ const Moliendas: React.FC = () => {
   const stats = React.useMemo(() => {
     // Keep it simple for now, as we don't have global stats in the store yet
     const totalSacos = millingLogs.reduce((acc, log) => acc + (log.total_sacks || 0), 0);
-    const finalizadas = millingLogs.filter(log => log.status === 'FINALIZADO' || log.status === 'COMPLETED').length;
+    const finalizadas = millingLogs.filter(log => log.status === 'FINALIZADO').length;
     const tiempoPromedio = millingLogs.length > 0 ? "2.1h" : "0h";
     return { totalSacos, finalizadas, tiempoPromedio };
   }, [millingLogs]);
@@ -169,46 +181,99 @@ const Moliendas: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} strokeWidth={1.5} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
               <input
                 type="text"
-                placeholder="Buscar por observaciones, mineral..."
+                placeholder="Buscar por observaciones..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
               />
             </div>
           </div>
 
           <div>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="IN_PROGRESS">En Proceso</option>
+              <option value="FINALIZADO">Finalizado</option>
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={selectedMill}
+              onChange={(e) => setSelectedMill(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+            >
+              <option value="all">Todos los molinos</option>
+              {mills.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Fecha Inicio</label>
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} strokeWidth={1.5} />
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
-              >
-                <option value="all">Todos los estados</option>
-                <option value="IN_PROGRESS">En Proceso</option>
-                <option value="COMPLETED">Finalizado</option>
-              </select>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+              />
             </div>
           </div>
 
           <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Fecha Fin</label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} strokeWidth={1.5} />
-              <select className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer" defaultValue="week">
-                <option value="week">Últimos 7 días</option>
-                <option value="month">Este mes</option>
-                <option value="quarter">Este trimestre</option>
-                <option value="custom">Personalizado</option>
-              </select>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+              />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Mineral</label>
+            <select
+              value={selectedMineral}
+              onChange={(e) => setSelectedMineral(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+            >
+              <option value="all">Tipos de mineral</option>
+              <option value="OXIDO">Óxido</option>
+              <option value="SULFURO">Sulfuro</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end order-last">
+            <button
+              onClick={() => {
+                setSearch('');
+                setSelectedStatus('all');
+                setSelectedMill('all');
+                setSelectedMineral('all');
+                setStartDate('');
+                setEndDate('');
+              }}
+              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-widest px-2 py-2"
+            >
+              Limpiar Filtros
+            </button>
           </div>
         </div>
       </div>

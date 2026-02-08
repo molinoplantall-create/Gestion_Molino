@@ -23,6 +23,8 @@ export interface Mill {
   current_sacks?: number;
   current_cuarzo?: number; // New DB column
   current_llampo?: number; // New DB column
+  start_time?: string;
+  estimated_end_time?: string;
   hours_to_oil_change?: number;
   last_maintenance?: string;
   operativo: boolean;

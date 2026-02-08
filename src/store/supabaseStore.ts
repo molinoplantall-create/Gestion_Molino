@@ -60,6 +60,9 @@ interface SupabaseStore {
         total: number;
       }[];
       observations?: string;
+      fecha?: string;
+      horaInicioISO?: string;
+      horaFinISO?: string;
     }
   ) => Promise<boolean>;
   registerMaintenance: (data: any) => Promise<boolean>;
@@ -94,7 +97,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       // First try to fetch all data without a specific order to avoid crashing if 'name' doesn't exist
       const { data, error } = await supabase
         .from('mills')
-        .select('*');
+        .select(`
+        *,
+        clients:current_client_id ( name )
+      `);
 
       if (error) {
         console.error('❌ Supabase error in fetchMills:', error);
@@ -113,7 +119,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         status: (m.status || 'LIBRE').toUpperCase(),
         capacity: m.capacity || 150,
         horas_trabajadas: m.total_hours_worked || 0,
-        sacos_procesados: m.sacks_processing || 0
+        sacos_procesados: m.sacks_processing || 0,
+        current_client: m.clients?.name || null
       })) as Mill[];
 
       // Sort alphabetically by name
@@ -331,7 +338,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           total_llampo: data.totalLlampo,
           mills_used: data.mills,
           status: 'IN_PROGRESS',
-          observations: data.observations || ''
+          observations: data.observations || '',
+          created_at: data.fecha || new Date().toISOString()
         })
         .select()
         .single();
@@ -352,6 +360,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (stockError) throw stockError;
 
       const millUpdates = data.mills.map(async (m) => {
+        // Si la fecha es de hoy, actualizamos el estado del molino. 
+        // Si es una fecha pasada, asumimos que es solo un registro histórico y no ocupamos el molino hoy.
+        const isHistorical = data.fecha && new Date(data.fecha).toDateString() !== new Date().toDateString();
+
+        if (isHistorical) return Promise.resolve({ error: null });
+
         return supabase
           .from('mills')
           .update({
@@ -359,7 +373,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
             current_client_id: data.clientId,
             current_cuarzo: m.cuarzo,
             current_llampo: m.llampo,
-            start_time: new Date().toISOString(),
+            start_time: data.horaInicioISO || new Date().toISOString(),
+            estimated_end_time: data.horaFinISO || null,
           })
           .eq('id', m.id);
       });

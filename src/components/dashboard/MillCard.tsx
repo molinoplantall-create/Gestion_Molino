@@ -30,7 +30,7 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
 
     // Horarios
     horaInicio: mill?.horaInicio || mill?.start_time || null,
-    horaFinEstimada: mill?.horaFinEstimada || mill?.estimated_end || null,
+    horaFinEstimada: mill?.estimated_end_time || mill?.horaFinEstimada || mill?.estimated_end || null,
     horasTrabajadas: mill?.horasTrabajadas || mill?.total_hours_worked || 0,
 
     // Mantenimiento
@@ -221,52 +221,38 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
 
       {/* SECCIÓN 1: INFORMACIÓN OPERATIVA */}
       <div className="space-y-3 mb-4 flex-1">
-        {/* Cliente actual (SOLO si está ocupado) */}
-        {estadoReal === 'ocupado' && normalizedMill.clienteActual && (
-          <div className="flex items-center p-3 bg-white/60 rounded-xl border border-orange-100 shadow-sm">
-            <User className="text-orange-400 mr-3" size={16} strokeWidth={1.5} />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-0.5">Cliente</div>
-              <div className="text-sm font-bold text-slate-900 truncate" title={normalizedMill.clienteActual}>
-                {normalizedMill.clienteActual}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Sacos procesando */}
-        {estadoReal === 'ocupado' && normalizedMill.sacosProcesando > 0 && (
-          <div className="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-orange-100 shadow-sm">
-            <div className="flex items-center">
-              <Package className="text-orange-400 mr-3" size={16} strokeWidth={1.5} />
-              <div>
-                <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Sacos</div>
-                <div className="text-[10px] text-slate-400 font-medium">En proceso</div>
-              </div>
-            </div>
-            <div className="text-xl font-black text-slate-900">
-              {normalizedMill.sacosProcesando}
-            </div>
-          </div>
-        )}
-
-        {/* Horarios y Cuenta Regresiva */}
+        {/* Información de Ocupación Compacta */}
         {estadoReal === 'ocupado' && (
-          <div className="bg-orange-600/5 p-3 rounded-xl border border-orange-200/50">
-            <div className="flex justify-between items-end">
-              <div>
-                <div className="text-[10px] text-orange-600 font-black uppercase tracking-widest mb-1 flex items-center">
-                  <Clock size={10} className="mr-1" /> Tiempo Restante
-                </div>
-                <div className="text-2xl font-black text-orange-700 tracking-tighter">
-                  {timeRemaining || '--:--'}
+          <div className="space-y-2">
+            {/* Fila Cliente */}
+            <div className="flex items-center px-3 py-2 bg-white/60 rounded-lg border border-orange-100 shadow-sm">
+              <User className="text-orange-400 mr-2" size={14} strokeWidth={2} />
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-bold text-slate-800 truncate" title={normalizedMill.clienteActual}>
+                  {normalizedMill.clienteActual || 'Cliente'}
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Finaliza</div>
-                <div className="text-sm font-bold text-slate-900">
-                  {formatTime(normalizedMill.horaFinEstimada)}
-                </div>
+            </div>
+
+            {/* Fila Tiempos */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="px-2 py-1 bg-white/40 rounded border border-orange-100/50">
+                <div className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Inicio</div>
+                <div className="text-xs font-bold text-slate-700">{formatTime(normalizedMill.horaInicio)}</div>
+              </div>
+              <div className="px-2 py-1 bg-white/40 rounded border border-orange-100/50">
+                <div className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Fin (Est)</div>
+                <div className="text-xs font-bold text-slate-700 text-right">{formatTime(normalizedMill.horaFinEstimada)}</div>
+              </div>
+            </div>
+
+            {/* Fila Contador */}
+            <div className="bg-orange-600/10 p-3 rounded-xl border border-orange-200/50 flex flex-col items-center">
+              <div className="text-[9px] text-orange-600 font-black uppercase tracking-widest mb-0.5 flex items-center">
+                <Clock size={10} className="mr-1" /> Tiempo Restante
+              </div>
+              <div className="text-2xl font-black text-orange-700 tracking-tighter leading-none">
+                {timeRemaining || '--:--'}
               </div>
             </div>
           </div>

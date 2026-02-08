@@ -15,6 +15,8 @@ interface MolinoProceso {
     horaFin: string | null;
     current_client?: string;
     current_sacks?: number;
+    start_time?: string;
+    estimated_end_time?: string;
 }
 
 interface MillSelectorProps {
@@ -127,12 +129,26 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                             {isBusy && (
                                 <div className="mb-3 p-2 bg-red-50 border border-red-100 rounded-lg">
                                     <div className="text-[9px] text-red-700 font-black uppercase tracking-widest mb-1">Estado: {molino.status}</div>
-                                    <div className="text-[11px] text-slate-600 leading-snug">
+                                    <div className="text-[11px] text-slate-600 space-y-1">
                                         {molino.current_client && (
-                                            <div className="font-bold text-slate-800 truncate">S: {molino.current_client}</div>
+                                            <div className="font-bold text-slate-800 truncate" title={molino.current_client}>
+                                                👤 {molino.current_client}
+                                            </div>
                                         )}
-                                        {molino.current_sacks !== undefined && (
-                                            <div className="font-medium">{molino.current_sacks} sacos</div>
+                                        {molino.start_time && (
+                                            <div className="flex justify-between items-center text-[10px]">
+                                                <span className="text-red-400 font-bold">INICIO:</span>
+                                                <span className="font-bold text-slate-700">{new Date(molino.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
+                                        )}
+                                        {molino.estimated_end_time && (
+                                            <div className="flex justify-between items-center text-[10px]">
+                                                <span className="text-red-400 font-bold">FIN (EST):</span>
+                                                <span className="font-bold text-slate-700">{new Date(molino.estimated_end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
+                                        )}
+                                        {molino.current_sacks !== undefined && molino.current_sacks > 0 && (
+                                            <div className="font-medium text-slate-500 pt-1 border-t border-red-200/50">📦 {molino.current_sacks} sacos</div>
                                         )}
                                         {!molino.current_client && !molino.current_sacks && (
                                             <div className="italic opacity-60">No disponible</div>

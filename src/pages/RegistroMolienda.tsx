@@ -28,6 +28,8 @@ interface MolinoProceso {
   horaFin: string | null;
   current_client?: string;
   current_sacks?: number;
+  start_time?: string;
+  estimated_end_time?: string;
 }
 
 interface TiemposProceso {
@@ -77,7 +79,7 @@ const RegistroMolienda: React.FC = () => {
       oxido: { hora40: true, hora00: false },
       sulfuro: { hora00: false, hora30: true }
     },
-    fechaInicio: null,
+    fechaInicio: new Date().toISOString().split('T')[0],
     horaInicio: null,
     horaFin: null,
     stockTotal: 0,
@@ -194,7 +196,9 @@ const RegistroMolienda: React.FC = () => {
             tiempoEstimado: 0,
             horaFin: null,
             current_client: m.current_client,
-            current_sacks: m.current_sacks
+            current_sacks: m.current_sacks,
+            start_time: m.start_time,
+            estimated_end_time: m.estimated_end_time
           }));
           console.log('✅ RegistroMolienda: Initialized molinos:', initialMolinos);
           return {
@@ -214,7 +218,9 @@ const RegistroMolienda: React.FC = () => {
               status: storeM.status,
               activo: isNowBusy ? false : localM.activo,
               current_client: storeM.current_client || localM.current_client,
-              current_sacks: storeM.current_sacks || localM.current_sacks
+              current_sacks: storeM.current_sacks || localM.current_sacks,
+              start_time: storeM.start_time || localM.start_time,
+              estimated_end_time: storeM.estimated_end_time || localM.estimated_end_time
             };
           }
           return localM;
@@ -443,8 +449,16 @@ const RegistroMolienda: React.FC = () => {
     if (!isValid) return;
 
     const ahora = new Date();
-    const horaInicio = ahora.toTimeString().slice(0, 5);
+    const horaInicio = molienda.horaInicio || ahora.toTimeString().slice(0, 5);
     const molinosActivos = molienda.molinos.filter(m => m.activo);
+
+    // Generar timestamps ISO para el estado del molino (si es hoy)
+    const fechaProceso = molienda.fechaInicio || ahora.toISOString().split('T')[0];
+    const horaInicioISO = new Date(`${fechaProceso}T${horaInicio}`).toISOString();
+
+    const tiempoPorMolino = getTiempoSeleccionado();
+    const horaFinCalculada = calcularHoraFin(horaInicio, tiempoPorMolino);
+    const horaFinISO = new Date(`${fechaProceso}T${horaFinCalculada}`).toISOString();
 
     const success = await registerMilling({
       clientId: molienda.clienteId,
@@ -458,17 +472,18 @@ const RegistroMolienda: React.FC = () => {
         llampo: m.llampo,
         total: m.total
       })),
-      observations: molienda.observaciones
+      observations: molienda.observaciones,
+      fecha: horaInicioISO, // Persistimos el inicio real como created_at
+      horaInicioISO: horaInicioISO,
+      horaFinISO: horaFinISO
     });
 
     if (success) {
-      const tiempoPorMolino = getTiempoSeleccionado();
-      const horaFinGlobal = calcularHoraFin(horaInicio, tiempoPorMolino);
       const detalleMolinos = molinosActivos.map(m => `• ${m.name}: ${m.total} sacos`).join('\n');
 
       toast.success(
-        '¡Proceso Iniciado!',
-        `La molienda ha comenzado correctamente.\n\nHora inicio: ${horaInicio}\nHora fin estimada: ${horaFinGlobal}\n\nDETALLE:\n${detalleMolinos}`
+        '¡Proceso Registrado!',
+        `La molienda ha sido guardada correctamente.\n\nFecha: ${fechaProceso}\nHora inicio: ${horaInicio}\nHora fin estimada: ${horaFinCalculada}\n\nDETALLE:\n${detalleMolinos}`
       );
 
       resetFormulario();
@@ -595,15 +610,26 @@ const RegistroMolienda: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Hora de Inicio</label>
-                <input
-                  type="time"
-                  value={molienda.horaInicio || ''}
-                  onChange={(e) => setMolienda(prev => ({ ...prev, horaInicio: e.target.value }))}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
-                />
-                <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Ingrese la hora real de encendido</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Fecha del Proceso</label>
+                  <input
+                    type="date"
+                    value={molienda.fechaInicio || ''}
+                    onChange={(e) => setMolienda(prev => ({ ...prev, fechaInicio: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Hora de Inicio</label>
+                  <input
+                    type="time"
+                    value={molienda.horaInicio || ''}
+                    onChange={(e) => setMolienda(prev => ({ ...prev, horaInicio: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Ingrese la hora real de encendido</p>
+                </div>
               </div>
 
               <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col justify-center">

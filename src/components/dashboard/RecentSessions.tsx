@@ -9,19 +9,21 @@ interface RecentSessionsProps {
 
 const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions }) => {
 
-  const getStatusIcon = (status: string) => {
+  const translateStatus = (status: string) => {
     switch (status) {
-      case 'FINALIZADO': return <CheckCircle size={16} className="text-green-500" />;
-      case 'EN_PROCESO': return <Clock size={16} className="text-orange-500" />;
-      default: return <AlertCircle size={16} className="text-gray-500" />;
+      case 'FINALIZADO': return 'Finalizado';
+      case 'EN_PROCESO': return 'En Proceso';
+      case 'IN_PROGRESS': return 'En Proceso';
+      default: return status;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'FINALIZADO': return 'bg-green-100 text-green-800';
-      case 'EN_PROCESO': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'FINALIZADO': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'EN_PROCESO':
+      case 'IN_PROGRESS': return 'bg-orange-100 text-orange-800 border-orange-200';
+      default: return 'bg-slate-100 text-slate-800 border-slate-200';
     }
   };
 
@@ -30,7 +32,7 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions }) => {
       {sessions.map((session) => {
         // Obtenemos los nombres de los molinos desde mills_used (JSONB)
         const millInfo = Array.isArray(session.mills_used) && session.mills_used.length > 0
-          ? session.mills_used.map(m => m.name || m.id).join(', ')
+          ? session.mills_used.map(m => m.name || `Molino ${m.id}`).join(', ')
           : 'N/A';
 
         const startTime = new Date(session.created_at || '');
@@ -39,27 +41,27 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions }) => {
         return (
           <div
             key={session.id}
-            className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100"
+            className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100 group"
           >
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center mr-4 text-indigo-600 border border-indigo-100 shadow-sm">
-                <span className="font-bold text-xs">MOL</span>
+              <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center mr-4 text-indigo-600 border border-indigo-100 shadow-sm group-hover:scale-110 transition-transform">
+                <Clock size={20} strokeWidth={1.5} />
               </div>
               <div>
                 <div className="flex items-center">
                   <h4 className="font-bold text-slate-900 leading-tight">
-                    {(session as any).clients?.name || 'Cliente Desconocido'}
+                    {(session as any).clients?.name || 'Cliente'}
                   </h4>
-                  <span className={`ml-3 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center ${getStatusColor(session.status)}`}>
-                    {React.cloneElement(getStatusIcon(session.status) as React.ReactElement, { size: 10, strokeWidth: 2.5 })}
-                    <span className="ml-1.5">{session.status.replace('_', ' ')}</span>
+                  <span className={`ml-3 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center border ${getStatusColor(session.status)}`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 anim-pulse"></span>
+                    {translateStatus(session.status)}
                   </span>
                 </div>
                 <div className="flex items-center text-[11px] text-slate-500 mt-1 font-medium">
-                  <span className="mr-3 text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded leading-none font-bold">
+                  <span className="mr-3 text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded leading-none font-bold">
                     {session.total_sacks} SACOS
                   </span>
-                  <span className="mr-3 uppercase tracking-wider">{session.mineral_type}</span>
+                  <span className="mr-3 uppercase tracking-wider font-bold text-slate-700">{session.mineral_type}</span>
                   <span className="text-slate-400 flex items-center">
                     <span className="mr-1.5 font-bold text-slate-500">{startTime.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })}</span>
                     <span>{horaStr}</span>

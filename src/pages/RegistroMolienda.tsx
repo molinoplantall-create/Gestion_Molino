@@ -61,6 +61,7 @@ interface MoliendaData {
   procesoIniciado: boolean;
   procesoId: string | null;
   estado_proceso: 'PROCESANDO' | 'COMPLETADO' | 'CANCELADO'; // Renamed to avoid confusion with mill status
+  allowedMineralType: 'OXIDO' | 'SULFURO' | '';
 }
 
 const RegistroMolienda: React.FC = () => {
@@ -96,7 +97,8 @@ const RegistroMolienda: React.FC = () => {
     tiempoPorMolino: 0,
     procesoIniciado: false,
     procesoId: null,
-    estado_proceso: 'PROCESANDO'
+    estado_proceso: 'PROCESANDO',
+    allowedMineralType: ''
   });
 
   const { validate, errors } = useFormValidation({
@@ -275,6 +277,7 @@ const RegistroMolienda: React.FC = () => {
         clienteNombre: cliente.name,
         tipoCliente: (cliente.client_type || 'MINERO') as any,
         mineral: mineralType || prev.mineral,
+        allowedMineralType: mineralType,
         horaInicio: prev.horaInicio || currentHora,
         stockTotal,
         stockCuarzo: cliente.stock_cuarzo || 0,
@@ -649,10 +652,11 @@ const RegistroMolienda: React.FC = () => {
         <div className="lg:col-span-2">
           <MineralTypeSelector
             mineralType={molienda.mineral}
-            onMineralChange={handleMineralChange}
+            onMineralChange={(tipo) => setMolienda(prev => ({ ...prev, mineral: tipo }))}
             tiempos={molienda.tiempos}
             onTiempoChange={handleTiempoChange}
             disabled={molienda.procesoIniciado}
+            allowedType={molienda.allowedMineralType}
           />
         </div>
       </div>

@@ -18,6 +18,7 @@ interface MineralTypeSelectorProps {
     tiempos: TiemposProceso;
     onTiempoChange: (mineral: string, opcion: string, checked: boolean) => void;
     disabled?: boolean;
+    allowedType?: 'OXIDO' | 'SULFURO' | '';
 }
 
 export const MineralTypeSelector: React.FC<MineralTypeSelectorProps> = ({
@@ -25,7 +26,8 @@ export const MineralTypeSelector: React.FC<MineralTypeSelectorProps> = ({
     onMineralChange,
     tiempos,
     onTiempoChange,
-    disabled = false
+    disabled = false,
+    allowedType = ''
 }) => {
     return (
         <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
@@ -42,30 +44,32 @@ export const MineralTypeSelector: React.FC<MineralTypeSelectorProps> = ({
                         <button
                             type="button"
                             onClick={() => onMineralChange('OXIDO')}
-                            disabled={disabled}
+                            disabled={disabled || (allowedType !== '' && allowedType !== 'OXIDO')}
                             className={`px-2 py-3 md:px-4 md:py-3 rounded-lg border-2 font-medium transition-all ${mineralType === 'OXIDO'
                                 ? 'bg-amber-50 border-amber-500 text-amber-900'
                                 : 'bg-white border-slate-200 text-slate-700 hover:border-amber-300'
-                                } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                } ${(disabled || (allowedType !== '' && allowedType !== 'OXIDO')) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                             <div className="text-center">
                                 <div className="text-base md:text-lg">🟡</div>
                                 <div className="text-[11px] md:text-sm font-bold">ÓXIDO</div>
+                                {allowedType === 'OXIDO' && <div className="text-[9px] text-amber-600 font-bold">(REGISTRADO)</div>}
                             </div>
                         </button>
 
                         <button
                             type="button"
                             onClick={() => onMineralChange('SULFURO')}
-                            disabled={disabled}
+                            disabled={disabled || (allowedType !== '' && allowedType !== 'SULFURO')}
                             className={`px-2 py-3 md:px-4 md:py-3 rounded-lg border-2 font-medium transition-all ${mineralType === 'SULFURO'
                                 ? 'bg-slate-700 border-slate-900 text-white'
                                 : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
-                                } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                } ${(disabled || (allowedType !== '' && allowedType !== 'SULFURO')) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                             <div className="text-center">
                                 <div className="text-base md:text-lg">⚫</div>
                                 <div className="text-[11px] md:text-sm font-bold">SULFURO</div>
+                                {allowedType === 'SULFURO' && <div className="text-[9px] text-slate-400 font-bold">(REGISTRADO)</div>}
                             </div>
                         </button>
                     </div>

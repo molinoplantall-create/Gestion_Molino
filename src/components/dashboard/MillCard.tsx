@@ -47,16 +47,16 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
   const getEstadoReal = () => {
     const estado = normalizedMill.estado.toString().toUpperCase();
 
-    if (estado === 'MANTENIMIENTO' || estado === 'MAINTENANCE') {
+    if (estado === 'MANTENIMIENTO') {
       return 'mantenimiento';
+    }
+
+    if (estado === 'OCUPADO') {
+      return 'ocupado';
     }
 
     if (!normalizedMill.operativo) {
       return 'no_operativo';
-    }
-
-    if (normalizedMill.clienteActual && normalizedMill.sacosProcesando > 0) {
-      return 'ocupado';
     }
 
     if (normalizedMill.necesitaMantenimiento) {
@@ -236,13 +236,15 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
 
             {/* Fila Tiempos */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="px-2 py-1 bg-white/40 rounded border border-orange-100/50">
-                <div className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Inicio</div>
-                <div className="text-xs font-bold text-slate-700">{formatTime(normalizedMill.horaInicio)}</div>
+              <div className="px-3 py-2 bg-indigo-50/50 rounded-lg border border-indigo-100/50 shadow-sm flex flex-col items-center">
+                <div className="text-[9px] text-indigo-400 font-black uppercase tracking-wider mb-0.5">Inicio</div>
+                <div className="text-sm font-black text-indigo-700">{formatTime(normalizedMill.horaInicio)}</div>
               </div>
-              <div className="px-2 py-1 bg-white/40 rounded border border-orange-100/50">
-                <div className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Fin (Est)</div>
-                <div className="text-xs font-bold text-slate-700 text-right">{formatTime(normalizedMill.horaFinEstimada)}</div>
+              <div className="px-3 py-2 bg-emerald-50/50 rounded-lg border border-emerald-100/50 shadow-sm flex flex-col items-center">
+                <div className="text-[9px] text-emerald-500 font-black uppercase tracking-wider mb-0.5 flex items-center">
+                  <Clock size={10} className="mr-1" /> Fin Estimado
+                </div>
+                <div className="text-sm font-black text-emerald-700">{formatTime(normalizedMill.horaFinEstimada)}</div>
               </div>
             </div>
 

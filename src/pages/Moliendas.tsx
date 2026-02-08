@@ -37,8 +37,8 @@ const Moliendas: React.FC = () => {
     setCurrentPage(1);
   }, [search, selectedStatus, selectedMill, selectedMineral, startDate, endDate]);
 
-  const getStatusBadge = (estado: string) => {
-    switch (estado) {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
       case 'EN_PROCESO':
       case 'IN_PROGRESS':
         return <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 text-xs font-semibold rounded-full">En Proceso</span>;
@@ -46,7 +46,7 @@ const Moliendas: React.FC = () => {
       case 'COMPLETED':
         return <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-semibold rounded-full">Finalizado</span>;
       default:
-        return <span className="px-2.5 py-0.5 bg-slate-50 text-slate-700 border border-slate-100 text-xs font-semibold rounded-full">{estado}</span>;
+        return <span className="px-2.5 py-0.5 bg-slate-50 text-slate-700 border border-slate-100 text-xs font-semibold rounded-full">{status}</span>;
     }
   };
 

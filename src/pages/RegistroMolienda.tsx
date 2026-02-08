@@ -16,14 +16,14 @@ import { millingProcessSchema } from '@/schemas/millingSchema';
 // Types
 interface MolinoProceso {
   id: string;
-  nombre: string;
+  name: string; // Changed from nombre
   activo: boolean;
   cuarzo: number;
   llampo: number;
   total: number;
   capacidadMaxima: number;
   disponible: boolean;
-  estado: string;
+  status: string; // Changed from estado
   tiempoEstimado: number;
   horaFin: string | null;
   current_client?: string;
@@ -58,7 +58,7 @@ interface MoliendaData {
   tiempoPorMolino: number;
   procesoIniciado: boolean;
   procesoId: string | null;
-  estado: 'PROCESANDO' | 'COMPLETADO' | 'CANCELADO';
+  estado_proceso: 'PROCESANDO' | 'COMPLETADO' | 'CANCELADO'; // Renamed to avoid confusion with mill status
 }
 
 const RegistroMolienda: React.FC = () => {
@@ -94,7 +94,7 @@ const RegistroMolienda: React.FC = () => {
     tiempoPorMolino: 0,
     procesoIniciado: false,
     procesoId: null,
-    estado: 'PROCESANDO'
+    estado_proceso: 'PROCESANDO'
   });
 
   const { validate, errors } = useFormValidation({
@@ -183,14 +183,14 @@ const RegistroMolienda: React.FC = () => {
         if (prev.molinos.length === 0) {
           const initialMolinos = mills.map(m => ({
             id: m.id,
-            nombre: m.name || m.id,
+            name: m.name || m.id,
             activo: false,
             cuarzo: 0,
             llampo: 0,
             total: 0,
             capacidadMaxima: m.capacity || 150,
-            disponible: m.status && m.status.toLowerCase() === 'libre',
-            estado: m.status as any,
+            disponible: m.status && m.status.toUpperCase() === 'LIBRE',
+            status: m.status,
             tiempoEstimado: 0,
             horaFin: null,
             current_client: m.current_client,
@@ -207,11 +207,11 @@ const RegistroMolienda: React.FC = () => {
         const updatedMolinos = prev.molinos.map(localM => {
           const storeM = mills.find(sm => sm.id === localM.id);
           if (storeM) {
-            const isNowBusy = storeM.status && storeM.status.toLowerCase() !== 'libre';
+            const isNowBusy = storeM.status && storeM.status.toUpperCase() !== 'LIBRE';
             return {
               ...localM,
               disponible: !isNowBusy,
-              estado: storeM.status as any,
+              status: storeM.status,
               activo: isNowBusy ? false : localM.activo,
               current_client: storeM.current_client || localM.current_client,
               current_sacks: storeM.current_sacks || localM.current_sacks
@@ -228,14 +228,14 @@ const RegistroMolienda: React.FC = () => {
           console.log('🆕 RegistroMolienda: Adding new mills from store:', newMillsInStore.length);
           const extraMolinos = newMillsInStore.map(m => ({
             id: m.id,
-            nombre: m.name || m.id,
+            name: m.name || m.id,
             activo: false,
             cuarzo: 0,
             llampo: 0,
             total: 0,
             capacidadMaxima: m.capacity || 150,
-            disponible: m.status && m.status.toLowerCase() === 'libre',
-            estado: m.status as any,
+            disponible: m.status && m.status.toUpperCase() === 'LIBRE',
+            status: m.status,
             tiempoEstimado: 0,
             horaFin: null,
             current_client: m.current_client,
@@ -426,7 +426,7 @@ const RegistroMolienda: React.FC = () => {
       return false;
     }
 
-    const molinosNoDisponibles = molinosActivos.filter(m => !m.disponible).map(m => m.nombre);
+    const molinosNoDisponibles = molinosActivos.filter(m => !m.disponible).map(m => m.name);
     if (molinosNoDisponibles.length > 0) {
       toast.warning('Molinos Ocupados', `Los siguientes molinos no están disponibles: ${molinosNoDisponibles.join(', ')}`);
       return false;
@@ -462,7 +462,7 @@ const RegistroMolienda: React.FC = () => {
     if (success) {
       const tiempoPorMolino = getTiempoSeleccionado();
       const horaFinGlobal = calcularHoraFin(horaInicio, tiempoPorMolino);
-      const detalleMolinos = molinosActivos.map(m => `• ${m.nombre}: ${m.total} sacos`).join('\n');
+      const detalleMolinos = molinosActivos.map(m => `• ${m.name}: ${m.total} sacos`).join('\n');
 
       toast.success(
         '¡Proceso Iniciado!',

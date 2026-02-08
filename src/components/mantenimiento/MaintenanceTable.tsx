@@ -41,8 +41,8 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
     onEdit,
     onDelete
 }) => {
-    const getStatusBadge = (estado: string) => {
-        switch (estado) {
+    const getStatusBadge = (status: string) => {
+        switch (status) {
             case 'COMPLETADO':
             case 'FINALIZADO':
                 return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full flex items-center w-fit"><CheckCircle size={12} className="mr-1" /> Completado</span>;
@@ -55,7 +55,7 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
             case 'CANCELADO':
                 return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full flex items-center w-fit"><X size={12} className="mr-1" /> Cancelado</span>;
             default:
-                return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">{estado}</span>;
+                return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">{status}</span>;
         }
     };
 

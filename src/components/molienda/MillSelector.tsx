@@ -3,14 +3,14 @@ import { Factory, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface MolinoProceso {
     id: string;
-    nombre: string;
+    name: string; // Changed from nombre
     activo: boolean;
     cuarzo: number;
     llampo: number;
     total: number;
     capacidadMaxima: number;
     disponible: boolean;
-    estado: string;
+    status: string; // Changed from estado
     tiempoEstimado: number;
     horaFin: string | null;
     current_client?: string;
@@ -98,13 +98,13 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                                                 : 'bg-slate-100 text-slate-700'
                                             }`}
                                     >
-                                        <span className="font-black text-xs">{molino.nombre.split(' ')[1] || 'M'}</span>
+                                        <span className="font-black text-xs">{molino.name.split(' ')[1] || 'M'}</span>
                                     </div>
                                     <div className="truncate">
-                                        <div className="font-bold text-slate-900 tracking-tight truncate">{molino.nombre}</div>
+                                        <div className="font-bold text-slate-900 tracking-tight truncate">{molino.name}</div>
                                         <div className={`text-[10px] font-black uppercase tracking-widest ${isBusy ? 'text-red-600' : 'text-emerald-600'
                                             }`}>
-                                            {isBusy ? 'En Mantenimiento/Uso' : 'Libre'}
+                                            {isBusy ? (molino.status === 'MANTENIMIENTO' ? 'En Mantenimiento' : 'En Uso') : 'Libre'}
                                         </div>
                                     </div>
                                 </div>
@@ -126,7 +126,7 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                             {/* Busy Mill Info */}
                             {isBusy && (
                                 <div className="mb-3 p-2 bg-red-50 border border-red-100 rounded-lg">
-                                    <div className="text-[9px] text-red-700 font-black uppercase tracking-widest mb-1">Estado: {molino.estado}</div>
+                                    <div className="text-[9px] text-red-700 font-black uppercase tracking-widest mb-1">Estado: {molino.status}</div>
                                     <div className="text-[11px] text-slate-600 leading-snug">
                                         {molino.current_client && (
                                             <div className="font-bold text-slate-800 truncate">S: {molino.current_client}</div>

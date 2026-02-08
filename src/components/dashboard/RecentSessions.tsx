@@ -9,16 +9,16 @@ interface RecentSessionsProps {
 
 const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions }) => {
 
-  const getStatusIcon = (estado: string) => {
-    switch (estado) {
+  const getStatusIcon = (status: string) => {
+    switch (status) {
       case 'FINALIZADO': return <CheckCircle size={16} className="text-green-500" />;
       case 'EN_PROCESO': return <Clock size={16} className="text-orange-500" />;
       default: return <AlertCircle size={16} className="text-gray-500" />;
     }
   };
 
-  const getStatusColor = (estado: string) => {
-    switch (estado) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
       case 'FINALIZADO': return 'bg-green-100 text-green-800';
       case 'EN_PROCESO': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';

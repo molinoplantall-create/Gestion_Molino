@@ -106,10 +106,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         return;
       }
 
-      // Normalize data: handle both 'name' and 'nombre' columns
+      // Normalize data: handle both 'name'/'nombre' and 'status'/'estado' columns
       const normalizedMills = (data as any[]).map(m => ({
         ...m,
-        name: m.name || m.nombre || `Molino ${m.id}`
+        name: m.name || m.nombre || `Molino ${m.id}`,
+        status: (m.status || m.estado || 'LIBRE').toUpperCase()
       })) as Mill[];
 
       // Sort alphabetically by name
@@ -490,10 +491,30 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       console.log('💾 store: Updating client in Supabase...', updateData);
-      const { error: updateError } = await supabase
+      let { error: updateError } = await supabase
         .from('clients')
         .update(updateData)
         .eq('id', clientId);
+
+      // FALLBACK: If columns are missing (Error PGRST204), try updating only the stock
+      if (updateError && updateError.code === 'PGRST204') {
+        console.warn('⚠️ store: Missing tracking columns in DB. Falling back to basic stock update...');
+        const basicUpdateData = {
+          stock_cuarzo: updateData.stock_cuarzo,
+          stock_llampo: updateData.stock_llampo,
+        };
+        console.log('💾 store: Retrying basic update...', basicUpdateData);
+        const { error: retryError } = await supabase
+          .from('clients')
+          .update(basicUpdateData)
+          .eq('id', clientId);
+
+        updateError = retryError;
+
+        if (!retryError) {
+          console.log('✅ store: Basic stock update successful (fallback).');
+        }
+      }
 
       if (updateError) {
         console.error('❌ store: Error updating client stock:', updateError);
@@ -578,10 +599,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   seedMills: async () => {
     try {
       const defaultMills = [
-        { nombre: 'Molino I', estado: 'LIBRE', sacos_procesados: 0, horas_trabajadas: 0 },
-        { nombre: 'Molino II', estado: 'LIBRE', sacos_procesados: 0, horas_trabajadas: 0 },
-        { nombre: 'Molino III', estado: 'LIBRE', sacos_procesados: 0, horas_trabajadas: 0 },
-        { nombre: 'Molino IV', estado: 'LIBRE', sacos_procesados: 0, horas_trabajadas: 0 }
+        { name: 'Molino I', status: 'LIBRE', capacity: 150, sacos_procesados: 0, horas_trabajadas: 0 },
+        { name: 'Molino II', status: 'LIBRE', capacity: 150, sacos_procesados: 0, horas_trabajadas: 0 },
+        { name: 'Molino III', status: 'LIBRE', capacity: 150, sacos_procesados: 0, horas_trabajadas: 0 },
+        { name: 'Molino IV', status: 'LIBRE', capacity: 150, sacos_procesados: 0, horas_trabajadas: 0 }
       ];
 
       const { error } = await supabase

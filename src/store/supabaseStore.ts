@@ -459,16 +459,22 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   },
 
   addClientStock: async (clientId, cuarzo, llampo, zone, mineralType) => {
+    console.log('🔄 store: addClientStock started', { clientId, cuarzo, llampo, zone, mineralType });
     set({ loading: true, error: null });
     try {
+      console.log('📡 store: Fetching client current stock...');
       const { data: client, error: fetchError } = await supabase
         .from('clients')
         .select('stock_cuarzo, stock_llampo')
         .eq('id', clientId)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('❌ store: Error fetching client:', fetchError);
+        throw fetchError;
+      }
 
+      console.log('📈 store: Calculating new stock totals...', client);
       const updateData: any = {
         stock_cuarzo: (client.stock_cuarzo || 0) + cuarzo,
         stock_llampo: (client.stock_llampo || 0) + llampo,
@@ -483,20 +489,27 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         updateData.last_mineral_type = mineralType;
       }
 
+      console.log('💾 store: Updating client in Supabase...', updateData);
       const { error: updateError } = await supabase
         .from('clients')
         .update(updateData)
         .eq('id', clientId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ store: Error updating client stock:', updateError);
+        throw updateError;
+      }
 
+      console.log('✅ store: Stock updated successfully. Refreshing clients list...');
       await get().fetchClients();
+      console.log('✨ store: Client list refreshed.');
       return true;
     } catch (error: any) {
-      console.error('❌ Error addClientStock:', error);
+      console.error('❌ store: catch in addClientStock:', error);
       set({ error: error.message });
       return false;
     } finally {
+      console.log('🏁 store: addClientStock finally block reached.');
       set({ loading: false });
     }
   },

@@ -109,7 +109,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       // Normalize data: handle both 'Name'/'name'/'nombre' and 'status'/'estado' columns
       const normalizedMills = (data as any[]).map(m => ({
         ...m,
-        name: m.Name || m.name || m.nombre || `Molino ${m.id}`,
+        name: m.name || m.Name || m.nombre || `Molino ${m.id}`,
         status: (m.status || m.estado || 'LIBRE').toUpperCase(),
         capacity: m.capacity || 150,
         horas_trabajadas: m.total_hours_worked || m.horas_trabajadas || 0,
@@ -149,21 +149,21 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        query = query.ilike('Name', `%${search}%`);
+        query = query.ilike('name', `%${search}%`);
       }
 
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
       const { data, count, error } = await query
-        .order('Name')
+        .order('name')
         .range(from, to);
 
       if (error) throw error;
 
       const normalizedClients = (data as any[] || []).map(c => ({
         ...c,
-        name: c.Name || c.name || 'S/N'
+        name: c.name || c.Name || 'S/N'
       })) as Client[];
 
       set({ clients: normalizedClients, clientsCount: count || 0 });
@@ -181,13 +181,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const { data, error } = await supabase
         .from('zones')
         .select('*')
-        .order('Name');
+        .order('name');
 
       if (error) throw error;
 
       const normalizedZones = (data as any[] || []).map(z => ({
         ...z,
-        name: z.Name || z.name || 'Zona'
+        name: z.name || z.Name || 'Zona'
       })) as Zone[];
 
       set({ zones: normalizedZones });
@@ -230,7 +230,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .select(`
           *,
           clients (
-            Name
+            name
           )
         `, { count: 'exact' });
 
@@ -271,7 +271,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const normalizedLogs = (data as any[] || []).map(log => ({
         ...log,
         clients: {
-          name: log.clients?.Name || log.clients?.name || 'Cliente'
+          name: log.clients?.name || log.clients?.Name || 'Cliente'
         }
       })) as MillingLog[];
 
@@ -293,7 +293,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .select(`
           *,
           mills (
-            Name
+            name
           )
         `, { count: 'exact' });
 
@@ -581,7 +581,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       const { error } = await supabase
         .from('zones')
-        .insert({ Name: name });
+        .insert({ name: name });
 
       if (error) throw error;
 
@@ -601,7 +601,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       const { error } = await supabase
         .from('zones')
-        .update({ Name: name })
+        .update({ name: name })
         .eq('id', id);
 
       if (error) throw error;
@@ -640,10 +640,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   seedMills: async () => {
     try {
       const defaultMills = [
-        { Name: 'Molino I', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 },
-        { Name: 'Molino II', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 },
-        { Name: 'Molino III', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 },
-        { Name: 'Molino IV', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 }
+        { name: 'Molino I', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 },
+        { name: 'Molino II', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 },
+        { name: 'Molino III', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 },
+        { name: 'Molino IV', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 }
       ];
 
       const { error } = await supabase

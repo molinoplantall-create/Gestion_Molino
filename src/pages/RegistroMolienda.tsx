@@ -455,13 +455,16 @@ const RegistroMolienda: React.FC = () => {
     const horaInicio = molienda.horaInicio || ahora.toTimeString().slice(0, 5);
     const molinosActivos = molienda.molinos.filter(m => m.activo);
 
-    // Generar timestamps ISO para el estado del molino (si es hoy)
-    const fechaProceso = molienda.fechaInicio || ahora.toISOString().split('T')[0];
-    const horaInicioISO = new Date(`${fechaProceso}T${horaInicio}`).toISOString();
+    // Generar timestamps ISO robustos
+    const [startH, startM] = horaInicio.split(':').map(Number);
+    const startDate = new Date(molienda.fechaInicio || ahora.toISOString().split('T')[0]);
+    startDate.setHours(startH, startM, 0, 0);
+    const horaInicioISO = startDate.toISOString();
 
     const tiempoPorMolino = getTiempoSeleccionado();
-    const horaFinCalculada = calcularHoraFin(horaInicio, tiempoPorMolino);
-    const horaFinISO = new Date(`${fechaProceso}T${horaFinCalculada}`).toISOString();
+    const endDate = new Date(startDate.getTime() + (tiempoPorMolino * 60 * 1000));
+    const horaFinISO = endDate.toISOString();
+    const horaFinCalculada = endDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
 
     const success = await registerMilling({
       clientId: molienda.clienteId,
@@ -484,10 +487,11 @@ const RegistroMolienda: React.FC = () => {
 
     if (success) {
       const detalleMolinos = molinosActivos.map(m => `• ${m.name}: ${m.total} sacos`).join('\n');
+      const fechaFormateada = startDate.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
       toast.success(
         '¡Proceso Registrado!',
-        `La molienda ha sido guardada correctamente.\n\nFecha: ${fechaProceso}\nHora inicio: ${horaInicio}\nHora fin estimada: ${horaFinCalculada}\n\nDETALLE:\n${detalleMolinos}`
+        `La molienda ha sido guardada correctamente.\n\nFecha: ${fechaFormateada}\nHora inicio: ${horaInicio}\nHora fin estimada: ${horaFinCalculada}\n\nDETALLE:\n${detalleMolinos}`
       );
 
       resetFormulario();

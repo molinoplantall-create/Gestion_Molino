@@ -20,6 +20,7 @@ export interface Mill {
   status: string; // 'libre', 'ocupado', 'mantenimiento'
   capacity: number;
   current_client?: string;
+  current_client_id?: string;
   current_sacks?: number;
   current_cuarzo?: number; // New DB column
   current_llampo?: number; // New DB column

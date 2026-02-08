@@ -74,6 +74,8 @@ interface SupabaseStore {
   updateZone: (id: string, name: string) => Promise<boolean>;
   deleteZone: (id: string) => Promise<boolean>;
   seedMills: () => Promise<boolean>;
+  checkAndLiberateMills: (millsToProcess: Mill[]) => Promise<void>;
+  finalizeMilling: (millId: string) => Promise<boolean>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -120,7 +122,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         capacity: m.capacity || 150,
         horas_trabajadas: m.total_hours_worked || 0,
         sacos_procesados: m.sacks_processing || 0,
-        current_client: m.clients?.name || null
+        current_client: m.clients?.name || null,
+        current_client_id: m.current_client_id || null
       })) as Mill[];
 
       // Sort alphabetically by name
@@ -128,6 +131,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       set({ mills: normalizedMills });
       console.log('✅ store: mills loaded and normalized:', normalizedMills.length);
+
+      // Liberar molinos automáticamente si ya terminó su tiempo
+      await get().checkAndLiberateMills(normalizedMills);
     } catch (error: any) {
       console.error('❌ Error fetchMills:', error);
       set({ error: error.message });
@@ -395,6 +401,71 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
+  checkAndLiberateMills: async (millsToProcess) => {
+    const now = new Date();
+    // Gracia de 2 minutos para no ser tan estrictos
+    const gracePeriod = 2 * 60 * 1000;
+
+    const millsToLiberate = millsToProcess.filter(m =>
+      m.status === 'OCUPADO' &&
+      m.estimated_end_time &&
+      new Date(m.estimated_end_time).getTime() + gracePeriod < now.getTime()
+    );
+
+    if (millsToLiberate.length === 0) return;
+
+    console.log(`🕒 store: Liberando automáticamente ${millsToLiberate.length} molinos...`);
+
+    try {
+      for (const mill of millsToLiberate) {
+        // 1. Liberar el molino
+        const { error: millError } = await supabase
+          .from('mills')
+          .update({
+            status: 'libre',
+            current_client_id: null,
+            current_cuarzo: 0,
+            current_llampo: 0,
+            start_time: null,
+            estimated_end_time: null,
+            current_sacks: 0
+          })
+          .eq('id', mill.id);
+
+        if (millError) console.error(`Error liberando molino ${mill.name}:`, millError);
+
+        // 2. Marcar la molienda como FINALIZADO si sigue IN_PROGRESS
+        const { error: logError } = await supabase
+          .from('milling_logs')
+          .update({ status: 'FINALIZADO' })
+          .eq('client_id', mill.current_client_id)
+          .eq('status', 'IN_PROGRESS')
+          .contains('mills_used', [{ id: mill.id }]);
+
+        if (logError) console.error(`Error finalizando log para molino ${mill.name}:`, logError);
+      }
+
+      // Volver a cargar para reflejar cambios
+      const { data: updatedMills, error: refetchError } = await supabase
+        .from('mills')
+        .select('*, clients:current_client_id ( name )');
+
+      if (!refetchError && updatedMills) {
+        const normalized = updatedMills.map(m => ({
+          ...m,
+          name: m.name || `Molino ${m.id}`,
+          status: (m.status || 'LIBRE').toUpperCase(),
+          capacity: m.capacity || 150,
+          current_client: m.clients?.name || null
+        })) as Mill[];
+        set({ mills: normalized });
+      }
+
+    } catch (e) {
+      console.error('Error in checkAndLiberateMills:', e);
+    }
+  },
+
   registerMaintenance: async (data) => {
     set({ loading: true, error: null });
     try {
@@ -418,17 +489,65 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   updateMillStatus: async (id, status) => {
     try {
       const updateData: any = { status };
-      if (status === 'libre') {
+      if (status === 'libre' || status === 'LIBRE') {
+        updateData.current_client_id = null;
         updateData.current_cuarzo = 0;
         updateData.current_llampo = 0;
-        updateData.current_client_id = null;
-        updateData.current_client = null;
+        updateData.start_time = null;
+        updateData.estimated_end_time = null;
+        updateData.current_sacks = 0;
       }
 
       await supabase.from('mills').update(updateData).eq('id', id);
       get().fetchMills();
     } catch (error) {
       console.error('Error updating mill status:', error);
+    }
+  },
+
+  finalizeMilling: async (millId: string) => {
+    set({ loading: true });
+    try {
+      const mill = get().mills.find(m => m.id === millId);
+      if (!mill) return false;
+
+      // 1. Liberar el molino
+      const { error: millError } = await supabase
+        .from('mills')
+        .update({
+          status: 'libre',
+          current_client_id: null,
+          current_cuarzo: 0,
+          current_llampo: 0,
+          start_time: null,
+          estimated_end_time: null,
+          current_sacks: 0
+        })
+        .eq('id', millId);
+
+      if (millError) throw millError;
+
+      // 2. Marcar el log como FINALIZADO si es el cliente actual
+      if (mill.current_client_id) {
+        const { error: logError } = await supabase
+          .from('milling_logs')
+          .update({ status: 'FINALIZADO' })
+          .eq('client_id', mill.current_client_id)
+          .eq('status', 'IN_PROGRESS')
+          .contains('mills_used', [{ id: millId }]);
+
+        if (logError) console.error('Error finalizing log:', logError);
+      }
+
+      await get().fetchMills();
+      await get().fetchMillingLogs({ pageSize: 12 });
+      return true;
+    } catch (error: any) {
+      console.error('Error finalizeMilling:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
     }
   },
 

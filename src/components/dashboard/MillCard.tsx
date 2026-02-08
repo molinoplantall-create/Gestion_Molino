@@ -12,11 +12,17 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+import { useSupabaseStore } from '@/store/supabaseStore';
+import { useToast } from '@/hooks/useToast';
+
 interface MillCardProps {
   mill: any;
 }
 
 const MillCard: React.FC<MillCardProps> = ({ mill }) => {
+  const { finalizeMilling } = useSupabaseStore();
+  const toast = useToast();
+
   // Normalizar datos
   const normalizedMill = {
     id: mill?.id || '1',
@@ -261,6 +267,25 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
                 {timeRemaining || '--:--'}
               </div>
             </div>
+
+            {/* Botón Finalizar Manualmente */}
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (window.confirm('¿Estás seguro de que deseas finalizar este proceso manualmente? Esto liberará el molino.')) {
+                  const success = await finalizeMilling(normalizedMill.id);
+                  if (success) {
+                    toast.success('Proceso Finalizado', 'El molino ha sido liberado correctamente.');
+                  } else {
+                    toast.error('Error', 'No se pudo finalizar el proceso.');
+                  }
+                }
+              }}
+              className="w-full py-2 mt-1 bg-white border border-red-200 text-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-colors flex items-center justify-center shadow-sm"
+            >
+              <CheckCircle size={12} className="mr-1.5" strokeWidth={2.5} />
+              Finalizar Ahora
+            </button>
           </div>
         )}
 

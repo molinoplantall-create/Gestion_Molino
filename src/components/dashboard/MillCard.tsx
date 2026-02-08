@@ -142,7 +142,7 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
       return date.toLocaleTimeString('es-PE', {
         hour: '2-digit',
         minute: '2-digit',
-        hour12: true
+        hour12: false
       });
     } catch {
       return '--:--';

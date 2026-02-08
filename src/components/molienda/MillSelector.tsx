@@ -135,20 +135,22 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                                                 👤 {molino.current_client}
                                             </div>
                                         )}
-                                        {molino.start_time && (
-                                            <div className="flex justify-between items-center text-[10px]">
-                                                <span className="text-red-400 font-bold">INICIO:</span>
-                                                <span className="font-bold text-slate-700">{new Date(molino.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                            </div>
-                                        )}
-                                        {molino.estimated_end_time && (
-                                            <div className="flex justify-between items-center text-[10px]">
-                                                <span className="text-red-400 font-bold uppercase tracking-tight">Hora fin:</span>
-                                                <span className="font-bold text-slate-700">
-                                                    {new Date(molino.estimated_end_time).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                                                </span>
-                                            </div>
-                                        )}
+                                        <div className="flex justify-between items-center text-[10px]">
+                                            <span className="text-red-400 font-bold uppercase tracking-tight">Inicio:</span>
+                                            <span className="font-bold text-slate-700">
+                                                {molino.start_time
+                                                    ? new Date(molino.start_time).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })
+                                                    : '--:--'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[10px]">
+                                            <span className="text-red-400 font-bold uppercase tracking-tight">Hora fin:</span>
+                                            <span className="font-bold text-slate-700">
+                                                {molino.estimated_end_time
+                                                    ? new Date(molino.estimated_end_time).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })
+                                                    : '--:--'}
+                                            </span>
+                                        </div>
                                         {molino.current_sacks !== undefined && molino.current_sacks > 0 && (
                                             <div className="font-medium text-slate-500 pt-1 border-t border-red-200/50">📦 {molino.current_sacks} sacos</div>
                                         )}

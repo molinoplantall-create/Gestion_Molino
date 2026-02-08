@@ -66,9 +66,13 @@ const Moliendas: React.FC = () => {
       key: 'mill_id',
       label: 'Molino',
       render: (session: MillingLog) => {
-        // En moliendas futuras tendremos 'name', en las antiguas intentamos fallback
+        // En moliendas futuras tendremos 'name', en las antiguas intentamos fallback usando el store
         const millInfo = Array.isArray(session.mills_used)
-          ? session.mills_used.map((m: any) => m.name || `Molino ${m.id || m.mill_id}`).join(', ')
+          ? session.mills_used.map((m: any) => {
+            if (m.name) return m.name;
+            const storeM = mills.find((sm: any) => sm.id === (m.id || m.mill_id));
+            return storeM?.name || `Molino ${(m.id || m.mill_id || '??').substring(0, 4)}`;
+          }).join(', ')
           : 'Molino';
         return (
           <div className="flex items-center">
@@ -90,7 +94,9 @@ const Moliendas: React.FC = () => {
         return (
           <div className="flex flex-col">
             <span className="text-sm font-bold text-slate-700">{date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">
+              {date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })}
+            </span>
           </div>
         );
       }

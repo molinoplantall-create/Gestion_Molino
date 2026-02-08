@@ -42,7 +42,7 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions, mills = [] })
           : 'N/A';
 
         const startTime = new Date(session.created_at || '');
-        const horaStr = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const horaStr = startTime.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
 
         return (
           <div

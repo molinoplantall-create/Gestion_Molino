@@ -143,8 +143,10 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                                         )}
                                         {molino.estimated_end_time && (
                                             <div className="flex justify-between items-center text-[10px]">
-                                                <span className="text-red-400 font-bold">FIN (EST):</span>
-                                                <span className="font-bold text-slate-700">{new Date(molino.estimated_end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span className="text-red-400 font-bold uppercase tracking-tight">Hora fin:</span>
+                                                <span className="font-bold text-slate-700">
+                                                    {new Date(molino.estimated_end_time).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                                </span>
                                             </div>
                                         )}
                                         {molino.current_sacks !== undefined && molino.current_sacks > 0 && (

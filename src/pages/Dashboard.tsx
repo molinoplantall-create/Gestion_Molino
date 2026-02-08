@@ -202,7 +202,7 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto pr-1">
-            <RecentSessions sessions={millingLogs} />
+            <RecentSessions sessions={millingLogs} mills={mills} />
           </div>
           <div className="mt-6 pt-4 border-t border-slate-100">
             <button

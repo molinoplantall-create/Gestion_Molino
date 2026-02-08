@@ -63,25 +63,19 @@ const Moliendas: React.FC = () => {
 
   const columns = [
     {
-      key: 'id',
-      label: 'ID',
-      render: (session: MillingLog) => (
-        <span className="font-mono text-sm font-medium text-slate-600">#{session.id.substring(0, 6)}</span>
-      )
-    },
-    {
       key: 'mill_id',
       label: 'Molino',
       render: (session: MillingLog) => {
+        // En moliendas futuras tendremos 'name', en las antiguas intentamos fallback
         const millInfo = Array.isArray(session.mills_used)
-          ? session.mills_used.map((m: any) => m.name || m.mill_id || m.id).join(', ')
+          ? session.mills_used.map((m: any) => m.name || `Molino ${m.id || m.mill_id}`).join(', ')
           : 'Molino';
         return (
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3 border border-slate-200">
-              <span className="font-semibold text-xs text-slate-600">M</span>
+            <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center mr-3 border border-indigo-100">
+              <span className="font-bold text-xs text-indigo-600">M</span>
             </div>
-            <span className="text-sm font-medium text-slate-700 truncate max-w-[100px]" title={millInfo}>
+            <span className="text-sm font-bold text-slate-700 truncate max-w-[120px]" title={millInfo}>
               {millInfo}
             </span>
           </div>

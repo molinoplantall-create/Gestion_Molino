@@ -132,13 +132,17 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
 
   const aceiteInfo = calcularProgresoAceite();
 
-  // Formatear horas
   const formatTime = (timeString: string | null) => {
     if (!timeString) return '--:--';
     try {
-      return new Date(timeString).toLocaleTimeString('es-ES', {
+      // Intentar forzar el parseo si viene en formato ISO o similar
+      const date = new Date(timeString);
+      if (isNaN(date.getTime())) return '--:--';
+
+      return date.toLocaleTimeString('es-PE', {
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: true
       });
     } catch {
       return '--:--';
@@ -242,7 +246,7 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
               </div>
               <div className="px-3 py-2 bg-emerald-50/50 rounded-lg border border-emerald-100/50 shadow-sm flex flex-col items-center">
                 <div className="text-[9px] text-emerald-500 font-black uppercase tracking-wider mb-0.5 flex items-center">
-                  <Clock size={10} className="mr-1" /> Fin Estimado
+                  <Clock size={10} className="mr-1" /> Hora fin
                 </div>
                 <div className="text-sm font-black text-emerald-700">{formatTime(normalizedMill.horaFinEstimada)}</div>
               </div>

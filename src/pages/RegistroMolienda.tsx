@@ -471,6 +471,7 @@ const RegistroMolienda: React.FC = () => {
       totalLlampo: totalCalculado.totalLlampo,
       mills: molinosActivos.map(m => ({
         id: m.id,
+        name: m.name,
         cuarzo: m.cuarzo,
         llampo: m.llampo,
         total: m.total

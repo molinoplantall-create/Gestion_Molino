@@ -5,9 +5,10 @@ import { MillingLog } from '@/types';
 
 interface RecentSessionsProps {
   sessions: MillingLog[];
+  mills?: any[];
 }
 
-const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions }) => {
+const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions, mills = [] }) => {
 
   const translateStatus = (status: string) => {
     switch (status) {
@@ -31,8 +32,13 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions }) => {
     <div className="space-y-4">
       {sessions.map((session) => {
         // Obtenemos los nombres de los molinos desde mills_used (JSONB)
+        // Fallback robusto usando el estado de molinos del store si no hay nombre guardado
         const millInfo = Array.isArray(session.mills_used) && session.mills_used.length > 0
-          ? session.mills_used.map(m => m.name || `Molino ${m.id}`).join(', ')
+          ? session.mills_used.map(m => {
+            if (m.name) return m.name;
+            const storeM = mills.find(sm => sm.id === m.id);
+            return storeM?.name || `Molino ${m.id.substring(0, 4)}`;
+          }).join(', ')
           : 'N/A';
 
         const startTime = new Date(session.created_at || '');

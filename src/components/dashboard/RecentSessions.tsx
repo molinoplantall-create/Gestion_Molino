@@ -30,7 +30,7 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions }) => {
       {sessions.map((session) => {
         // Obtenemos los nombres de los molinos desde mills_used (JSONB)
         const millInfo = Array.isArray(session.mills_used) && session.mills_used.length > 0
-          ? session.mills_used.map(m => m.mill_id).join(', ')
+          ? session.mills_used.map(m => m.name || m.id).join(', ')
           : 'N/A';
 
         const startTime = new Date(session.created_at || '');

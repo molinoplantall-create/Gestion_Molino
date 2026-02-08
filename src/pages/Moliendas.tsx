@@ -74,7 +74,7 @@ const Moliendas: React.FC = () => {
       label: 'Molino',
       render: (session: MillingLog) => {
         const millInfo = Array.isArray(session.mills_used)
-          ? session.mills_used.map((m: any) => m.mill_id).join(', ')
+          ? session.mills_used.map((m: any) => m.name || m.mill_id || m.id).join(', ')
           : 'Molino';
         return (
           <div className="flex items-center">

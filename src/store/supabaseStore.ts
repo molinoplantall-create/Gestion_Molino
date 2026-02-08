@@ -106,11 +106,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         return;
       }
 
-      // Normalize data: handle both 'name'/'nombre' and 'status'/'estado' columns
+      // Normalize data: handle both 'Name'/'name'/'nombre' and 'status'/'estado' columns
       const normalizedMills = (data as any[]).map(m => ({
         ...m,
-        name: m.name || m.nombre || `Molino ${m.id}`,
-        status: (m.status || m.estado || 'LIBRE').toUpperCase()
+        name: m.Name || m.name || m.nombre || `Molino ${m.id}`,
+        status: (m.status || m.estado || 'LIBRE').toUpperCase(),
+        capacity: m.capacity || 150,
+        horas_trabajadas: m.total_hours_worked || m.horas_trabajadas || 0,
+        sacos_procesados: m.sacks_processing || m.sacos_procesados || 0
       })) as Mill[];
 
       // Sort alphabetically by name
@@ -318,26 +321,23 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (clientFetchError) throw clientFetchError;
 
-      const millsUsedJson = data.mills.map(m => ({
-        mill_id: m.id,
-        cuarzo: m.cuarzo,
-        llampo: m.llampo
-      }));
-
-      const { error: logError } = await supabase
+      // Use exact names from database: Client_id, mineral_type, total_sacks, etc.
+      const { data: millingData, error: millingError } = await supabase
         .from('milling_logs')
         .insert({
-          client_id: data.clientId,
+          Client_id: data.clientId,
           mineral_type: data.mineralType,
           total_sacks: data.totalSacos,
           total_cuarzo: data.totalCuarzo,
           total_llampo: data.totalLlampo,
-          mills_used: millsUsedJson,
+          mills_used: data.mills,
           status: 'IN_PROGRESS',
-          observations: data.observations
-        });
+          observations: data.observations || ''
+        })
+        .select()
+        .single();
 
-      if (logError) throw logError;
+      if (millingError) throw millingError;
 
       const newCuarzo = (clientData.stock_cuarzo || 0) - data.totalCuarzo;
       const newLlampo = (clientData.stock_llampo || 0) - data.totalLlampo;
@@ -599,10 +599,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   seedMills: async () => {
     try {
       const defaultMills = [
-        { name: 'Molino I', status: 'LIBRE', capacity: 150, sacos_procesados: 0, horas_trabajadas: 0 },
-        { name: 'Molino II', status: 'LIBRE', capacity: 150, sacos_procesados: 0, horas_trabajadas: 0 },
-        { name: 'Molino III', status: 'LIBRE', capacity: 150, sacos_procesados: 0, horas_trabajadas: 0 },
-        { name: 'Molino IV', status: 'LIBRE', capacity: 150, sacos_procesados: 0, horas_trabajadas: 0 }
+        { Name: 'Molino I', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 },
+        { Name: 'Molino II', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 },
+        { Name: 'Molino III', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 },
+        { Name: 'Molino IV', status: 'LIBRE', capacity: 150, total_hours_worked: 0, sacks_processing: 0 }
       ];
 
       const { error } = await supabase

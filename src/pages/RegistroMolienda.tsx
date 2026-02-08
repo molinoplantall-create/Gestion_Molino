@@ -257,11 +257,11 @@ const RegistroMolienda: React.FC = () => {
     if (cliente) {
       const stockTotal = (cliente.stock_cuarzo || 0) + (cliente.stock_llampo || 0);
 
-      // Auto-set mineral type if available
-      const mineralType = cliente.last_mineral_type as 'OXIDO' | 'SULFURO' || '';
+      // Auto-set mineral type if available from client intake history
+      const mineralType = (cliente as any).last_mineral_type as 'OXIDO' | 'SULFURO' | '';
 
-      // Set current time if horaInicio is null
-      const currentHora = molienda.horaInicio || new Date().toTimeString().slice(0, 5);
+      // Set current time as default if not already set
+      const currentHora = new Date().toTimeString().slice(0, 5);
 
       setMolienda(prev => ({
         ...prev,
@@ -269,7 +269,7 @@ const RegistroMolienda: React.FC = () => {
         clienteNombre: cliente.name,
         tipoCliente: (cliente.client_type || 'MINERO') as any,
         mineral: mineralType || prev.mineral,
-        horaInicio: currentHora,
+        horaInicio: prev.horaInicio || currentHora,
         stockTotal,
         stockCuarzo: cliente.stock_cuarzo || 0,
         stockLlampo: cliente.stock_llampo || 0,
@@ -277,6 +277,8 @@ const RegistroMolienda: React.FC = () => {
         stockRestanteCuarzo: cliente.stock_cuarzo || 0,
         stockRestanteLlampo: cliente.stock_llampo || 0
       }));
+
+      toast.info('Cliente Seleccionado', `Se cargó el stock y el tipo de mineral (${mineralType || 'No registrado'})`);
     }
   };
 
@@ -562,25 +564,63 @@ const RegistroMolienda: React.FC = () => {
         </div>
       </div>
 
-      {/* Top Selectors Grid */}
+      {/* Row 1: Client Selection */}
+      <div className="grid grid-cols-1 gap-6">
+        <ClientSelector
+          clients={clients}
+          selectedClientId={molienda.clienteId}
+          onClientChange={handleClienteChange}
+          stockInfo={molienda.clienteId ? {
+            total: molienda.stockTotal,
+            cuarzo: molienda.stockCuarzo,
+            llampo: molienda.stockLlampo
+          } : undefined}
+          disabled={molienda.procesoIniciado}
+        />
+      </div>
+
+      {/* Row 2: Time & Mineral */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Client Selector */}
+        {/* Time Config */}
         <div className="lg:col-span-3">
-          <ClientSelector
-            clients={clients}
-            selectedClientId={molienda.clienteId}
-            onClientChange={handleClienteChange}
-            stockInfo={molienda.clienteId ? {
-              total: molienda.stockTotal,
-              cuarzo: molienda.stockCuarzo,
-              llampo: molienda.stockLlampo
-            } : undefined}
-            disabled={molienda.procesoIniciado}
-          />
+          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm h-full">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center">
+                <span className="mr-2">⏱️</span>
+                Horario del Proceso
+              </h2>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-md">
+                {new Date().toLocaleDateString()}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Hora de Inicio</label>
+                <input
+                  type="time"
+                  value={molienda.horaInicio || ''}
+                  onChange={(e) => setMolienda(prev => ({ ...prev, horaInicio: e.target.value }))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
+                />
+                <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Ingrese la hora real de encendido</p>
+              </div>
+
+              <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col justify-center">
+                <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Hora Fin Estimada</label>
+                <div className="text-2xl font-black text-indigo-900">
+                  {totalCalculado.horaFin || '--:--'}
+                </div>
+                <div className="text-[10px] text-indigo-600 mt-1 font-bold">
+                  {totalCalculado.tiempoPorMolino} min de molienda
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Mineral Type Selector */}
-        <div className="lg:col-span-2 text-sm">
+        {/* Mineral Selection */}
+        <div className="lg:col-span-2">
           <MineralTypeSelector
             mineralType={molienda.mineral}
             onMineralChange={handleMineralChange}
@@ -591,7 +631,7 @@ const RegistroMolienda: React.FC = () => {
         </div>
       </div>
 
-      {/* Mill Selector */}
+      {/* Row 3: Mill Config */}
       <MillSelector
         molinos={molienda.molinos}
         onMolinoChange={handleMolinoChange}
@@ -601,7 +641,7 @@ const RegistroMolienda: React.FC = () => {
         disabled={molienda.procesoIniciado}
       />
 
-      {/* Process Summary */}
+      {/* Row 4: Summary */}
       <ProcessSummary
         totalSacos={totalCalculado.totalSacos}
         totalCuarzo={totalCalculado.totalCuarzo}
@@ -619,7 +659,7 @@ const RegistroMolienda: React.FC = () => {
         onObservacionesChange={(value) => setMolienda(prev => ({ ...prev, observaciones: value }))}
       />
 
-      {/* Action Button */}
+      {/* Final Action */}
       <div className="flex justify-end">
         <button
           onClick={registrarMolienda}
@@ -631,7 +671,7 @@ const RegistroMolienda: React.FC = () => {
         </button>
       </div>
 
-      {/* Receipt Modal */}
+      {/* Modal */}
       <ReceiptModal
         isOpen={receiptModal.isOpen}
         onClose={receiptModal.close}

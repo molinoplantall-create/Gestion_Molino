@@ -56,11 +56,14 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions }) => {
                   </span>
                 </div>
                 <div className="flex items-center text-[11px] text-slate-500 mt-1 font-medium">
-                  <span className="mr-3 text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded leading-none">
+                  <span className="mr-3 text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded leading-none font-bold">
                     {session.total_sacks} SACOS
                   </span>
-                  <span className="mr-3 uppercase">{session.mineral_type}</span>
-                  <span className="text-slate-400">{horaStr}</span>
+                  <span className="mr-3 uppercase tracking-wider">{session.mineral_type}</span>
+                  <span className="text-slate-400 flex items-center">
+                    <span className="mr-1.5 font-bold text-slate-500">{startTime.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })}</span>
+                    <span>{horaStr}</span>
+                  </span>
                 </div>
               </div>
             </div>

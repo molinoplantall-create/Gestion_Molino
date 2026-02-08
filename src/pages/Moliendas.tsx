@@ -89,17 +89,26 @@ const Moliendas: React.FC = () => {
       }
     },
     {
+      key: 'created_at',
+      label: 'Fecha',
+      render: (session: MillingLog) => {
+        const date = new Date(session.created_at);
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-slate-700">{date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        );
+      }
+    },
+    {
       key: 'client_id',
       label: 'Cliente',
       render: (session: MillingLog) => {
         const clientName = (session as any).clients?.name || 'Cliente';
-        const startTime = new Date(session.created_at);
         return (
-          <div>
-            <div className="text-sm font-medium text-slate-900">{clientName}</div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              {startTime.toLocaleDateString()}
-            </div>
+          <div className="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
+            {clientName}
           </div>
         );
       }

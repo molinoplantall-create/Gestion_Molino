@@ -37,9 +37,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               id: session.user.id,
               email: session.user.email!,
               role: profile.role as UserRole,
-              nombre: profile.nombre,
+              nombre: profile.Nombre || profile.nombre,
               is_active: profile.is_active,
-              created_at: profile.created_at
+              created_at: profile.Created_at || profile.created_at
             }
           });
         } else if (profileError) {
@@ -62,9 +62,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                 id: session.user.id,
                 email: session.user.email!,
                 role: profile.role as UserRole,
-                nombre: profile.nombre,
+                nombre: profile.Nombre || profile.nombre,
                 is_active: profile.is_active,
-                created_at: profile.created_at
+                created_at: profile.Created_at || profile.created_at
               }
             });
           }
@@ -104,9 +104,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         id: data.user.id,
         email: data.user.email!,
         role: profile.role as UserRole,
-        nombre: profile.nombre,
+        nombre: profile.Nombre || profile.nombre,
         is_active: profile.is_active,
-        created_at: profile.created_at
+        created_at: profile.Created_at || profile.created_at
       };
 
       set({ user: userData, loading: false });

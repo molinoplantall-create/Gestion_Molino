@@ -149,18 +149,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        query = query.ilike('name', `%${search}%`);
+        query = query.ilike('Name', `%${search}%`);
       }
 
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
       const { data, count, error } = await query
-        .order('name')
+        .order('Name')
         .range(from, to);
 
       if (error) throw error;
-      set({ clients: data as Client[], clientsCount: count || 0 });
+
+      const normalizedClients = (data as any[] || []).map(c => ({
+        ...c,
+        name: c.Name || c.name || 'S/N'
+      })) as Client[];
+
+      set({ clients: normalizedClients, clientsCount: count || 0 });
     } catch (error: any) {
       console.error('❌ Error fetchClients:', error);
       set({ error: error.message });
@@ -175,10 +181,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const { data, error } = await supabase
         .from('zones')
         .select('*')
-        .order('name');
+        .order('Name');
 
       if (error) throw error;
-      set({ zones: data as Zone[] });
+
+      const normalizedZones = (data as any[] || []).map(z => ({
+        ...z,
+        name: z.Name || z.name || 'Zona'
+      })) as Zone[];
+
+      set({ zones: normalizedZones });
     } catch (error: any) {
       console.error('❌ Error fetchZones:', error);
       set({ error: error.message });
@@ -218,7 +230,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .select(`
           *,
           clients (
-            name
+            Name
           )
         `, { count: 'exact' });
 
@@ -255,7 +267,15 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .range(from, to);
 
       if (error) throw error;
-      set({ millingLogs: data || [], logsCount: count || 0 });
+
+      const normalizedLogs = (data as any[] || []).map(log => ({
+        ...log,
+        clients: {
+          name: log.clients?.Name || log.clients?.name || 'Cliente'
+        }
+      })) as MillingLog[];
+
+      set({ millingLogs: normalizedLogs, logsCount: count || 0 });
     } catch (error: any) {
       console.error('❌ Error fetchMillingLogs:', error);
       set({ error: error.message });
@@ -269,11 +289,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       let query = supabase
-        .from('maintenance_logs')
+        .from('Maintenance')
         .select(`
           *,
           mills (
-            name
+            Name
           )
         `, { count: 'exact' });
 
@@ -297,11 +317,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const to = from + pageSize - 1;
 
       const { data, count, error } = await query
-        .order('created_at', { ascending: false })
+        .order('Created_at', { ascending: false })
         .range(from, to);
 
       if (error) throw error;
-      set({ maintenanceLogs: data || [] });
+
+      const normalizedMaintenance = (data as any[] || []).map(m => ({
+        ...m,
+        type: m.Type || m.type,
+        description: m.Description || m.description,
+        technician_name: m.Technician || m.technician_name,
+        worked_hours: m.Hours_taken || m.worked_hours,
+        created_at: m.Created_at || m.created_at,
+        mills: {
+          name: m.mills?.Name || m.mills?.name || 'Molino'
+        }
+      }));
+
+      set({ maintenanceLogs: normalizedMaintenance });
     } catch (error: any) {
       console.error('❌ Error fetchMaintenanceLogs:', error);
       set({ error: error.message });
@@ -385,8 +418,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const { error } = await supabase
-        .from('maintenance_logs')
-        .insert(data);
+        .from('Maintenance')
+        .insert({
+          mill_id: data.mill_id,
+          Type: data.type,
+          Description: data.description,
+          Technician: data.technician_name,
+          Hours_taken: data.worked_hours,
+          status: data.status,
+          Created_at: new Date().toISOString()
+        });
 
       if (error) throw error;
 
@@ -540,7 +581,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       const { error } = await supabase
         .from('zones')
-        .insert({ name });
+        .insert({ Name: name });
 
       if (error) throw error;
 
@@ -560,7 +601,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       const { error } = await supabase
         .from('zones')
-        .update({ name })
+        .update({ Name: name })
         .eq('id', id);
 
       if (error) throw error;

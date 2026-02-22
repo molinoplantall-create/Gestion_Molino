@@ -335,6 +335,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (clientFetchError) throw clientFetchError;
 
+      const isHistorical = data.fecha && new Date(data.fecha).toDateString() !== new Date().toDateString();
+
       const { data: millingData, error: millingError } = await supabase
         .from('milling_logs')
         .insert({
@@ -344,7 +346,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           total_cuarzo: data.totalCuarzo,
           total_llampo: data.totalLlampo,
           mills_used: data.mills,
-          status: 'IN_PROGRESS',
+          status: isHistorical ? 'FINALIZADO' : 'IN_PROGRESS',
           observations: data.observations || '',
           created_at: data.fecha || new Date().toISOString()
         })
@@ -367,10 +369,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (stockError) throw stockError;
 
       const millUpdates = data.mills.map(async (m) => {
-        // Si la fecha es de hoy, actualizamos el estado del molino. 
         // Si es una fecha pasada, asumimos que es solo un registro histórico y no ocupamos el molino hoy.
-        const isHistorical = data.fecha && new Date(data.fecha).toDateString() !== new Date().toDateString();
-
         if (isHistorical) return Promise.resolve({ error: null });
 
         const updateData = {

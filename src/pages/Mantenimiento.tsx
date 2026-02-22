@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import { MaintenanceForm } from '@/components/mantenimiento/MaintenanceForm';
 import { MaintenanceTable } from '@/components/mantenimiento/MaintenanceTable';
 import { MaintenanceFilters } from '@/components/mantenimiento/MaintenanceFilters';
-import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { maintenanceSchema } from '@/schemas/maintenanceSchema';
 
@@ -465,12 +465,13 @@ const Mantenimiento: React.FC = () => {
       />
 
       {/* Delete Confirmation Modal */}
-      <DeleteConfirmModal
+      <ConfirmationModal
         isOpen={deleteModal.isOpen}
         onClose={deleteModal.close}
         onConfirm={handleConfirmDelete}
-        itemName={`Registro ${deleteModal.data?.id.substring(0, 8)}...`}
-        message="Esta acción no se puede deshacer."
+        title="Eliminar Registro"
+        message={`¿Estás seguro de que deseas eliminar el registro ${deleteModal.data?.id.substring(0, 8)}...? Esta acción no se puede deshacer.`}
+        variant="danger"
       />
     </div>
   );

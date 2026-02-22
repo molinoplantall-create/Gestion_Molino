@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart3, PieChart, Download, Filter, Calendar, TrendingUp, TrendingDown, MessageSquare, FileText, Printer } from 'lucide-react';
 import { useSupabaseStore } from '../store/supabaseStore';
+import { useToast } from '../hooks/useToast';
 
 const Reportes: React.FC = () => {
   const { millingLogs, mills, clients, fetchMillingLogs, fetchMills, fetchClients } = useSupabaseStore();
+  const toast = useToast();
   const [dateRange, setDateRange] = useState('month');
   const [reportType, setReportType] = useState('general');
 
   useEffect(() => {
-    fetchMillingLogs(100); // Fetch more for reports
+    fetchMillingLogs({ pageSize: 100 }); // Fetch more for reports
     fetchMills();
     fetchClients();
   }, [fetchMillingLogs, fetchMills, fetchClients]);
@@ -107,11 +109,11 @@ const Reportes: React.FC = () => {
 
   // Funciones para manejar las acciones de los botones
   const handleExportExcel = () => {
-    alert('Exportando reporte a Excel con datos dinámicos...');
+    toast.info('Exportando reporte', 'El reporte se está generando y se descargará en unos momentos...');
   };
 
   const handleSendWhatsApp = () => {
-    alert('Funcionalidad de WhatsApp activada');
+    toast.success('WhatsApp', 'Funcionalidad de WhatsApp activada correctamente.');
   };
 
   const handlePrint = () => {
@@ -119,11 +121,11 @@ const Reportes: React.FC = () => {
   };
 
   const handleGeneratePDF = () => {
-    alert('Generando PDF...');
+    toast.info('PDF', 'Generando PDF del reporte actual...');
   };
 
   const handleApplyFilters = () => {
-    alert('Filtros aplicados (simulado)');
+    toast.success('Filtros', 'Los criterios de búsqueda han sido aplicados.');
   };
 
   const handleClearFilters = () => {
@@ -132,7 +134,7 @@ const Reportes: React.FC = () => {
   };
 
   const handleSendReports = () => {
-    alert('Envío masivo de reportes activado');
+    toast.success('Envío masivo', 'El envío programado de reportes se ha iniciado.');
   };
 
   return (

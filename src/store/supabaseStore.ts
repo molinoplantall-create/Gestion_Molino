@@ -291,7 +291,18 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .range(from, to);
 
       if (error) throw error;
-      set({ millingLogs: data || [], logsCount: count || 0 });
+
+      // Normalization check: Ensure fields are mapped consistently
+      const normalizedLogs = (data || []).map(log => ({
+        ...log,
+        total_sacks: log.total_sacks || log.cantidad_sacos || 0,
+        mineral_type: log.mineral_type || log.mineral || 'OXIDO',
+        sub_mineral: log.sub_mineral || 'CUARZO',
+        client_id: log.client_id || log.cliente_id,
+        created_at: log.created_at || log.hora_inicio || new Date().toISOString()
+      }));
+
+      set({ millingLogs: normalizedLogs as MillingLog[], logsCount: count || 0 });
     } catch (error: any) {
       console.error('❌ Error fetchMillingLogs:', error);
       set({ error: error.message });
@@ -337,7 +348,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .range(from, to);
 
       if (error) throw error;
-      set({ maintenanceLogs: data || [] });
+
+      // Normalization check: Ensure names are mapped correctly if DB columns vary
+      const normalizedLogs = (data || []).map(log => ({
+        ...log,
+        name: log.mills?.name || `Molino ${log.mill_id}`,
+        type: log.type || log.tipo || 'PREVENTIVO',
+        description: log.description || log.descripcion_falla || '',
+        technician_name: log.technician_name || log.asignado_a || '',
+        worked_hours: log.worked_hours || log.horas_trabajadas || 0,
+        status: (log.status || log.estado || 'PENDIENTE').toUpperCase()
+      }));
+
+      set({ maintenanceLogs: normalizedLogs });
     } catch (error: any) {
       console.error('❌ Error fetchMaintenanceLogs:', error);
       set({ error: error.message });
@@ -508,9 +531,27 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   registerMaintenance: async (data) => {
     set({ loading: true, error: null });
     try {
-      const { error } = await supabase
+      let { error } = await supabase
         .from('maintenance_logs')
         .insert(data);
+
+      // FALLBACK PGRST204: Si fallan columnas inglesas, intentar modo compatibilidad
+      if (error && error.code === 'PGRST204') {
+        console.warn('⚠️ store: error in registerMaintenance, retrying with fallback columns...');
+        const compatData = {
+          molino_id: data.mill_id,
+          tipo: data.type,
+          descripcion_falla: data.description,
+          horas_trabajadas: data.worked_hours,
+          asignado_a: data.technician_name,
+          estado: data.status,
+          accion_tomada: data.description // Fallback to description for missing field
+        };
+        const { error: retryError } = await supabase
+          .from('maintenance_logs')
+          .insert(compatData);
+        error = retryError;
+      }
 
       if (error) throw error;
 

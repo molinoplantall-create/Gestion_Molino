@@ -30,7 +30,15 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
             if (error) throw error;
 
-            set({ users: data as User[], loading: false });
+            // Normalize fields (handle rol vs role, etc)
+            const normalizedUsers = (data || []).map(u => ({
+                ...u,
+                nombre: u.nombre || 'Sin nombre',
+                role: u.role || u.rol || 'OPERADOR',
+                is_active: u.is_active !== undefined ? u.is_active : (u.isActive !== undefined ? u.isActive : true)
+            }));
+
+            set({ users: normalizedUsers as User[], loading: false });
         } catch (error: any) {
             set({ error: error.message, loading: false });
         }

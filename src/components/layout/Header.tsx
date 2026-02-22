@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Bell, Menu, Search, User, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
-import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import { LogOut as LogOutIcon } from 'lucide-react';
 
 const Header: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -138,8 +139,8 @@ const Header: React.FC = () => {
         message="¿Estás seguro que deseas salir del sistema? Tendrás que iniciar sesión nuevamente para acceder."
         confirmText="Cerrar Sesión"
         cancelText="Cancelar"
-        type="danger"
-        icon="logout"
+        variant="danger"
+        icon={<LogOutIcon size={24} className="text-red-600" />}
       />
     </>
   );

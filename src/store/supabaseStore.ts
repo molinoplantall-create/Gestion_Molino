@@ -373,18 +373,34 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
         if (isHistorical) return Promise.resolve({ error: null });
 
-        return supabase
+        const updateData = {
+          status: 'OCUPADO',
+          current_client_id: data.clientId,
+          current_cuarzo: m.cuarzo,
+          current_llampo: m.llampo,
+          start_time: data.horaInicioISO || new Date().toISOString(),
+          estimated_end_time: data.horaFinISO || null,
+          sacks_processing: m.total || 0,
+        };
+
+        let { error: millError } = await supabase
           .from('mills')
-          .update({
-            status: 'OCUPADO',
-            current_client_id: data.clientId,
-            current_cuarzo: m.cuarzo,
-            current_llampo: m.llampo,
-            start_time: data.horaInicioISO || new Date().toISOString(),
-            estimated_end_time: data.horaFinISO || null,
-            sacks_processing: m.total || 0,
-          })
+          .update(updateData)
           .eq('id', m.id);
+
+        // FALLBACK PGRST204: Si faltan columnas de tiempo, reintentar sin ellas
+        if (millError && millError.code === 'PGRST204') {
+          console.warn('⚠️ store: missing time columns in mills table, retrying basic update...', m.id);
+          const { estimated_end_time, start_time, ...basicData } = updateData as any;
+          const { error: retryError } = await supabase
+            .from('mills')
+            .update(basicData)
+            .eq('id', m.id);
+          millError = retryError;
+        }
+
+        if (millError) throw millError;
+        return { error: null };
       });
 
       await Promise.all(millUpdates);
@@ -503,7 +519,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         updateData.status = status.toUpperCase();
       }
 
-      await supabase.from('mills').update(updateData).eq('id', id);
+      let { error } = await supabase.from('mills').update(updateData).eq('id', id);
+
+      // FALLBACK: Si hay columnas inexistentes
+      if (error && error.code === 'PGRST204') {
+        const { estimated_end_time, start_time, ...basicData } = updateData;
+        const { error: retryError } = await supabase.from('mills').update(basicData).eq('id', id);
+        error = retryError;
+      }
+
+      if (error) throw error;
       get().fetchMills();
     } catch (error) {
       console.error('Error updating mill status:', error);
@@ -517,18 +542,31 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (!mill) return false;
 
       // 1. Liberar el molino
-      const { error: millError } = await supabase
+      const updateData = {
+        status: 'LIBRE',
+        current_client_id: null,
+        current_cuarzo: 0,
+        current_llampo: 0,
+        start_time: null,
+        estimated_end_time: null,
+        sacks_processing: 0
+      };
+
+      let { error: millError } = await supabase
         .from('mills')
-        .update({
-          status: 'LIBRE',
-          current_client_id: null,
-          current_cuarzo: 0,
-          current_llampo: 0,
-          start_time: null,
-          estimated_end_time: null,
-          sacks_processing: 0
-        })
+        .update(updateData)
         .eq('id', millId);
+
+      // FALLBACK PGRST204: Si faltan columnas de tiempo, reintentar sin ellas
+      if (millError && millError.code === 'PGRST204') {
+        console.warn('⚠️ store: estimated_end_time missing, retrying basic liberation...', millId);
+        const { estimated_end_time, start_time, ...basicData } = updateData as any;
+        const { error: retryError } = await supabase
+          .from('mills')
+          .update(basicData)
+          .eq('id', millId);
+        millError = retryError;
+      }
 
       if (millError) throw millError;
 

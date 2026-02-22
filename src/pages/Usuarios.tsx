@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Users, UserPlus, Mail, Shield, Edit, Trash2, CheckCircle, XCircle, Search, Filter, Key, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Users, UserPlus, Mail, Shield, Edit, Trash2, CheckCircle, XCircle, Search, Filter, Key, Eye, EyeOff, Loader2, LogOut } from 'lucide-react';
 import { UserRole, User } from '@/types';
 import { USER_ROLES } from '@/constants';
 import { useUserStore } from '@/store/userStore';
 import { supabase } from '@/lib/supabase';
-import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 const Usuarios: React.FC = () => {
   const { users, loading, fetchUsers, updateUser, deleteUser } = useUserStore();
@@ -794,9 +794,8 @@ const Usuarios: React.FC = () => {
         title={successInfo.title}
         message={successInfo.message}
         confirmText="Entendido"
-        showCancel={false}
-        type={successInfo.title === 'Error' ? 'warning' : 'success'}
-        icon={successInfo.title === 'Error' ? 'alert' : 'success'}
+        cancelText=""
+        variant={successInfo.title === 'Error' ? 'warning' : 'success'}
       />
     </div>
   );

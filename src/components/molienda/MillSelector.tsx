@@ -1,7 +1,8 @@
 import React from 'react';
-import { Factory, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Factory, CheckCircle, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useToast } from '@/hooks/useToast';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 interface MolinoProceso {
     id: string;
@@ -40,14 +41,22 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
 }) => {
     const { finalizeMilling } = useSupabaseStore();
     const [finLoading, setFinLoading] = React.useState<string | null>(null);
+    const [showFinalizeModal, setShowFinalizeModal] = React.useState(false);
+    const [millToFinalize, setMillToFinalize] = React.useState<string | null>(null);
     const toast = useToast();
 
     const handleFinalize = async (millId: string) => {
-        if (!window.confirm('¿Estás seguro de que deseas finalizar este proceso? El molino será liberado.')) return;
+        setMillToFinalize(millId);
+        setShowFinalizeModal(true);
+    };
 
-        setFinLoading(millId);
+    const confirmFinalize = async () => {
+        if (!millToFinalize) return;
+
+        setFinLoading(millToFinalize);
+        setShowFinalizeModal(false);
         try {
-            const success = await finalizeMilling(millId);
+            const success = await finalizeMilling(millToFinalize);
             if (success) {
                 toast.success('Proceso Finalizado', 'El molino ha sido liberado correctamente.');
             } else {
@@ -57,6 +66,7 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
             toast.error('Error', 'Ocurrió un error inesperado.');
         } finally {
             setFinLoading(null);
+            setMillToFinalize(null);
         }
     };
 
@@ -312,6 +322,19 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Confirmación */}
+            <ConfirmationModal
+                isOpen={showFinalizeModal}
+                onClose={() => setShowFinalizeModal(false)}
+                onConfirm={confirmFinalize}
+                title="¿Finalizar molienda?"
+                message="¿Estás seguro de que deseas finalizar este proceso manualmente? Esto liberará el molino y permitirá registrar una nueva carga."
+                confirmText="Sí, Finalizar"
+                cancelText="Mantenlo así"
+                variant="danger"
+                icon={<AlertTriangle className="w-6 h-6 text-red-600" />}
+            />
         </div>
     );
 };

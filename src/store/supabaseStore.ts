@@ -27,6 +27,7 @@ interface SupabaseStore {
     zone?: string;
   }) => Promise<void>;
   fetchZones: () => Promise<void>;
+  cleanupHistoricalLogs: () => Promise<void>;
   fetchMillingLogs: (options?: {
     page?: number;
     pageSize?: number;
@@ -201,6 +202,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
+  cleanupHistoricalLogs: async () => {
+    try {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // Inicio del día de hoy
+
+      const { error } = await supabase
+        .from('milling_logs')
+        .update({ status: 'FINALIZADO' })
+        .eq('status', 'IN_PROGRESS')
+        .lt('created_at', now.toISOString());
+
+      if (error) console.error('⚠️ store: error cleaning up historical logs:', error);
+      else console.log('✅ store: historical logs cleaned up successfully.');
+    } catch (error) {
+      console.error('❌ Error cleanupHistoricalLogs:', error);
+    }
+  },
+
   fetchMillingLogs: async (options = {}) => {
     // Handle both legacy (number as limit) and new options object
     let page = 1;
@@ -227,6 +246,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
     set({ logsLoading: true, error: null });
     try {
+      // Clean up historical logs before fetching
+      await get().cleanupHistoricalLogs();
+
       let query = supabase
         .from('milling_logs')
         .select(`
@@ -760,6 +782,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .eq('id', id);
 
       if (error) throw error;
+
+      // Limpiar logs antiguos que se quedaron "En Proceso"
+      await get().cleanupHistoricalLogs();
 
       set({ zones: get().zones.filter(z => z.id !== id) });
       return true;

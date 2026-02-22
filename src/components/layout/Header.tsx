@@ -85,7 +85,7 @@ const Header: React.FC = () => {
                   </div>
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-medium text-gray-900">{user?.nombre}</p>
-                    <p className="text-xs text-gray-500 capitalize">{user?.rol?.toLowerCase()}</p>
+                    <p className="text-xs text-gray-500 capitalize">{user?.role?.toLowerCase()}</p>
                   </div>
                   <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
                 </button>

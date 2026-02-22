@@ -121,7 +121,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         status: (m.status || 'LIBRE').toUpperCase(),
         capacity: m.capacity || 150,
         horas_trabajadas: m.total_hours_worked || 0,
-        sacos_procesados: m.sacks_processing || 0,
+        sacks_processing: m.sacks_processing || 0,
+        current_sacks: m.sacks_processing || 0,
         current_client: m.clients?.name || null,
         current_client_id: m.current_client_id || null
       })) as Mill[];
@@ -375,12 +376,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         return supabase
           .from('mills')
           .update({
-            status: 'ocupado',
+            status: 'OCUPADO',
             current_client_id: data.clientId,
             current_cuarzo: m.cuarzo,
             current_llampo: m.llampo,
             start_time: data.horaInicioISO || new Date().toISOString(),
             estimated_end_time: data.horaFinISO || null,
+            sacks_processing: m.total || 0,
           })
           .eq('id', m.id);
       });
@@ -422,13 +424,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         const { error: millError } = await supabase
           .from('mills')
           .update({
-            status: 'libre',
+            status: 'LIBRE',
             current_client_id: null,
             current_cuarzo: 0,
             current_llampo: 0,
             start_time: null,
             estimated_end_time: null,
-            current_sacks: 0
+            sacks_processing: 0
           })
           .eq('id', mill.id);
 
@@ -488,14 +490,17 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   updateMillStatus: async (id, status) => {
     try {
-      const updateData: any = { status };
+      const updateData: any = {};
       if (status === 'libre' || status === 'LIBRE') {
+        updateData.status = 'LIBRE';
         updateData.current_client_id = null;
         updateData.current_cuarzo = 0;
         updateData.current_llampo = 0;
         updateData.start_time = null;
         updateData.estimated_end_time = null;
-        updateData.current_sacks = 0;
+        updateData.sacks_processing = 0;
+      } else {
+        updateData.status = status.toUpperCase();
       }
 
       await supabase.from('mills').update(updateData).eq('id', id);
@@ -515,13 +520,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const { error: millError } = await supabase
         .from('mills')
         .update({
-          status: 'libre',
+          status: 'LIBRE',
           current_client_id: null,
           current_cuarzo: 0,
           current_llampo: 0,
           start_time: null,
           estimated_end_time: null,
-          current_sacks: 0
+          sacks_processing: 0
         })
         .eq('id', millId);
 

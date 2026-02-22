@@ -1,5 +1,7 @@
 import React from 'react';
-import { Factory, CheckCircle, AlertCircle } from 'lucide-react';
+import { Factory, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { useSupabaseStore } from '@/store/supabaseStore';
+import { useToast } from '@/hooks/useToast';
 
 interface MolinoProceso {
     id: string;
@@ -36,6 +38,28 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
     disabled = false,
     loading = false
 }) => {
+    const { finalizeMilling } = useSupabaseStore();
+    const [finLoading, setFinLoading] = React.useState<string | null>(null);
+    const toast = useToast();
+
+    const handleFinalize = async (millId: string) => {
+        if (!window.confirm('¿Estás seguro de que deseas finalizar este proceso? El molino será liberado.')) return;
+
+        setFinLoading(millId);
+        try {
+            const success = await finalizeMilling(millId);
+            if (success) {
+                toast.success('Proceso Finalizado', 'El molino ha sido liberado correctamente.');
+            } else {
+                toast.error('Error', 'No se pudo finalizar el proceso.');
+            }
+        } catch (error) {
+            toast.error('Error', 'Ocurrió un error inesperado.');
+        } finally {
+            setFinLoading(null);
+        }
+    };
+
     const formatTiempo = (totalMinutos: number): string => {
         const horas = Math.floor(totalMinutos / 60);
         const minutos = totalMinutos % 60;
@@ -157,6 +181,20 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                                         {!molino.current_client && !molino.current_sacks && (
                                             <div className="italic opacity-60">No disponible</div>
                                         )}
+
+                                        {/* Finalizar Proceso Button */}
+                                        <button
+                                            onClick={() => handleFinalize(molino.id)}
+                                            disabled={finLoading === molino.id}
+                                            className="w-full mt-2 py-1.5 bg-white border border-red-200 text-red-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-red-50 transition-colors flex items-center justify-center shadow-sm disabled:opacity-50"
+                                        >
+                                            {finLoading === molino.id ? (
+                                                <Loader2 size={10} className="mr-1 animate-spin" />
+                                            ) : (
+                                                <CheckCircle size={10} className="mr-1.5" strokeWidth={2.5} />
+                                            )}
+                                            Finalizar Ahora
+                                        </button>
                                     </div>
                                 </div>
                             )}

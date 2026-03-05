@@ -174,8 +174,14 @@ const Mantenimiento: React.FC = () => {
   };
 
   const handleViewHistory = (molinoId: string) => {
-    const mill = mills.find(m => m.id === molinoId);
-    historyModal.open(mill);
+    setSelectedMill(molinoId);
+    toast.info('Filtrando Historial', `Mostrando mantenimientos para el molino seleccionado`);
+
+    // Opcional: Desplazarse a la tabla para ver los resultados
+    const tableElement = document.querySelector('.overflow-x-auto');
+    if (tableElement) {
+      tableElement.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handleExportExcel = () => {

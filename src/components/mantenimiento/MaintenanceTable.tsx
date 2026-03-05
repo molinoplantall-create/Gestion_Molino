@@ -116,7 +116,7 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
                 <table className="w-full">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                             <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Molino</th>
                             <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo/Prioridad</th>
                             <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
@@ -129,9 +129,12 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
                         {logs.map((log) => (
                             <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                                    <span className="font-mono text-xs text-gray-600">
-                                        {log.id.substring(0, 8)}...
-                                    </span>
+                                    <div className="text-sm text-gray-900 font-medium">
+                                        {new Date(log.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                    </div>
+                                    <div className="text-xs text-gray-500 font-mono">
+                                        ID: {log.id.substring(0, 5)}
+                                    </div>
                                 </td>
                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center">

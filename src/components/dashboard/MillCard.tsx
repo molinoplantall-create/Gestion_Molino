@@ -179,6 +179,11 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
         const diffMs = end - now;
         if (diffMs <= 0) {
           setTimeRemaining('Finalizado');
+          // Único trigger para finalizar automáticamente
+          if (normalizedMill.estado.toUpperCase() === 'OCUPADO') {
+            console.log(`🕒 MillCard: Proceso de ${normalizedMill.nombre} terminado. Finalizando...`);
+            finalizeMilling(normalizedMill.id);
+          }
         } else {
           const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
           const diffMinutos = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));

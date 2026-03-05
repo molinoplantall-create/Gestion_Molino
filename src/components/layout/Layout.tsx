@@ -1,13 +1,21 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuthStore } from '../../store/authStore';
+import { useSupabaseStore } from '../../store/supabaseStore';
 import { Navigate } from 'react-router-dom';
 import { useAppStore } from '../../store/appStore';
 
 const Layout = () => {
   const { user, loading } = useAuthStore();
+  const { startPollingMills, stopPollingMills } = useSupabaseStore();
   const { sidebarOpen } = useAppStore();
+
+  useEffect(() => {
+    startPollingMills();
+    return () => stopPollingMills();
+  }, [startPollingMills, stopPollingMills]);
 
   if (loading) {
     return (

@@ -77,6 +77,10 @@ interface SupabaseStore {
   seedMills: () => Promise<boolean>;
   checkAndLiberateMills: (millsToProcess: Mill[]) => Promise<void>;
   finalizeMilling: (millId: string) => Promise<boolean>;
+  updateMillHours: (millId: string, hoursToAdd: number) => Promise<boolean>;
+  startPollingMills: () => void;
+  stopPollingMills: () => void;
+  isPolling: boolean;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -92,6 +96,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   clientsLoading: false,
   zonesLoading: false,
   logsLoading: false,
+  isPolling: false,
   error: null,
 
   fetchMills: async () => {
@@ -414,8 +419,21 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (stockError) throw stockError;
 
       const millUpdates = data.mills.map(async (m) => {
+        // Calcular duración en horas
+        let hoursToAdd = 0;
+        if (data.horaInicioISO && data.horaFinISO) {
+          const start = new Date(data.horaInicioISO).getTime();
+          const end = new Date(data.horaFinISO).getTime();
+          hoursToAdd = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
+        }
+
         // Si es una fecha pasada, asumimos que es solo un registro histórico y no ocupamos el molino hoy.
-        if (isHistorical) return Promise.resolve({ error: null });
+        if (isHistorical) {
+          if (hoursToAdd > 0) {
+            await get().updateMillHours(m.id, hoursToAdd);
+          }
+          return Promise.resolve({ error: null });
+        }
 
         const updateData = {
           status: 'OCUPADO',
@@ -480,6 +498,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
     try {
       for (const mill of millsToLiberate) {
+        // Calcular horas trabajadas antes de liberar
+        if (mill.start_time && mill.estimated_end_time) {
+          const start = new Date(mill.start_time).getTime();
+          const end = new Date(mill.estimated_end_time).getTime();
+          const hours = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
+          if (hours > 0) {
+            await get().updateMillHours(mill.id, hours);
+          }
+        }
+
         // 1. Liberar el molino
         const { error: millError } = await supabase
           .from('mills')
@@ -602,6 +630,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       const mill = get().mills.find(m => m.id === millId);
       if (!mill) return false;
+
+      // Calcular horas trabajadas antes de liberar
+      if (mill.start_time && mill.estimated_end_time) {
+        const start = new Date(mill.start_time).getTime();
+        const end = new Date(mill.estimated_end_time).getTime();
+        const hours = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
+        if (hours > 0) {
+          await get().updateMillHours(millId, hours);
+        }
+      }
 
       // 1. Liberar el molino
       const updateData = {
@@ -858,5 +896,54 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       console.error('❌ Error seedMills:', error);
       return false;
     }
+  },
+
+  updateMillHours: async (millId: string, hoursToAdd: number) => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('mills')
+        .select('total_hours_worked')
+        .eq('id', millId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const newHours = Number(((data?.total_hours_worked || 0) + hoursToAdd).toFixed(2));
+
+      const { error: updateError } = await supabase
+        .from('mills')
+        .update({ total_hours_worked: newHours })
+        .eq('id', millId);
+
+      if (updateError) throw updateError;
+      return true;
+    } catch (error) {
+      console.error('❌ Error updateMillHours:', error);
+      return false;
+    }
+  },
+
+  startPollingMills: () => {
+    if (get().isPolling) return;
+
+    set({ isPolling: true });
+    const interval = setInterval(() => {
+      if (!get().millsLoading) {
+        get().fetchMills();
+      }
+    }, 60000);
+
+    (window as any)._millPollingInterval = interval;
+    console.log('📡 store: Polling de molinos iniciado (60s)');
+  },
+
+  stopPollingMills: () => {
+    const interval = (window as any)._millPollingInterval;
+    if (interval) {
+      clearInterval(interval);
+      (window as any)._millPollingInterval = null;
+    }
+    set({ isPolling: false });
+    console.log('📡 store: Polling de molinos detenido');
   }
 }));

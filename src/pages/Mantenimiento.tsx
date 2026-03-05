@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Wrench, CheckCircle, Clock, AlertTriangle, Plus, Download, History, Settings, Activity
+  Wrench, CheckCircle, Clock, AlertTriangle, Plus, Download, History, Settings, Activity, FileText, MessageSquare
 } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useModal } from '@/hooks/useModal';
@@ -11,6 +11,9 @@ import { MaintenanceFilters } from '@/components/mantenimiento/MaintenanceFilter
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { maintenanceSchema } from '@/schemas/maintenanceSchema';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 interface MaintenanceRecord {
   id: string;
@@ -185,11 +188,73 @@ const Mantenimiento: React.FC = () => {
   };
 
   const handleExportExcel = () => {
-    toast.info('Exportando', 'Archivo Excel generado. Descargando...');
+    if (maintenanceLogs.length === 0) {
+      toast.error('Error', 'No hay datos para exportar');
+      return;
+    }
+
+    const dataToExport = maintenanceLogs.map(log => ({
+      Fecha: new Date(log.created_at).toLocaleDateString(),
+      ID: log.id.substring(0, 8),
+      Molino: log.name,
+      Tipo: log.type,
+      Prioridad: log.priority || 'N/A',
+      Descripción: log.description,
+      Técnico: log.technician_name,
+      Horas: log.worked_hours,
+      Estado: log.status
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Mantenimientos");
+    XLSX.writeFile(wb, `Reporte_Mantenimiento_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    toast.success('Éxito', 'Archivo Excel generado correctamente');
   };
 
   const handleGeneratePDF = () => {
-    toast.info('Generando PDF', 'Generando documento PDF... Se descargará automáticamente.');
+    if (maintenanceLogs.length === 0) {
+      toast.error('Error', 'No hay datos para imprimir');
+      return;
+    }
+
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(18);
+    doc.setTextColor(40);
+    doc.text('REPORTE DE MANTENIMIENTO INDUSTRIAL', 105, 15, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Fecha de generación: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+
+    // Table
+    const tableColumn = ["Fecha", "Molino", "Tipo", "Descripción", "Técnico", "Estado"];
+    const tableRows = maintenanceLogs.map(log => [
+      new Date(log.created_at).toLocaleDateString(),
+      log.name,
+      log.type,
+      log.description,
+      log.technician_name || 'N/A',
+      log.status
+    ]);
+
+    (doc as any).autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+      theme: 'grid',
+      headStyles: { fillColor: [63, 81, 181], textColor: [255, 255, 255] },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        3: { cellWidth: 50 }, // Description column wider
+      }
+    });
+
+    doc.save(`Reporte_Mantenimiento_${new Date().getTime()}.pdf`);
+    toast.success('Éxito', 'Documento PDF generado correctamente');
   };
 
   const handlePrint = () => {
@@ -197,9 +262,24 @@ const Mantenimiento: React.FC = () => {
   };
 
   const handleSendWhatsApp = () => {
-    const phone = '51987654321';
-    const message = encodeURIComponent('Reporte de mantenimiento disponible para revisión');
-    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    if (maintenanceLogs.length === 0) {
+      toast.error('Error', 'No hay registros para enviar');
+      return;
+    }
+
+    const lastLog = maintenanceLogs[0];
+    const message = `*REPORTE DE MANTENIMIENTO*
+----------------------------
+*Molino:* ${lastLog.name}
+*Fecha:* ${new Date(lastLog.created_at).toLocaleDateString()}
+*Tipo:* ${lastLog.type}
+*Descripción:* ${lastLog.description}
+*Técnico:* ${lastLog.technician_name}
+*Estado:* ${lastLog.status}
+----------------------------
+_Enviado desde el sistema de Gestión de Molinos_`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const handleSendEmail = () => {
@@ -221,6 +301,15 @@ const Mantenimiento: React.FC = () => {
     setStartDate('');
     setEndDate('');
     toast.info('Filtros Limpiados', 'Se han restablecido los filtros de búsqueda.');
+  };
+
+  const handleFinalizeMaintenance = async (id: string, millId: string) => {
+    if (confirm('¿Está seguro de finalizar este mantenimiento y liberar el molino?')) {
+      const success = await useSupabaseStore.getState().finalizeMaintenance(id, millId);
+      if (success) {
+        toast.success('¡Limpieza Finalizada!', 'El molino ha vuelto a estado LIBRE y el log se marcó como COMPLETADO.');
+      }
+    }
   };
 
   return (
@@ -437,6 +526,8 @@ const Mantenimiento: React.FC = () => {
           const record = maintenanceLogs.find(l => l.id === id);
           if (record) handleDeleteClick(record);
         }}
+        onViewHistory={handleViewHistory}
+        onFinalize={handleFinalizeMaintenance}
       />
 
       {/* Create Maintenance Modal */}

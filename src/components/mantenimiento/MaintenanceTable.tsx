@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Edit, Trash2, CheckCircle, Clock, AlertTriangle, X } from 'lucide-react';
+import { Eye, Edit, Trash2, CheckCircle, Clock, AlertTriangle, X, Wrench, Calendar, User, AlertCircle, ChevronRight, MoreVertical, History, Check } from 'lucide-react';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { EmptyState } from '../common/EmptyState';
 
@@ -29,6 +29,8 @@ interface MaintenanceTableProps {
     onView: (record: MaintenanceRecord) => void;
     onEdit: (record: MaintenanceRecord) => void;
     onDelete: (id: string) => void;
+    onViewHistory: (molinoId: string) => void;
+    onFinalize?: (id: string, millId: string) => void;
 }
 
 export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
@@ -39,7 +41,9 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
     onPageChange,
     onView,
     onEdit,
-    onDelete
+    onDelete,
+    onViewHistory,
+    onFinalize
 }) => {
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -169,31 +173,48 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
                                 </td>
                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                     <span className="text-sm text-gray-900">
-                                        {log.worked_hours ? `${log.worked_hours}h` : '-'}
+                                        {log.worked_hours ? `${log.worked_hours} h` : '-'}
                                     </span>
                                 </td>
                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => onViewHistory(log.mill_id)}
+                                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                            title="Ver historial del molino"
+                                        >
+                                            <History size={16} />
+                                        </button>
+
+                                        {log.status !== 'COMPLETADO' && log.status !== 'FINALIZADO' && onFinalize && (
+                                            <button
+                                                onClick={() => onFinalize(log.id, log.mill_id)}
+                                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                                                title="Finalizar Mantenimiento"
+                                            >
+                                                <Check size={16} />
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => onView(log)}
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                             title="Ver detalles"
                                         >
-                                            <Eye size={18} />
+                                            <Eye size={16} />
                                         </button>
                                         <button
                                             onClick={() => onEdit(log)}
-                                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                                             title="Editar"
                                         >
-                                            <Edit size={18} />
+                                            <Edit size={16} />
                                         </button>
                                         <button
                                             onClick={() => onDelete(log.id)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                             title="Eliminar"
                                         >
-                                            <Trash2 size={18} />
+                                            <Trash2 size={16} />
                                         </button>
                                     </div>
                                 </td>

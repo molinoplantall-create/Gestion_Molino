@@ -46,6 +46,8 @@ interface SupabaseStore {
     millId?: string;
     startDate?: string;
     endDate?: string;
+    type?: string;
+    status?: string;
   }) => Promise<void>;
   registerMilling: (
     data: {
@@ -78,6 +80,7 @@ interface SupabaseStore {
   checkAndLiberateMills: (millsToProcess: Mill[]) => Promise<void>;
   finalizeMilling: (millId: string) => Promise<boolean>;
   updateMillHours: (millId: string, hoursToAdd: number) => Promise<boolean>;
+  finalizeMaintenance: (id: string, millId: string) => Promise<boolean>;
   startPollingMills: () => void;
   stopPollingMills: () => void;
   isPolling: boolean;
@@ -317,10 +320,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   },
 
   fetchMaintenanceLogs: async (options = {}) => {
-    const { page = 1, pageSize = 20, search, millId, startDate, endDate } = options;
+    const { page = 1, pageSize = 20, search, millId, startDate, endDate, type, status } = options;
     set({ loading: true, error: null });
     try {
-      console.log('📡 store: fetching maintenance logs...', { millId, search });
+      console.log('📡 store: fetching maintenance logs...', { millId, search, type, status });
 
       let query = supabase
         .from('maintenance_logs')
@@ -335,6 +338,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (millId && millId !== 'all') {
         // Soporte para mill_id o molino_id
         query = query.or(`mill_id.eq.${millId},molino_id.eq.${millId}`);
+      }
+
+      if (type && type !== 'all') {
+        query = query.or(`type.eq.${type},tipo.eq.${type}`);
+      }
+
+      if (status && status !== 'all') {
+        query = query.or(`status.eq.${status.toUpperCase()},estado.eq.${status.toUpperCase()}`);
       }
 
       if (search) {
@@ -635,11 +646,61 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (error) throw error;
 
+      // Actualizar estado del molino a 'mantenimiento'
+      await supabase
+        .from('mills')
+        .update({ status: 'mantenimiento' })
+        .eq('id', data.mill_id);
+
       await get().fetchMaintenanceLogs();
+      await get().fetchMills(); // Refrescar molinos
       return true;
     } catch (error: any) {
       console.error('❌ Error registerMaintenance:', error);
       set({ error: error.message || 'Error al registrar mantenimiento. Por favor ejecute fix_maintenance_system.sql' });
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  finalizeMaintenance: async (id: string, millId: string) => {
+    set({ loading: true, error: null });
+    try {
+      console.log(`🔧 store: finalizing maintenance ${id} for mill ${millId}`);
+
+      // 1. Actualizar el log de mantenimiento a COMPLETADO
+      // Intentar primero con columna 'status'
+      let { error: logError } = await supabase
+        .from('maintenance_logs')
+        .update({ status: 'COMPLETADO' })
+        .eq('id', id);
+
+      // Fallback a 'estado' si falla
+      if (logError && (logError.code === 'PGRST204' || logError.code === '42703')) {
+        const { error: retryError } = await supabase
+          .from('maintenance_logs')
+          .update({ estado: 'COMPLETADO' })
+          .eq('id', id);
+        logError = retryError;
+      }
+
+      if (logError) throw logError;
+
+      // 2. Liberar el molino (volver a 'LIBRE')
+      const { error: millError } = await supabase
+        .from('mills')
+        .update({ status: 'LIBRE' })
+        .eq('id', millId);
+
+      if (millError) throw millError;
+
+      await get().fetchMaintenanceLogs();
+      await get().fetchMills();
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error finalizeMaintenance:', error);
+      set({ error: error.message });
       return false;
     } finally {
       set({ loading: false });

@@ -80,16 +80,18 @@ const Mantenimiento: React.FC = () => {
       page: currentPage,
       pageSize: recordsPerPage,
       search,
+      type: filterType,
+      status: filterStatus,
       millId: selectedMill,
       startDate,
       endDate
     });
-  }, [fetchMaintenanceLogs, currentPage, search, selectedMill, startDate, endDate]);
+  }, [fetchMaintenanceLogs, currentPage, search, filterType, filterStatus, selectedMill, startDate, endDate]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, selectedMill, startDate, endDate]);
+  }, [search, filterType, filterStatus, selectedMill, startDate, endDate]);
 
   const totalPages = Math.ceil(maintenanceLogs.length / recordsPerPage); // This should probably use a count from store if we had one
   const paginatedLogs = maintenanceLogs; // Store already paginates

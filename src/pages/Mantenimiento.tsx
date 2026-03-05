@@ -59,7 +59,7 @@ const Mantenimiento: React.FC = () => {
     categoria: '',
     descripcion: '',
     prioridad: 'MEDIA' as const,
-    fechaProgramada: '',
+    fechaProgramada: new Date().toISOString().split('T')[0],
     horasEstimadas: 4,
     asignadoA: ''
   });
@@ -104,7 +104,7 @@ const Mantenimiento: React.FC = () => {
       categoria: '',
       descripcion: '',
       prioridad: 'MEDIA',
-      fechaProgramada: '',
+      fechaProgramada: new Date().toISOString().split('T')[0],
       horasEstimadas: 4,
       asignadoA: ''
     });
@@ -125,6 +125,7 @@ const Mantenimiento: React.FC = () => {
       description: formData.descripcion,
       technician_name: formData.asignadoA,
       worked_hours: formData.horasEstimadas,
+      fechaProgramada: formData.fechaProgramada,
       status: 'PENDIENTE'
     });
 

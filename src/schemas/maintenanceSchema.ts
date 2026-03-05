@@ -10,7 +10,7 @@ export const maintenanceSchema = z.object({
     }),
 
     descripcion: z.string()
-        .min(10, 'La descripción debe tener al menos 10 caracteres')
+        .min(3, 'La descripción debe tener al menos 3 caracteres')
         .max(500, 'La descripción no puede exceder 500 caracteres'),
 
     fechaProgramada: z.string()

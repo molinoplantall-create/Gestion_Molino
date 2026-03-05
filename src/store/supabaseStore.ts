@@ -320,21 +320,25 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const { page = 1, pageSize = 20, search, millId, startDate, endDate } = options;
     set({ loading: true, error: null });
     try {
+      console.log('📡 store: fetching maintenance logs...', { millId, search });
+
       let query = supabase
         .from('maintenance_logs')
         .select(`
           *,
           mills (
-            name
+            name,
+            nombre
           )
         `, { count: 'exact' });
 
       if (millId && millId !== 'all') {
-        query = query.eq('mill_id', millId);
+        // Soporte para mill_id o molino_id
+        query = query.or(`mill_id.eq.${millId},molino_id.eq.${millId}`);
       }
 
       if (search) {
-        query = query.ilike('description', `%${search}%`);
+        query = query.or(`description.ilike.%${search}%,descripcion_falla.ilike.%${search}%`);
       }
 
       if (startDate) {
@@ -348,27 +352,48 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const { data, count, error } = await query
+      let { data, count, error } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (error) throw error;
+      // FALLBACK 404: Si maintenance_logs no existe, intentar con "Maintenance"
+      if (error && ((error as any).status === 404 || error.code === 'PGRST116' || error.code === '42P01')) {
+        console.warn('⚠️ store: maintenance_logs table NOT FOUND, trying fallback "Maintenance" table...');
+        const { data: retryData, count: retryCount, error: retryError } = await supabase
+          .from('Maintenance' as any)
+          .select('*, mills(name, nombre)', { count: 'exact' })
+          .order('Created_at' as any, { ascending: false })
+          .range(from, to);
 
-      // Normalization check: Ensure names are mapped correctly if DB columns vary
+        data = retryData;
+        count = retryCount;
+        error = retryError;
+      }
+
+      if (error) {
+        console.error('❌ Supabase error in fetchMaintenanceLogs:', error);
+        throw error;
+      }
+
+      // Normalization: Mapeo de columnas español/inglés
       const normalizedLogs = (data || []).map(log => ({
         ...log,
-        name: log.mills?.name || `Molino ${log.mill_id}`,
+        id: log.id,
+        mill_id: log.mill_id || log.molino_id,
+        name: log.mills?.name || log.mills?.nombre || `Molino ${log.mill_id || log.molino_id}`,
         type: log.type || log.tipo || 'PREVENTIVO',
         description: log.description || log.descripcion_falla || '',
         technician_name: log.technician_name || log.asignado_a || '',
         worked_hours: log.worked_hours || log.horas_trabajadas || 0,
-        status: (log.status || log.estado || 'PENDIENTE').toUpperCase()
+        status: (log.status || log.estado || 'PENDIENTE').toUpperCase(),
+        created_at: log.created_at || log.fecha_registro || new Date().toISOString()
       }));
 
       set({ maintenanceLogs: normalizedLogs });
+      console.log(`✅ store: ${normalizedLogs.length} maintenance logs loaded.`);
     } catch (error: any) {
       console.error('❌ Error fetchMaintenanceLogs:', error);
-      set({ error: error.message });
+      set({ error: error.message || 'Error al cargar mantenimientos. ¿Se ejecutó el script SQL?' });
     } finally {
       set({ loading: false });
     }
@@ -559,26 +584,53 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   registerMaintenance: async (data) => {
     set({ loading: true, error: null });
     try {
+      // Intentar inserción estandarizada primero
+      const insertData = {
+        mill_id: data.mill_id,
+        type: data.type,
+        description: data.description,
+        technician_name: data.technician_name,
+        worked_hours: data.worked_hours,
+        status: data.status || 'PENDIENTE',
+        created_at: data.fechaProgramada || new Date().toISOString()
+      };
+
       let { error } = await supabase
         .from('maintenance_logs')
-        .insert(data);
+        .insert(insertData);
 
-      // FALLBACK PGRST204: Si fallan columnas inglesas, intentar modo compatibilidad
-      if (error && error.code === 'PGRST204') {
-        console.warn('⚠️ store: error in registerMaintenance, retrying with fallback columns...');
+      // FALLBACK PGRST204: Si fallan columnas inglesas, intentar modo compatibilidad (molino_id, tipo, etc)
+      if (error && (error.code === 'PGRST204' || error.code === '42703')) {
+        console.warn('⚠️ store: error in registerMaintenance, retrying with fallback columns (SPANISH)...');
         const compatData = {
           molino_id: data.mill_id,
           tipo: data.type,
           descripcion_falla: data.description,
           horas_trabajadas: data.worked_hours,
           asignado_a: data.technician_name,
-          estado: data.status,
-          accion_tomada: data.description // Fallback to description for missing field
+          estado: data.status || 'PENDIENTE',
+          accion_tomada: data.description // Fallback a descripcion si falta campo
         };
         const { error: retryError } = await supabase
           .from('maintenance_logs')
           .insert(compatData);
         error = retryError;
+      }
+
+      // FALLBACK 404: Si la tabla maintenance_logs no existe
+      if (error && ((error as any).status === 404 || error.code === '42P01')) {
+        console.warn('⚠️ store: table maintenance_logs not found for insert, trying fallback "Maintenance"...');
+        const { error: finalError } = await supabase
+          .from('Maintenance' as any)
+          .insert({
+            Mill_id: data.mill_id,
+            Type: data.type,
+            Description: data.description,
+            Technician: data.technician_name,
+            Hours_taken: data.worked_hours,
+            Created_at: new Date().toISOString()
+          });
+        error = finalError;
       }
 
       if (error) throw error;
@@ -587,7 +639,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return true;
     } catch (error: any) {
       console.error('❌ Error registerMaintenance:', error);
-      set({ error: error.message });
+      set({ error: error.message || 'Error al registrar mantenimiento. Por favor ejecute fix_maintenance_system.sql' });
       return false;
     } finally {
       set({ loading: false });

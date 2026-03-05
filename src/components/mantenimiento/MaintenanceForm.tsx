@@ -119,6 +119,21 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     />
                 </div>
 
+                {/* Fecha */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Fecha <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="date"
+                        value={formData.fechaProgramada}
+                        onChange={(e) => onChange('fechaProgramada', e.target.value)}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.fechaProgramada ? 'border-red-500 ring-red-100' : 'border-gray-300'}`}
+                        required
+                    />
+                    {errors.fechaProgramada && <p className="text-xs text-red-500 mt-1">{errors.fechaProgramada}</p>}
+                </div>
+
                 {/* Técnico Asignado */}
                 <div className="md:col-span-2 lg:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">

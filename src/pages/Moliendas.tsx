@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, MessageSquare, Eye, Edit, Trash2, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, Download, MessageSquare, Eye, Edit, Trash2, Calendar, ChevronLeft, ChevronRight, Package, CheckCircle, Clock } from 'lucide-react';
 import { MillingLog } from '@/types';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { Table } from '@/components/common/Table';
@@ -167,61 +167,96 @@ const Moliendas: React.FC = () => {
   }, [millingLogs]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+    <div className="space-y-8 pb-20 max-w-[1600px] mx-auto px-4 md:px-6">
+      {/* HEADER INDUSTRIAL UNIFICADO */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-slate-200 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Moliendas</h1>
-          <p className="text-slate-500 mt-1">Historial completo de procesos de molienda</p>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-8 bg-indigo-600 rounded-full"></div>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600">HISTORIAL TÉCNICO</span>
+          </div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Bitácora de Moliendas</h1>
+          <p className="text-slate-500 font-medium flex items-center mt-1">
+            <Calendar size={16} className="mr-2 text-indigo-500" />
+            Registro cronológico detallado de todos los procesos operativos
+          </p>
         </div>
-        <div className="mt-4 sm:mt-0 flex space-x-3">
-          <button className="flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-sm">
-            <MessageSquare size={18} strokeWidth={1.5} className="mr-2" />
-            Enviar WhatsApp
+
+        <div className="flex flex-wrap gap-3">
+          <button className="flex items-center px-5 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 font-bold text-sm">
+            <MessageSquare size={18} className="mr-3" />
+            WHATSAPP
           </button>
           <button
-            className="flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
             onClick={() => alert('Exportando historial...')}
+            className="flex items-center px-5 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 font-bold text-sm"
           >
-            <Download size={18} strokeWidth={1.5} className="mr-2" />
-            Exportar
+            <Download size={18} className="mr-3" />
+            EXPORTAR ANALÍTICA
           </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="md:col-span-2">
+      {/* KPI SUMMARY - ESTILO PREMIUM */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {[
+          { label: 'TOTAL PROCESADO', value: stats.totalSacos.toLocaleString(), icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', suffix: 'Sacos' },
+          { label: 'MOLIENDAS ÉXITO', value: stats.finalizadas.toLocaleString(), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', suffix: 'Protocolos' },
+          { label: 'TIEMPO ESTIMADO', value: stats.tiempoPromedio, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', suffix: 'Horas/Prom' },
+        ].map((kpi, i) => (
+          <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm transition-all duration-300">
+            <div className="flex items-center">
+              <div className={`p-4 ${kpi.bg} ${kpi.border} rounded-2xl border mr-5`}>
+                <kpi.icon className={kpi.color} size={28} strokeWidth={2.5} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{kpi.label}</p>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{kpi.suffix}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* FILTRADO AVANZADO - ESTILO INDUSTRIAL */}
+      <div className="bg-slate-50 rounded-[2.5rem] p-6 lg:p-8 border border-white shadow-xl shadow-slate-200/50 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-4 space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Búsqueda Técnica</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500" size={18} />
               <input
                 type="text"
-                placeholder="Buscar por observaciones..."
+                placeholder="Buscar por cliente u observaciones..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all shadow-sm"
               />
             </div>
           </div>
 
-          <div>
+          <div className="lg:col-span-3 space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Estado de Proceso</label>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+              className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm"
             >
-              <option value="all">Todos los estados</option>
-              <option value="IN_PROGRESS">En Proceso</option>
-              <option value="FINALIZADO">Finalizado</option>
+              <option value="all">Todos los estados operativos</option>
+              <option value="IN_PROGRESS">En Proceso (Activo)</option>
+              <option value="FINALIZADO">Finalizado (Cerrado)</option>
             </select>
           </div>
 
-          <div>
+          <div className="lg:col-span-3 space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unidad de Molienda</label>
             <select
               value={selectedMill}
               onChange={(e) => setSelectedMill(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+              className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm"
             >
               <option value="all">Todos los molinos</option>
               {mills.map(m => (
@@ -229,47 +264,8 @@ const Moliendas: React.FC = () => {
               ))}
             </select>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Fecha Inicio</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Fecha Fin</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Mineral</label>
-            <select
-              value={selectedMineral}
-              onChange={(e) => setSelectedMineral(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
-            >
-              <option value="all">Tipos de mineral</option>
-              <option value="OXIDO">Óxido</option>
-              <option value="SULFURO">Sulfuro</option>
-            </select>
-          </div>
-
-          <div className="flex justify-end order-last">
+          <div className="lg:col-span-2 flex items-end">
             <button
               onClick={() => {
                 setSearch('');
@@ -279,60 +275,62 @@ const Moliendas: React.FC = () => {
                 setStartDate('');
                 setEndDate('');
               }}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-widest px-2 py-2"
+              className="w-full h-[54px] text-[10px] font-black text-indigo-600 bg-indigo-50 border-2 border-indigo-100 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-widest"
             >
-              Limpiar Filtros
+              RESET FILTROS
             </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 border-t border-slate-200 pt-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango Inicial</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none shadow-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango Final</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none shadow-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Mineral</label>
+            <select
+              value={selectedMineral}
+              onChange={(e) => setSelectedMineral(e.target.value)}
+              className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none shadow-sm appearance-none cursor-pointer"
+            >
+              <option value="all">Todos los minerales</option>
+              <option value="OXIDO">Mineral Óxido</option>
+              <option value="SULFURO">Mineral Sulfuro</option>
+            </select>
           </div>
         </div>
       </div>
 
-      {/* Table Section */}
-      <Table
-        data={millingLogs}
-        columns={columns}
-        loading={logsLoading}
-        pagination={{
-          currentPage,
-          totalPages: Math.ceil(logsCount / pageSize),
-          pageSize,
-          totalItems: logsCount,
-          onPageChange: setCurrentPage
-        }}
-        emptyMessage="No se encontraron procesos registrados."
-      />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center">
-          <div className="p-3 bg-indigo-50 rounded-xl mr-4 border border-indigo-100">
-            <span className="text-indigo-600 font-bold">Σ</span>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Total sacos procesados</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalSacos.toLocaleString()}</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center">
-          <div className="p-3 bg-emerald-50 rounded-xl mr-4 border border-emerald-100">
-            <span className="text-emerald-600 font-bold">✓</span>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Moliendas finalizadas</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.finalizadas}</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center">
-          <div className="p-3 bg-amber-50 rounded-xl mr-4 border border-amber-100">
-            <span className="text-amber-600 font-bold">⏱️</span>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Tiempo promedio</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.tiempoPromedio}</p>
-          </div>
-        </div>
+      {/* TABLE SECTION - DISEÑO TIPO REPORTE INDUSTRIAL */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden min-h-[500px]">
+        <Table
+          data={millingLogs}
+          columns={columns}
+          loading={logsLoading}
+          pagination={{
+            currentPage,
+            totalPages: Math.ceil(logsCount / pageSize),
+            pageSize,
+            totalItems: logsCount,
+            onPageChange: setCurrentPage
+          }}
+          emptyMessage="No se encontraron registros en el rango seleccionado."
+        />
       </div>
     </div>
   );

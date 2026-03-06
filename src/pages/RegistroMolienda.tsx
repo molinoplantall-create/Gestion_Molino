@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Printer, MessageSquare } from 'lucide-react';
+import { Save, Printer, MessageSquare, Clock, AlertTriangle, TrendingUp, Factory } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useSupabaseStore } from '../store/supabaseStore';
 import { useModal } from '@/hooks/useModal';
@@ -560,101 +560,139 @@ const RegistroMolienda: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-[1600px] mx-auto px-4 sm:px-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8 pb-32 max-w-[1600px] mx-auto px-4 md:px-6">
+      {/* HEADER INDUSTRIAL UNIFICADO */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-slate-200 pb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Nueva Molienda</h1>
-          <p className="text-slate-500 mt-1 font-medium">Registro de proceso de molienda</p>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-8 bg-indigo-600 rounded-full"></div>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600">CENTRO DE OPERACIONES</span>
+          </div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight text-balance">Registro de Molienda</h1>
+          <p className="text-slate-500 font-medium flex items-center mt-2">
+            <Factory size={18} className="mr-2 text-indigo-500" />
+            Configuración técnica y despliegue de carga por molino
+          </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => receiptModal.open()}
-            className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all shadow-sm font-bold text-sm"
             disabled={totalCalculado.totalSacos === 0}
+            className={`flex items-center px-6 py-3.5 rounded-2xl font-bold text-sm transition-all shadow-lg ${totalCalculado.totalSacos > 0
+              ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'
+              : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
+              }`}
           >
-            <Printer size={18} strokeWidth={2} className="mr-2" />
-            Ticket
+            <Printer size={18} className="mr-3" />
+            VISTA PREVIA TICKET
           </button>
           <button
             onClick={generarReporteWhatsApp}
-            className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-sm font-bold text-sm"
+            className="flex items-center px-6 py-3.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 font-bold text-sm"
           >
-            <MessageSquare size={18} strokeWidth={2} className="mr-2" />
-            WhatsApp
+            <MessageSquare size={18} className="mr-3" />
+            NOTIFICAR POR WHATSAPP
           </button>
         </div>
       </div>
 
-      {/* Row 1: Client Selection */}
-      <div className="grid grid-cols-1 gap-6">
-        <ClientSelector
-          clients={clients}
-          selectedClientId={molienda.clienteId}
-          onClientChange={handleClienteChange}
-          stockInfo={molienda.clienteId ? {
-            total: molienda.stockTotal,
-            cuarzo: molienda.stockCuarzo,
-            llampo: molienda.stockLlampo
-          } : undefined}
-          disabled={molienda.procesoIniciado}
-        />
+      {/* SECCIÓN 1: IDENTIFICACIÓN DE CARGA */}
+      <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="relative group">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-[2.5rem] blur opacity-5 group-hover:opacity-10 transition duration-1000"></div>
+          <div className="relative">
+            <ClientSelector
+              clients={clients}
+              selectedClientId={molienda.clienteId}
+              onClientChange={handleClienteChange}
+              stockInfo={molienda.clienteId ? {
+                total: molienda.stockTotal,
+                cuarzo: molienda.stockCuarzo,
+                llampo: molienda.stockLlampo
+              } : undefined}
+              disabled={molienda.procesoIniciado}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Row 2: Time & Mineral */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Time Config */}
-        <div className="lg:col-span-3">
-          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm h-full">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center">
-                <span className="mr-2">⏱️</span>
-                Horario del Proceso
-              </h2>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-md">
-                {new Date().toLocaleDateString()}
+      {/* SECCIÓN 2: PARÁMETROS TÉCNICOS */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Horario con Estética Dashboard */}
+        <div className="lg:col-span-7">
+          <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm h-full flex flex-col">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100">
+                  <Clock className="text-amber-600" size={24} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tight">Cronograma de Carga</h2>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Control de tiempos operativos</p>
+                </div>
+              </div>
+              <div className="px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                <span className="text-xs font-black text-slate-500">{new Date().toLocaleDateString('es-PE', { weekday: 'long' }).toUpperCase()}</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 flex-grow">
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Fecha del Proceso</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">FECHA DEL PROCESO</label>
                   <input
                     type="date"
                     value={molienda.fechaInicio || ''}
                     onChange={(e) => setMolienda(prev => ({ ...prev, fechaInicio: e.target.value }))}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-[1.25rem] focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-black text-slate-700 transition-all shadow-inner"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Hora de Inicio</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">HORA DE ENCENDIDO (INICIO)</label>
                   <input
                     type="time"
                     value={molienda.horaInicio || ''}
                     onChange={(e) => setMolienda(prev => ({ ...prev, horaInicio: e.target.value }))}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
+                    className="w-full px-5 py-5 bg-slate-50 border border-slate-200 rounded-[1.25rem] focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-black text-slate-900 text-3xl transition-all shadow-inner"
                   />
-                  <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Ingrese la hora real de encendido</p>
+                  <div className="flex items-center gap-2 mt-3 ml-1 text-amber-600">
+                    <AlertTriangle size={12} />
+                    <span className="text-[9px] font-black uppercase tracking-tight">Verificar hora real antes de guardar</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col justify-center">
-                <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Hora Fin Estimada</label>
-                <div className="text-2xl font-black text-indigo-900">
-                  {totalCalculado.horaFin || '--:--'}
-                </div>
-                <div className="text-[10px] text-indigo-600 mt-1 font-bold">
-                  {totalCalculado.tiempoPorMolino} min de molienda
+              <div className="relative group overflow-hidden">
+                <div className="absolute inset-0 bg-indigo-900 transition-transform duration-500 group-hover:scale-105"></div>
+                <div className="relative p-8 h-full flex flex-col justify-between text-white z-10">
+                  <div className="flex justify-between items-start">
+                    <div className="p-2 bg-indigo-800/50 rounded-lg backdrop-blur-sm">
+                      <Clock size={20} />
+                    </div>
+                    <span className="text-[10px] font-black tracking-widest bg-white/10 px-2 py-1 rounded-md backdrop-blur-sm">CÁLCULO AUTO</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] mb-2">HORA FIN ESTIMADA</label>
+                    <div className="text-5xl font-black tracking-tighter mb-2">
+                      {totalCalculado.horaFin || '00:00'}
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-800/50 rounded-full w-fit backdrop-blur-sm">
+                      <TrendingUp size={14} className="text-indigo-300" />
+                      <span className="text-[10px] font-black uppercase tracking-tighter">
+                        +{totalCalculado.tiempoPorMolino} minutos de ciclo
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Mineral Selection */}
-        <div className="lg:col-span-2">
+        {/* Tipo de Mineral Estilo Tarjeta Premium */}
+        <div className="lg:col-span-5">
           <MineralTypeSelector
             mineralType={molienda.mineral}
             onMineralChange={(tipo) => setMolienda(prev => ({ ...prev, mineral: tipo }))}

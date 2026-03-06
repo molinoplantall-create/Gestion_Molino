@@ -421,11 +421,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (clientFetchError) throw clientFetchError;
 
-      const recordDate = new Date(data.fecha || new Date().toISOString());
       const nowDate = new Date();
-      const isHistorical = recordDate.getFullYear() !== nowDate.getFullYear() ||
-        recordDate.getMonth() !== nowDate.getMonth() ||
-        recordDate.getDate() !== nowDate.getDate();
+      let isHistorical = false;
+
+      if (data.fecha) {
+        // Parsear YYYY-MM-DD sin interpretación de zona horaria
+        const [year, month, day] = data.fecha.split('-').map(Number);
+        isHistorical = year !== nowDate.getFullYear() ||
+          (month - 1) !== nowDate.getMonth() ||
+          day !== nowDate.getDate();
+      }
 
       const { data: millingData, error: millingError } = await supabase
         .from('milling_logs')

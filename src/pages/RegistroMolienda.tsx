@@ -80,8 +80,8 @@ const RegistroMolienda: React.FC = () => {
       oxido: { hora40: true, hora00: false },
       sulfuro: { hora00: false, hora30: true }
     },
-    fechaInicio: new Date().toISOString().split('T')[0],
-    horaInicio: null,
+    fechaInicio: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD Local
+    horaInicio: new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false }),
     horaFin: null,
     stockTotal: 0,
     stockCuarzo: 0,
@@ -657,12 +657,12 @@ const RegistroMolienda: React.FC = () => {
                   <Clock className="text-amber-600" size={24} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tight">Cronograma de Carga</h2>
+                  <h2 className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tight">Horario del Proceso</h2>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Control de tiempos operativos</p>
                 </div>
               </div>
               <div className="px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
-                <span className="text-xs font-black text-slate-500">{new Date().toLocaleDateString('es-PE', { weekday: 'long' }).toUpperCase()}</span>
+                <span className="text-xs font-black text-slate-400">{new Date().toLocaleDateString('es-PE')}</span>
               </div>
             </div>
 

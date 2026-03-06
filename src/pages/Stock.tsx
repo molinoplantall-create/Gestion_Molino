@@ -12,7 +12,9 @@ import {
   Calendar,
   AlertCircle,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  ArrowUpDown,
+  ArrowDownWideNarrow
 } from 'lucide-react';
 import {
   TIPO_CLIENTE,
@@ -33,6 +35,7 @@ const Stock: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState('all');
+  const [sortOrder, setSortOrder] = useState<'total' | 'name'>('total');
 
   useEffect(() => {
     fetchClients();
@@ -62,13 +65,23 @@ const Stock: React.FC = () => {
     setNuevoIngreso(prev => ({ ...prev, total }));
   }, [nuevoIngreso.cuarzo, nuevoIngreso.llampo]);
 
-  // Filtrar clientes para mostrar en la lista
-  const filteredClients = clients.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.zone?.toLowerCase() || '').includes(search.toLowerCase());
-    const matchesTipo = filterTipo === 'all' || c.client_type === filterTipo;
-    return matchesSearch && matchesTipo;
-  });
+  // Filtrar y ordenar clientes para mostrar en la lista
+  const sortedClients = [...clients]
+    .filter(c => {
+      const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+        (c.zone?.toLowerCase() || '').includes(search.toLowerCase());
+      const matchesTipo = filterTipo === 'all' || c.client_type === filterTipo;
+      return matchesSearch && matchesTipo;
+    })
+    .sort((a, b) => {
+      if (sortOrder === 'total') {
+        const totalA = (a.stock_cuarzo || 0) + (a.stock_llampo || 0);
+        const totalB = (b.stock_cuarzo || 0) + (b.stock_llampo || 0);
+        return totalB - totalA; // Descendente: mayor a menor
+      } else {
+        return a.name.localeCompare(b.name);
+      }
+    });
 
   // Totales globales basados en la DB
   const totalStock = clients.reduce((sum, c) => sum + (c.stock_cuarzo || 0) + (c.stock_llampo || 0), 0);
@@ -259,6 +272,18 @@ const Stock: React.FC = () => {
               </select>
             </div>
 
+            <div className="relative flex-1 md:w-56">
+              <ArrowDownWideNarrow className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} strokeWidth={1.5} />
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'total' | 'name')}
+                className="w-full pl-10 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 appearance-none outline-none transition-all text-sm font-bold text-slate-700"
+              >
+                <option value="total">Ordenar por Stock (Mayor a Menor)</option>
+                <option value="name">Ordenar por Nombre (A-Z)</option>
+              </select>
+            </div>
+
             <button
               onClick={() => fetchClients()}
               disabled={clientsLoading}
@@ -293,7 +318,7 @@ const Stock: React.FC = () => {
                     <LoadingSpinner text="Cargando inventario..." />
                   </td>
                 </tr>
-              ) : filteredClients.map((client) => (
+              ) : sortedClients.map((client) => (
                 <tr key={client.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
@@ -355,7 +380,7 @@ const Stock: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {!clientsLoading && filteredClients.length === 0 && (
+              {!clientsLoading && sortedClients.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center">

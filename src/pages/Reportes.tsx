@@ -71,8 +71,9 @@ const Reportes: React.FC = () => {
     const millStats = mills.map(m => {
       const prodTotal = millingLogs.reduce((sum, log) => {
         if (!Array.isArray(log.mills_used)) return sum;
-        const millEntry = log.mills_used.find((mu: any) => mu.mill_id === m.id);
-        return sum + (millEntry?.total || (millEntry?.cuarzo + millEntry?.llampo) || 0);
+        // Soportar tanto mill_id como id por compatibilidad
+        const millEntry = log.mills_used.find((mu: any) => (mu.mill_id === m.id || mu.id === m.id));
+        return sum + (millEntry?.total || millEntry?.total_sacks || (Number(millEntry?.cuarzo || 0) + Number(millEntry?.llampo || 0)) || 0);
       }, 0);
       return {
         name: m.name,
@@ -100,9 +101,9 @@ const Reportes: React.FC = () => {
     millingLogs.forEach(log => {
       const cId = log.client_id;
       if (!clientPerformance[cId]) {
-        clientPerformance[cId] = { name: log.clients?.name || 'Cliente', total: 0, logs: 0 };
+        clientPerformance[cId] = { name: log.clients?.name || 'Cliente Desconocido', total: 0, logs: 0 };
       }
-      clientPerformance[cId].total += log.total_sacks;
+      clientPerformance[cId].total += (log.total_sacks || 0);
       clientPerformance[cId].logs += 1;
     });
 
@@ -126,6 +127,10 @@ const Reportes: React.FC = () => {
 
   // Handlers Reales
   const handleExportExcel = () => {
+    if (!millingLogs || millingLogs.length === 0) {
+      toast.warning('Sin Datos', 'No hay registros de molienda para exportar.');
+      return;
+    }
     toast.info('Generando Excel...', 'Procesando historial de molienda');
     const data = millingLogs.map(log => ({
       Fecha: new Date(log.created_at).toLocaleDateString(),

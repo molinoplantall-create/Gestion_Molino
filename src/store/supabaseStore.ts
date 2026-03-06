@@ -275,8 +275,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (millId && millId !== 'all') {
-        // mills_used is a jsonb array, searching for mill_id inside it
-        query = query.contains('mills_used', [{ mill_id: millId }]);
+        // mills_used es un array jsonb, buscamos por la propiedad correcta (id)
+        query = query.contains('mills_used', [{ id: millId }]);
       }
 
       if (mineralType && mineralType !== 'all') {

@@ -185,7 +185,29 @@ const Reportes: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 pb-20 max-w-[1600px] mx-auto px-4 md:px-6 print:p-0">
+    <div className="space-y-8 pb-20 max-w-[1600px] mx-auto px-4 md:px-6 print:p-0 print:m-0 print:block">
+      {/* Estilos específicos para impresión */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @media print {
+          nav, aside, header, .print\\:hidden, button, select, [role="navigation"], .sidebar-container {
+            display: none !important;
+          }
+          body, #root, main, .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+          .print-full-width {
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          .page-break {
+            page-break-before: always;
+          }
+        }
+      ` }} />
+
       {/* HEADER INDUSTRIAL */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-slate-200 pb-6 print:hidden">
         <div>

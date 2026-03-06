@@ -421,7 +421,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (clientFetchError) throw clientFetchError;
 
-      const isHistorical = data.fecha && new Date(data.fecha).toDateString() !== new Date().toDateString();
+      const recordDate = new Date(data.fecha || new Date().toISOString());
+      const nowDate = new Date();
+      const isHistorical = recordDate.getFullYear() !== nowDate.getFullYear() ||
+        recordDate.getMonth() !== nowDate.getMonth() ||
+        recordDate.getDate() !== nowDate.getDate();
 
       const { data: millingData, error: millingError } = await supabase
         .from('milling_logs')
@@ -503,9 +507,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       await Promise.all(millUpdates);
 
-      await get().fetchMills();
-      await get().fetchClients();
-      await get().fetchMillingLogs({ pageSize: 10 });
+      await Promise.all([
+        get().fetchMills(),
+        get().fetchClients(),
+        get().fetchMillingLogs({ pageSize: 12 })
+      ]);
 
       return true;
     } catch (error: any) {

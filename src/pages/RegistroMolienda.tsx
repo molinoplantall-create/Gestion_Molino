@@ -455,10 +455,13 @@ const RegistroMolienda: React.FC = () => {
     const horaInicio = molienda.horaInicio || ahora.toTimeString().slice(0, 5);
     const molinosActivos = molienda.molinos.filter(m => m.activo);
 
-    // Generar timestamps ISO robustos
+    // Generar timestamps ISO robustos usando fecha local del sistema
     const [startH, startM] = horaInicio.split(':').map(Number);
-    const startDate = new Date(molienda.fechaInicio || ahora.toISOString().split('T')[0]);
-    startDate.setHours(startH, startM, 0, 0);
+    const dateStr = molienda.fechaInicio || ahora.toISOString().split('T')[0];
+    const [year, month, day] = dateStr.split('-').map(Number);
+
+    // Crear objeto fecha en horario local del navegador
+    const startDate = new Date(year, month - 1, day, startH, startM, 0, 0);
     const horaInicioISO = startDate.toISOString();
 
     const tiempoPorMolino = getTiempoSeleccionado();
@@ -530,24 +533,50 @@ const RegistroMolienda: React.FC = () => {
 
   // WhatsApp report
   const generarReporteWhatsApp = () => {
-    if (!molienda.clienteId || molienda.totalSacos === 0) {
+    if (!molienda.clienteId || totalCalculado.totalSacos === 0) {
       toast.warning('Molienda Vacía', 'Complete los datos de la molienda antes de enviar el reporte.');
       return;
     }
 
-    let mensaje = `🏭 *DETALLE DE MOLIENDA*\n\n`;
+    const molinosActivos = molienda.molinos.filter(m => m.activo && m.total > 0);
+    const moliendasActivas = mills.filter(m => m.current_client_id === molienda.clienteId && m.status === 'OCUPADO').length;
+
+    let mensaje = `🏭 *AVISO DE NUEVA MOLIENDA*\n\n`;
     mensaje += `*Cliente:* ${molienda.clienteNombre}\n`;
-    mensaje += `*Tipo Cliente:* ${TIPO_CLIENTE.find(t => t.value === molienda.tipoCliente)?.label}\n`;
-    mensaje += `*Mineral:* ${MINERAL_TYPES_STOCK.find(m => m.value === molienda.mineral)?.label}\n\n`;
-    mensaje += `*TOTALES:*\n`;
-    mensaje += `• Total sacos: ${totalCalculado.totalSacos}\n`;
+    mensaje += `*Mineral:* ${molienda.mineral}\n\n`;
+
+    if (moliendasActivas > 0) {
+      mensaje += `🔄 *Total moliendas activas del cliente:* ${moliendasActivas + 1}\n\n`;
+    }
+
+    mensaje += `📦 *DETALLE DE CARGA:*\n`;
+    mensaje += `• *Total Sacos:* ${totalCalculado.totalSacos}\n`;
     mensaje += `• Cuarzo: ${totalCalculado.totalCuarzo} sacos\n`;
-    mensaje += `• Llampo: ${totalCalculado.totalLlampo} sacos\n`;
-    mensaje += `• Molinos activos: ${molienda.molinos.filter(m => m.activo).length}\n\n`;
-    mensaje += `📋 *Vista Previa* - ${new Date().toLocaleString()}\n`;
+    mensaje += `• Llampo: ${totalCalculado.totalLlampo} sacos\n\n`;
+
+    mensaje += `⚙️ *DISTRIBUCIÓN POR MOLINO:*\n`;
+    molinosActivos.forEach(m => {
+      mensaje += `▫️ *${m.name}:* ${m.total} sacos (${m.cuarzo} Cu / ${m.llampo} Ll)\n`;
+    });
+
+    if (molienda.horaInicio) {
+      mensaje += `\n⏰ *Inicio:* ${molienda.horaInicio}\n`;
+    }
+
+    const horaFin = document.getElementById('estimated-end-time')?.innerText;
+    if (horaFin) {
+      mensaje += `🏁 *Final Estimado:* ${horaFin}\n`;
+    }
+
+    if (molienda.observaciones) {
+      mensaje += `\n📝 *Obs:* ${molienda.observaciones}\n`;
+    }
+
+    mensaje += `\n_Generado por Sistema Gestión Molino_`;
 
     const mensajeCodificado = encodeURIComponent(mensaje);
-    window.open(`https://wa.me/?text=${mensajeCodificado}`, '_blank');
+    // Abrir WhatsApp con el mensaje pre-cargado
+    window.open(`https://api.whatsapp.com/send?text=${mensajeCodificado}`, '_blank');
   };
 
   const handleSeed = async () => {

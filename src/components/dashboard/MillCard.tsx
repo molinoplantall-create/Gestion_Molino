@@ -36,7 +36,7 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
 
     // Horarios
     horaInicio: mill?.horaInicio || mill?.start_time || null,
-    horaFinEstimada: mill?.estimated_end_time || mill?.horaFinEstimada || mill?.estimated_end || null,
+    horaFinEstimada: mill?.estimated_end || mill?.horaFinEstimada || null,
     horasTrabajadas: mill?.horasTrabajadas || mill?.total_hours_worked || 0,
 
     // Mantenimiento

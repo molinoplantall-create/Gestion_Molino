@@ -29,7 +29,7 @@ interface MolinoProceso {
   current_client?: string;
   current_sacks?: number;
   start_time?: string;
-  estimated_end_time?: string;
+  estimated_end?: string;
 }
 
 interface TiemposProceso {
@@ -202,7 +202,7 @@ const RegistroMolienda: React.FC = () => {
             current_client: m.current_client,
             current_sacks: m.current_sacks,
             start_time: m.start_time,
-            estimated_end_time: m.estimated_end_time
+            estimated_end: m.estimated_end
           }));
           console.log('✅ RegistroMolienda: Initialized molinos:', initialMolinos);
           return {
@@ -224,7 +224,7 @@ const RegistroMolienda: React.FC = () => {
               current_client: storeM.current_client || localM.current_client,
               current_sacks: storeM.current_sacks || localM.current_sacks,
               start_time: storeM.start_time || localM.start_time,
-              estimated_end_time: storeM.estimated_end_time || localM.estimated_end_time
+              estimated_end: storeM.estimated_end || localM.estimated_end
             };
           }
           return localM;

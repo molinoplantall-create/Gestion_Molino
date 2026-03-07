@@ -19,7 +19,7 @@ interface MolinoProceso {
     current_client?: string;
     current_sacks?: number;
     start_time?: string;
-    estimated_end_time?: string;
+    estimated_end?: string;
     current_mineral?: string;
 }
 
@@ -188,8 +188,8 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                                         <div className="flex justify-between items-center text-[10px]">
                                             <span className="text-red-400 font-bold uppercase tracking-tight">Hora fin:</span>
                                             <span className="font-bold text-slate-700">
-                                                {molino.estimated_end_time
-                                                    ? new Date(molino.estimated_end_time).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })
+                                                {molino.estimated_end
+                                                    ? new Date(molino.estimated_end).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })
                                                     : '--:--'}
                                             </span>
                                         </div>

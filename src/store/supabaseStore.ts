@@ -554,9 +554,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           current_cuarzo: m.cuarzo,
           current_llampo: m.llampo,
           start_time: data.horaInicioISO || new Date().toISOString(),
-          estimated_end_time: data.horaFinISO || null,
-          sacks_processing: m.total || 0,
-          current_mineral: data.mineralType
+          estimated_end: data.horaFinISO || null,
+          sacks_processing: m.total || 0
         };
 
         let { error: millError } = await supabase
@@ -567,7 +566,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         // FALLBACK PGRST204: Si faltan columnas de tiempo, reintentar sin ellas
         if (millError && millError.code === 'PGRST204') {
           console.warn('⚠️ store: missing time columns in mills table, retrying basic update...', m.id);
-          const { estimated_end_time, start_time, current_mineral, current_cuarzo, current_llampo, ...basicData } = updateData as any;
+          const { estimated_end, start_time, current_cuarzo, current_llampo, ...basicData } = updateData as any;
           const { error: retryError } = await supabase
             .from('mills')
             .update(basicData)
@@ -604,8 +603,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
     const millsToLiberate = millsToProcess.filter(m =>
       m.status === 'OCUPADO' &&
-      m.estimated_end_time &&
-      new Date(m.estimated_end_time).getTime() + gracePeriod < now.getTime()
+      m.estimated_end &&
+      new Date(m.estimated_end).getTime() + gracePeriod < now.getTime()
     );
 
     if (millsToLiberate.length === 0) return;
@@ -615,9 +614,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       for (const mill of millsToLiberate) {
         // Calcular horas trabajadas antes de liberar
-        if (mill.start_time && mill.estimated_end_time) {
+        if (mill.start_time && mill.estimated_end) {
           const start = new Date(mill.start_time).getTime();
-          const end = new Date(mill.estimated_end_time).getTime();
+          const end = new Date(mill.estimated_end).getTime();
           const hours = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
           if (hours > 0) {
             await get().updateMillHours(mill.id, hours);
@@ -633,7 +632,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
             current_cuarzo: 0,
             current_llampo: 0,
             start_time: null,
-            estimated_end_time: null,
+            estimated_end: null,
             sacks_processing: 0
           })
           .eq('id', mill.id);
@@ -806,7 +805,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // FALLBACK: Si hay columnas inexistentes
       if (error && error.code === 'PGRST204') {
-        const { estimated_end_time, start_time, ...basicData } = updateData;
+        const { estimated_end, start_time, ...basicData } = updateData as any;
         const { error: retryError } = await supabase.from('mills').update(basicData).eq('id', id);
         error = retryError;
       }
@@ -825,9 +824,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (!mill) return false;
 
       // Calcular horas trabajadas antes de liberar
-      if (mill.start_time && mill.estimated_end_time) {
+      if (mill.start_time && mill.estimated_end) {
         const start = new Date(mill.start_time).getTime();
-        const end = new Date(mill.estimated_end_time).getTime();
+        const end = new Date(mill.estimated_end).getTime();
         const hours = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
         if (hours > 0) {
           await get().updateMillHours(millId, hours);
@@ -841,7 +840,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         current_cuarzo: 0,
         current_llampo: 0,
         start_time: null,
-        estimated_end_time: null,
+        estimated_end: null,
         sacks_processing: 0
       };
 

@@ -5,7 +5,7 @@ import { useSupabaseStore } from '@/store/supabaseStore';
 import { Table } from '@/components/common/Table';
 
 const Moliendas: React.FC = () => {
-  const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills } = useSupabaseStore();
+  const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills, deleteMillingLog } = useSupabaseStore();
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedMill, setSelectedMill] = useState<string>('all');
@@ -151,6 +151,16 @@ const Moliendas: React.FC = () => {
           </button>
           <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
             <Edit size={18} strokeWidth={1.5} />
+          </button>
+          <button
+            onClick={async () => {
+              if (window.confirm('¿Está seguro de borrar este registro? Los sacos se devolverán al stock del cliente.')) {
+                await deleteMillingLog(session.id);
+              }
+            }}
+            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <Trash2 size={18} strokeWidth={1.5} />
           </button>
         </div>
       )

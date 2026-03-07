@@ -44,6 +44,8 @@ export interface Client {
   zone?: string;
   stock_cuarzo: number;
   stock_llampo: number;
+  cumulative_cuarzo?: number;
+  cumulative_llampo?: number;
   last_intake_date?: string;
   last_intake_zone?: string;
   last_mineral_type?: string;

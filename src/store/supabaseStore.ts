@@ -81,6 +81,7 @@ interface SupabaseStore {
   finalizeMilling: (millId: string) => Promise<boolean>;
   updateMillHours: (millId: string, hoursToAdd: number) => Promise<boolean>;
   finalizeMaintenance: (id: string, millId: string) => Promise<boolean>;
+  deleteMillingLog: (logId: string) => Promise<boolean>;
   startPollingMills: () => void;
   stopPollingMills: () => void;
   isPolling: boolean;
@@ -818,6 +819,85 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
+  deleteMillingLog: async (logId: string) => {
+    set({ loading: true, error: null });
+    try {
+      console.log(`🗑️ store: intentando borrar molienda ${logId}`);
+
+      // 1. Obtener detalles del log para revertir stock
+      const { data: log, error: fetchError } = await supabase
+        .from('milling_logs')
+        .select('*')
+        .eq('id', logId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 2. Revertir stock del cliente
+      const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select('stock_cuarzo, stock_llampo')
+        .eq('id', log.client_id)
+        .single();
+
+      if (clientError) throw clientError;
+
+      const revertedCuarzo = (client.stock_cuarzo || 0) + (log.total_cuarzo || 0);
+      const revertedLlampo = (client.stock_llampo || 0) + (log.total_llampo || 0);
+
+      const { error: stockError } = await supabase
+        .from('clients')
+        .update({
+          stock_cuarzo: revertedCuarzo,
+          stock_llampo: revertedLlampo
+        })
+        .eq('id', log.client_id);
+
+      if (stockError) throw stockError;
+
+      // 3. Si estaba IN_PROGRESS, liberar los molinos asociados
+      if (log.status === 'IN_PROGRESS' || log.status === 'EN_PROCESO') {
+        const millsToLiberate = log.mills_used || [];
+        for (const m of millsToLiberate) {
+          await supabase
+            .from('mills')
+            .update({
+              status: 'LIBRE',
+              current_client_id: null,
+              current_cuarzo: 0,
+              current_llampo: 0,
+              start_time: null,
+              estimated_end_time: null,
+              sacks_processing: 0
+            })
+            .eq('id', m.id);
+        }
+      }
+
+      // 4. Borrar el log de forma definitiva
+      const { error: deleteError } = await supabase
+        .from('milling_logs')
+        .delete()
+        .eq('id', logId);
+
+      if (deleteError) throw deleteError;
+
+      console.log('✅ store: molienda borrada y stock revertido correctamente');
+
+      await get().fetchMillingLogs();
+      await get().fetchClients();
+      await get().fetchMills();
+
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error deleteMillingLog:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   updateClient: async (id, clientData) => {
     set({ loading: true, error: null });
     try {
@@ -866,7 +946,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       console.log('📡 store: Fetching client current stock...');
       const { data: client, error: fetchError } = await supabase
         .from('clients')
-        .select('stock_cuarzo, stock_llampo')
+        .select('stock_cuarzo, stock_llampo, cumulative_cuarzo, cumulative_llampo')
         .eq('id', clientId)
         .single();
 
@@ -879,6 +959,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const updateData: any = {
         stock_cuarzo: (client.stock_cuarzo || 0) + cuarzo,
         stock_llampo: (client.stock_llampo || 0) + llampo,
+        cumulative_cuarzo: (client.cumulative_cuarzo || 0) + cuarzo,
+        cumulative_llampo: (client.cumulative_llampo || 0) + llampo,
         last_intake_date: new Date().toISOString(),
       };
 

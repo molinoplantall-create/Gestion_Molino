@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Printer, MessageSquare, Clock, AlertTriangle, TrendingUp, Factory } from 'lucide-react';
+import { Save, Printer, MessageSquare, Clock, AlertTriangle, TrendingUp, Factory, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useSupabaseStore } from '../store/supabaseStore';
 import { useModal } from '@/hooks/useModal';
@@ -80,7 +80,7 @@ const RegistroMolienda: React.FC = () => {
       oxido: { hora40: true, hora00: false },
       sulfuro: { hora00: false, hora30: true }
     },
-    fechaInicio: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD Local
+    fechaInicio: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD local robusto
     horaInicio: new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false }),
     horaFin: null,
     stockTotal: 0,
@@ -100,6 +100,8 @@ const RegistroMolienda: React.FC = () => {
     estado_proceso: 'PROCESANDO',
     allowedMineralType: ''
   });
+
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const { validate, errors } = useFormValidation({
     schema: millingProcessSchema
@@ -448,58 +450,68 @@ const RegistroMolienda: React.FC = () => {
 
   // Register milling
   const registrarMolienda = async () => {
+    if (isRegistering) return;
+
     const isValid = await validarRegistro();
     if (!isValid) return;
 
-    const ahora = new Date();
-    const horaInicio = molienda.horaInicio || ahora.toTimeString().slice(0, 5);
-    const molinosActivos = molienda.molinos.filter(m => m.activo);
+    setIsRegistering(true);
+    try {
+      const ahora = new Date();
+      const horaInicio = molienda.horaInicio || ahora.toTimeString().slice(0, 5);
+      const molinosActivos = molienda.molinos.filter(m => m.activo);
 
-    // Generar timestamps ISO robustos usando fecha local del sistema
-    const [startH, startM] = horaInicio.split(':').map(Number);
-    const dateStr = molienda.fechaInicio || ahora.toISOString().split('T')[0];
-    const [year, month, day] = dateStr.split('-').map(Number);
+      // Generar timestamps ISO robustos usando fecha local del sistema
+      const [startH, startM] = horaInicio.split(':').map(Number);
+      const dateStr = molienda.fechaInicio || ahora.toISOString().split('T')[0];
+      const [year, month, day] = dateStr.split('-').map(Number);
 
-    // Crear objeto fecha en horario local del navegador
-    const startDate = new Date(year, month - 1, day, startH, startM, 0, 0);
-    const horaInicioISO = startDate.toISOString();
+      // Crear objeto fecha en horario local del navegador
+      const startDate = new Date(year, month - 1, day, startH, startM, 0, 0);
+      const horaInicioISO = startDate.toISOString();
 
-    const tiempoPorMolino = getTiempoSeleccionado();
-    const endDate = new Date(startDate.getTime() + (tiempoPorMolino * 60 * 1000));
-    const horaFinISO = endDate.toISOString();
-    const horaFinCalculada = endDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const tiempoPorMolino = getTiempoSeleccionado();
+      const endDate = new Date(startDate.getTime() + (tiempoPorMolino * 60 * 1000));
+      const horaFinISO = endDate.toISOString();
+      const horaFinCalculada = endDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-    const success = await registerMilling({
-      clientId: molienda.clienteId,
-      mineralType: molienda.mineral as 'OXIDO' | 'SULFURO',
-      totalSacos: totalCalculado.totalSacos,
-      totalCuarzo: totalCalculado.totalCuarzo,
-      totalLlampo: totalCalculado.totalLlampo,
-      mills: molinosActivos.map(m => ({
-        id: m.id,
-        name: m.name,
-        cuarzo: m.cuarzo,
-        llampo: m.llampo,
-        total: m.total
-      })),
-      observations: molienda.observaciones,
-      fecha: horaInicioISO, // Persistimos el inicio real como created_at
-      horaInicioISO: horaInicioISO,
-      horaFinISO: horaFinISO
-    });
+      const success = await registerMilling({
+        clientId: molienda.clienteId,
+        mineralType: molienda.mineral as 'OXIDO' | 'SULFURO',
+        totalSacos: totalCalculado.totalSacos,
+        totalCuarzo: totalCalculado.totalCuarzo,
+        totalLlampo: totalCalculado.totalLlampo,
+        mills: molinosActivos.map(m => ({
+          id: m.id,
+          name: m.name,
+          cuarzo: m.cuarzo,
+          llampo: m.llampo,
+          total: m.total
+        })),
+        observations: molienda.observaciones,
+        fecha: horaInicioISO, // Persistimos el inicio real como created_at
+        horaInicioISO: horaInicioISO,
+        horaFinISO: horaFinISO
+      });
 
-    if (success) {
-      const detalleMolinos = molinosActivos.map(m => `• ${m.name}: ${m.total} sacos`).join('\n');
-      const fechaFormateada = startDate.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      if (success) {
+        const detalleMolinos = molinosActivos.map(m => `• ${m.name}: ${m.total} sacos`).join('\n');
+        const fechaFormateada = startDate.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-      toast.success(
-        '¡Proceso Registrado!',
-        `La molienda ha sido guardada correctamente.\n\nFecha: ${fechaFormateada}\nHora inicio: ${horaInicio}\nHora fin estimada: ${horaFinCalculada}\n\nDETALLE:\n${detalleMolinos}`
-      );
+        toast.success(
+          '¡Proceso Registrado!',
+          `La molienda ha sido guardada correctamente.\n\nFecha: ${fechaFormateada}\nHora inicio: ${horaInicio}\nHora fin estimada: ${horaFinCalculada}\n\nDETALLE:\n${detalleMolinos}`
+        );
 
-      resetFormulario();
-    } else {
-      toast.error('Error', 'Hubo un error al registrar la molienda. Inténtelo de nuevo.');
+        resetFormulario();
+      } else {
+        toast.error('Error', 'Hubo un error al registrar la molienda. Inténtelo de nuevo.');
+      }
+    } catch (err) {
+      console.error('Error in registrarMolienda:', err);
+      toast.error('Error Crítico', 'Ocurrió un error inesperado al procesar el registro.');
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -765,11 +777,23 @@ const RegistroMolienda: React.FC = () => {
       <div className="flex justify-end">
         <button
           onClick={registrarMolienda}
-          className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-lg font-medium"
-          disabled={molienda.procesoIniciado}
+          className={`flex items-center px-6 py-3 rounded-xl transition-all shadow-lg font-bold text-sm tracking-tight ${isRegistering
+              ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
+            }`}
+          disabled={isRegistering || molienda.procesoIniciado}
         >
-          <Save size={20} className="mr-2" />
-          Registrar Molienda
+          {isRegistering ? (
+            <>
+              <RefreshCw size={18} className="mr-2 animate-spin" />
+              REGISTRANDO...
+            </>
+          ) : (
+            <>
+              <Save size={18} className="mr-2" />
+              REGISTRAR MOLIENDA
+            </>
+          )}
         </button>
       </div>
 

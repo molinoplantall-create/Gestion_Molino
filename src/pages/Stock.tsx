@@ -287,6 +287,7 @@ const Stock: React.FC = () => {
                 <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">ZONA</th>
                 <th className="px-6 py-6 text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] text-center bg-amber-50/30">CUARZO</th>
                 <th className="px-6 py-6 text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] text-center bg-indigo-50/30">LLAMPO</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">HISTÓRICO</th>
                 <th className="px-6 py-6 text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] text-center">TOTAL BALANCE</th>
                 <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">ÚLTIMO MOVIMIENTO</th>
                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">GESTIONAR</th>
@@ -328,6 +329,12 @@ const Stock: React.FC = () => {
                   </td>
                   <td className="px-6 py-6 text-center bg-indigo-50/10">
                     <span className="text-lg font-black text-indigo-600">{(client.stock_llampo || 0).toLocaleString()}</span>
+                  </td>
+                  <td className="px-6 py-6 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs font-black text-amber-600/60" title="Total Cuarzo histórico">H. Cu: {(client.cumulative_cuarzo || 0).toLocaleString()}</span>
+                      <span className="text-xs font-black text-indigo-600/60" title="Total Llampo histórico">H. Ll: {(client.cumulative_llampo || 0).toLocaleString()}</span>
+                    </div>
                   </td>
                   <td className="px-6 py-6 text-center">
                     <div className="inline-flex flex-col items-center">
@@ -373,143 +380,138 @@ const Stock: React.FC = () => {
           </table>
         </div>
       </div>
-      {!clientsLoading && sortedClients.length === 0 && (
-        <tr>
-          <td colSpan={7} className="px-6 py-20 text-center">
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                <Package className="text-slate-300" size={32} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-800">No se encontraron clientes</h3>
-              <p className="text-sm text-slate-500">Intente cambiar los filtros de búsqueda</p>
+
+      {
+        !clientsLoading && sortedClients.length === 0 && (
+          <div className="flex flex-col items-center py-20 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm mt-8">
+            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+              <Package className="text-slate-300" size={32} />
             </div>
-          </td>
-        </tr>
-      )}
-    </tbody>
-          </table >
-        </div >
-      </div >
+            <h3 className="text-lg font-bold text-slate-800">No se encontraron clientes</h3>
+            <p className="text-sm text-slate-500">Intente cambiar los filtros de búsqueda</p>
+          </div>
+        )
+      }
 
-  {/* Modal de Nuevo Ingreso - Usando FormModal para responsividad */ }
-  < FormModal
-isOpen = { showModal }
-onClose = {() => setShowModal(false)}
-onSubmit = { guardarIngreso }
-title = "Registrar Ingreso de Mineral"
-icon = { Truck }
-submitLabel = "Confirmar Ingreso"
-isLoading = { loading }
-isValid = {!!nuevoIngreso.clienteId && nuevoIngreso.total > 0}
-size = "lg"
-  >
-  <div className="space-y-6">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="md:col-span-2">
-        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Cliente *</label>
-        <select
-          value={nuevoIngreso.clienteId}
-          onChange={(e) => {
-            const client = clients.find(c => c.id === e.target.value);
-            setNuevoIngreso({
-              ...nuevoIngreso,
-              clienteId: e.target.value,
-              clienteNombre: client?.name || '',
-              tipoCliente: client?.client_type || ''
-            });
-          }}
-          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-slate-800"
-          required
-        >
-          <option value="">Seleccionar Cliente</option>
-          {clients.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-      </div>
+      {/* Modal de Nuevo Ingreso */}
+      <FormModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={guardarIngreso}
+        title="Registrar Ingreso de Mineral"
+        icon={Truck}
+        submitLabel="Confirmar Ingreso"
+        isLoading={loading}
+        isValid={!!nuevoIngreso.clienteId && nuevoIngreso.total > 0}
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Cliente *</label>
+              <select
+                value={nuevoIngreso.clienteId}
+                onChange={(e) => {
+                  const client = clients.find(c => c.id === e.target.value);
+                  setNuevoIngreso({
+                    ...nuevoIngreso,
+                    clienteId: e.target.value,
+                    clienteNombre: client?.name || '',
+                    tipoCliente: client?.client_type || ''
+                  });
+                }}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-slate-800"
+                required
+              >
+                <option value="">Seleccionar Cliente</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
 
-      <div>
-        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Fecha Recepción *</label>
-        <input
-          type="date"
-          value={nuevoIngreso.fechaRecepcion}
-          onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, fechaRecepcion: e.target.value })}
-          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold"
-        />
-      </div>
+            <div>
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Fecha Recepción *</label>
+              <input
+                type="date"
+                value={nuevoIngreso.fechaRecepcion}
+                onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, fechaRecepcion: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold"
+              />
+            </div>
 
-      <div>
-        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Zona Procedencia *</label>
-        <select
-          value={nuevoIngreso.zona}
-          onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, zona: e.target.value })}
-          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold"
-          required
-        >
-          <option value="">Seleccionar Zona</option>
-          {zones.map(z => (
-            <option key={z.id} value={z.name}>{z.name}</option>
-          ))}
-        </select>
-      </div>
-    </div>
+            <div>
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Zona Procedencia *</label>
+              <select
+                value={nuevoIngreso.zona}
+                onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, zona: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold"
+                required
+              >
+                <option value="">Seleccionar Zona</option>
+                {zones.map(z => (
+                  <option key={z.id} value={z.name}>{z.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-    <div>
-      <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Tipo de Mineral *</label>
-      <div className="grid grid-cols-2 gap-2">
-        {MINERAL_TYPES_STOCK.map((type) => (
-          <button
-            key={type.value}
-            type="button"
-            onClick={() => setNuevoIngreso({ ...nuevoIngreso, mineralType: type.value as 'OXIDO' | 'SULFURO' })}
-            className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${nuevoIngreso.mineralType === type.value
-              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100'
-              : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'
-              }`}
-          >
-            {type.label}
-          </button>
-        ))}
-      </div>
-    </div>
+          <div>
+            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Tipo de Mineral *</label>
+            <div className="grid grid-cols-2 gap-2">
+              {MINERAL_TYPES_STOCK.map((type) => (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => setNuevoIngreso({ ...nuevoIngreso, mineralType: type.value as 'OXIDO' | 'SULFURO' })}
+                  className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${nuevoIngreso.mineralType === type.value
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100'
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'
+                    }`}
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 shadow-inner">
-        <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">CANT. CUARZO</label>
-        <input
-          type="number"
-          min="0"
-          value={nuevoIngreso.cuarzo || ''}
-          onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, cuarzo: parseInt(e.target.value) || 0 })}
-          className="w-full bg-transparent text-3xl font-black text-amber-900 border-none focus:ring-0 outline-none transition-all placeholder:text-amber-200"
-          placeholder="0"
-        />
-      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 shadow-inner">
+              <label className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">CANT. CUARZO</label>
+              <input
+                type="number"
+                min="0"
+                value={nuevoIngreso.cuarzo || ''}
+                onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, cuarzo: parseInt(e.target.value) || 0 })}
+                className="w-full bg-transparent text-3xl font-black text-amber-900 border-none focus:ring-0 outline-none transition-all placeholder:text-amber-200"
+                placeholder="0"
+              />
+            </div>
 
-      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner">
-        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">CANT. LLAMPO</label>
-        <input
-          type="number"
-          min="0"
-          value={nuevoIngreso.llampo || ''}
-          onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, llampo: parseInt(e.target.value) || 0 })}
-          className="w-full bg-transparent text-3xl font-black text-slate-900 border-none focus:ring-0 outline-none transition-all placeholder:text-slate-200"
-          placeholder="0"
-        />
-      </div>
-    </div>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">CANT. LLAMPO</label>
+              <input
+                type="number"
+                min="0"
+                value={nuevoIngreso.llampo || ''}
+                onChange={(e) => setNuevoIngreso({ ...nuevoIngreso, llampo: parseInt(e.target.value) || 0 })}
+                className="w-full bg-transparent text-3xl font-black text-slate-900 border-none focus:ring-0 outline-none transition-all placeholder:text-slate-200"
+                placeholder="0"
+              />
+            </div>
+          </div>
 
-    <div className="bg-indigo-900 p-5 rounded-2xl flex items-center justify-between shadow-lg">
-      <div className="flex items-center">
-        <div className="p-2 bg-indigo-800 rounded-lg mr-3">
-          <Package className="text-white" size={20} />
+          <div className="bg-indigo-900 p-5 rounded-2xl flex items-center justify-between shadow-lg">
+            <div className="flex items-center">
+              <div className="p-2 bg-indigo-800 rounded-lg mr-3">
+                <Package className="text-white" size={20} />
+              </div>
+              <span className="font-bold text-white uppercase text-xs tracking-widest">Total a Ingresar</span>
+            </div>
+            <span className="text-3xl font-black text-white">{nuevoIngreso.total.toLocaleString()} <span className="text-xs">SACOS</span></span>
+          </div>
         </div>
-        <span className="font-bold text-white uppercase text-xs tracking-widest">Total a Ingresar</span>
-      </div>
-      <span className="text-3xl font-black text-white">{nuevoIngreso.total.toLocaleString()} <span className="text-xs">SACOS</span></span>
-    </div>
-  </div>
-      </FormModal >
+      </FormModal>
     </div >
   );
 };

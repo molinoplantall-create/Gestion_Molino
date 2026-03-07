@@ -20,6 +20,7 @@ interface MolinoProceso {
     current_sacks?: number;
     start_time?: string;
     estimated_end_time?: string;
+    current_mineral?: string;
 }
 
 interface MillSelectorProps {
@@ -165,8 +166,15 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                                     <div className="text-[9px] text-red-700 font-black uppercase tracking-widest mb-1">Estado: {molino.status}</div>
                                     <div className="text-[11px] text-slate-600 space-y-1">
                                         {molino.current_client && (
-                                            <div className="font-bold text-slate-800 truncate" title={molino.current_client}>
-                                                👤 {molino.current_client}
+                                            <div className="flex flex-col gap-1 mb-2 bg-white/50 p-1.5 rounded-md border border-red-100/50">
+                                                <div className="font-bold text-slate-800 truncate flex items-center" title={molino.current_client}>
+                                                    👤 {molino.current_client}
+                                                </div>
+                                                {molino.current_mineral && (
+                                                    <div className="text-[9px] font-black text-red-600/80 uppercase tracking-widest pl-4">
+                                                        • {molino.current_mineral}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                         <div className="flex justify-between items-center text-[10px]">

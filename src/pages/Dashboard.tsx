@@ -131,7 +131,7 @@ const Dashboard: React.FC = () => {
 
   const totalStockSacos = clients.reduce((acc, client) => acc + (client.stock_cuarzo || 0) + (client.stock_llampo || 0), 0);
   const totalClientes = clients.length;
-  const ingresosEstimados = millingLogs.reduce((acc, log) => acc + (log.total_sacks || 0), 0) * 12.5;
+  const totalHorasMaquina = mills.reduce((acc, m) => acc + ((m as any).horas_trabajadas || (m as any).horasTrabajadas || 0), 0);
 
   return (
     <div className="space-y-8 pb-10 max-w-[1600px] mx-auto px-4 md:px-6">
@@ -174,7 +174,7 @@ const Dashboard: React.FC = () => {
               { label: 'PRODUCCIÓN HOY', value: totalSacosHoy.toLocaleString(), icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
               { label: 'STOCK TOTAL', value: totalStockSacos.toLocaleString(), icon: ShoppingBag, color: 'text-amber-600', bg: 'bg-amber-50' },
               { label: 'CLIENTES ACTIVOS', value: totalClientes.toString(), icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-              { label: 'INGRESOS HIST.', value: `$${ingresosEstimados.toLocaleString()}`, icon: DollarSign, color: 'text-violet-600', bg: 'bg-violet-50' },
+              { label: 'HORAS MÁQUINA', value: `${totalHorasMaquina.toFixed(1)}h`, icon: Clock, color: 'text-violet-600', bg: 'bg-violet-50' },
             ].map((kpi, i) => (
               <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
                 <div className={`p-4 ${kpi.bg} rounded-2xl w-fit mb-4`}>

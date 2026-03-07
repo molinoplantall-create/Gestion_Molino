@@ -131,11 +131,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         name: m.name || `Molino ${m.id}`,
         status: (m.status || 'LIBRE').toUpperCase(),
         capacity: m.capacity || 150,
-        horas_trabajadas: m.total_hours_worked || 0,
+        horas_trabajadas: m.total_hours_worked || m.horas_trabajadas || 0,
+        horasTrabajadas: m.total_hours_worked || m.horas_trabajadas || 0,
         sacks_processing: m.sacks_processing || 0,
         current_sacks: m.sacks_processing || 0,
         current_client: m.clients?.name || null,
-        current_client_id: m.current_client_id || null
+        current_client_id: m.current_client_id || null,
+        current_mineral: m.current_mineral || null
       })) as Mill[];
 
       // Sort alphabetically by name
@@ -434,6 +436,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           (year === nowDate.getFullYear() && (month - 1) < nowDate.getMonth()) ||
           (year === nowDate.getFullYear() && (month - 1) === nowDate.getMonth() && day < nowDate.getDate());
 
+        if (!isHistorical && data.horaFinISO) {
+          if (new Date(data.horaFinISO).getTime() <= nowDate.getTime()) {
+            isHistorical = true;
+          }
+        }
+
         console.log('📅 registerMilling: date check:', {
           provided: datePart,
           today: nowDate.toISOString().split('T')[0],
@@ -548,6 +556,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           start_time: data.horaInicioISO || new Date().toISOString(),
           estimated_end_time: data.horaFinISO || null,
           sacks_processing: m.total || 0,
+          current_mineral: data.mineralType
         };
 
         let { error: millError } = await supabase
@@ -558,7 +567,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         // FALLBACK PGRST204: Si faltan columnas de tiempo, reintentar sin ellas
         if (millError && millError.code === 'PGRST204') {
           console.warn('⚠️ store: missing time columns in mills table, retrying basic update...', m.id);
-          const { estimated_end_time, start_time, ...basicData } = updateData as any;
+          const { estimated_end_time, start_time, current_mineral, current_cuarzo, current_llampo, ...basicData } = updateData as any;
           const { error: retryError } = await supabase
             .from('mills')
             .update(basicData)

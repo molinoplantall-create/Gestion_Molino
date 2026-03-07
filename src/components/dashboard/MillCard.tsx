@@ -46,7 +46,8 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
 
     // Información adicional del sistema
     operativo: mill?.operativo !== false, // true por defecto
-    necesitaMantenimiento: mill?.necesitaMantenimiento || false
+    necesitaMantenimiento: mill?.necesitaMantenimiento || false,
+    mineralActual: mill?.current_mineral || null
   };
 
   // Determinar estado REAL (no mostrar "sacos procesando" si está en mantenimiento)
@@ -227,10 +228,18 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
           </div>
         </div>
 
-        {/* Indicador de capacidad */}
+        {/* Indicador o Logo Alternativo */}
         <div className="text-right">
-          <div className="text-xl font-black text-slate-900">{normalizedMill.capacidad}</div>
-          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">sacos/h</div>
+          {estadoReal === 'ocupado' ? (
+            <>
+              <div className="text-xl font-black text-slate-900">{normalizedMill.sacosProcesando}</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">sacos</div>
+            </>
+          ) : (
+            <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest pt-2 opacity-50">
+              INMACULADA
+            </div>
+          )}
         </div>
       </div>
 
@@ -239,14 +248,21 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
         {/* Información de Ocupación Compacta */}
         {estadoReal === 'ocupado' && (
           <div className="space-y-2">
-            {/* Fila Cliente */}
-            <div className="flex items-center px-3 py-2 bg-white/60 rounded-lg border border-orange-100 shadow-sm">
-              <User className="text-orange-400 mr-2" size={14} strokeWidth={2} />
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-bold text-slate-800 truncate" title={normalizedMill.clienteActual}>
-                  {normalizedMill.clienteActual || 'Cliente'}
+            {/* Fila Cliente y Mineral */}
+            <div className="flex flex-col px-3 py-2 bg-white/60 rounded-lg border border-orange-100 shadow-sm gap-1">
+              <div className="flex items-center">
+                <User className="text-orange-400 mr-2 shrink-0" size={14} strokeWidth={2} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] font-bold text-slate-800 truncate" title={normalizedMill.clienteActual}>
+                    {normalizedMill.clienteActual || 'Cliente Anónimo'}
+                  </div>
                 </div>
               </div>
+              {normalizedMill.mineralActual && (
+                <div className="flex items-center text-[10px] font-black text-orange-600/80 uppercase tracking-widest pl-5">
+                  • {normalizedMill.mineralActual}
+                </div>
+              )}
             </div>
 
             {/* Fila Tiempos */}

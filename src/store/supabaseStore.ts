@@ -85,6 +85,7 @@ interface SupabaseStore {
   startPollingMills: () => void;
   stopPollingMills: () => void;
   isPolling: boolean;
+  fetchClientBatches: (clientId: string) => Promise<any[]>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -471,6 +472,57 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .eq('id', data.clientId);
 
       if (stockError) throw stockError;
+
+      // --- FIFO Batch Consumption ---
+      const consumeBatches = async (clientId: string, subMineral: 'CUARZO' | 'LLAMPO', totalToConsume: number) => {
+        if (totalToConsume <= 0) return;
+
+        // Fetch oldest batches first (ASC)
+        const { data: batches, error: fetchBatchesError } = await supabase
+          .from('stock_batches')
+          .select('*')
+          .eq('client_id', clientId)
+          .eq('sub_mineral', subMineral)
+          .gt('remaining_quantity', 0)
+          .order('created_at', { ascending: true });
+
+        if (fetchBatchesError) {
+          console.error(`❌ store: Error fetching batches for ${subMineral}:`, fetchBatchesError);
+          return;
+        }
+
+        let remainingToConsume = totalToConsume;
+
+        for (const batch of (batches || [])) {
+          if (remainingToConsume <= 0) break;
+
+          const consumption = Math.min(batch.remaining_quantity, remainingToConsume);
+          const newBatchRemaining = batch.remaining_quantity - consumption;
+          remainingToConsume -= consumption;
+
+          const { error: batchUpdateError } = await supabase
+            .from('stock_batches')
+            .update({ remaining_quantity: newBatchRemaining })
+            .eq('id', batch.id);
+
+          if (batchUpdateError) {
+            console.error(`❌ store: Error updating batch ${batch.id}:`, batchUpdateError);
+          }
+        }
+
+        if (remainingToConsume > 0) {
+          console.warn(`⚠️ store: Insufficient batch stock for ${subMineral}. Remaining: ${remainingToConsume}`);
+        }
+      };
+
+      // Consume for Cuarzo and Llampo sequentially
+      if (data.totalCuarzo > 0) {
+        await consumeBatches(data.clientId, 'CUARZO', data.totalCuarzo);
+      }
+      if (data.totalLlampo > 0) {
+        await consumeBatches(data.clientId, 'LLAMPO', data.totalLlampo);
+      }
+      // -------------------------------
 
       const millUpdates = data.mills.map(async (m) => {
         // Calcular duración en horas
@@ -1011,6 +1063,29 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         throw updateError;
       }
 
+      // 4. Create stock batches for FIFO tracking
+      if (cuarzo > 0) {
+        await supabase.from('stock_batches').insert({
+          client_id: clientId,
+          mineral_type: mineralType || 'OXIDO',
+          sub_mineral: 'CUARZO',
+          initial_quantity: cuarzo,
+          remaining_quantity: cuarzo,
+          zone: zone
+        });
+      }
+
+      if (llampo > 0) {
+        await supabase.from('stock_batches').insert({
+          client_id: clientId,
+          mineral_type: mineralType || 'OXIDO',
+          sub_mineral: 'LLAMPO',
+          initial_quantity: llampo,
+          remaining_quantity: llampo,
+          zone: zone
+        });
+      }
+
       console.log('✅ store: Stock updated successfully. Refreshing clients list...');
       await get().fetchClients();
       console.log('✨ store: Client list refreshed.');
@@ -1159,5 +1234,21 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
     set({ isPolling: false });
     console.log('📡 store: Polling de molinos detenido');
+  },
+
+  fetchClientBatches: async (clientId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('stock_batches')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error fetchClientBatches:', error);
+      return [];
+    }
   }
 }));

@@ -14,8 +14,15 @@ import {
   CheckCircle,
   RefreshCw,
   ArrowUpDown,
-  ArrowDownWideNarrow
+  ArrowDownWideNarrow,
+  ChevronDown,
+  ChevronUp,
+  FileText
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   TIPO_CLIENTE,
   MINERAL_TYPES_STOCK,
@@ -36,6 +43,12 @@ const Stock: React.FC = () => {
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState('all');
   const [sortOrder, setSortOrder] = useState<'total' | 'name'>('total');
+
+  // Batch viewing state
+  const [expandedClient, setExpandedClient] = useState<string | null>(null);
+  const [clientBatches, setClientBatches] = useState<any[]>([]);
+  const [batchesLoading, setBatchesLoading] = useState(false);
+  const { fetchClientBatches } = useSupabaseStore();
 
   useEffect(() => {
     fetchClients();
@@ -164,6 +177,98 @@ const Stock: React.FC = () => {
     a.href = url;
     a.download = `inventario_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
+  };
+
+  // View batches for a specific client
+  const toggleBatches = async (clientId: string) => {
+    if (expandedClient === clientId) {
+      setExpandedClient(null);
+      return;
+    }
+
+    setExpandedClient(clientId);
+    setBatchesLoading(true);
+    const batches = await fetchClientBatches(clientId);
+    setClientBatches(batches);
+    setBatchesLoading(false);
+  };
+
+  // Export batches to PDF
+  const exportPDF = (client: any, batches: any[]) => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFillColor(63, 81, 181); // Indigo color
+    doc.rect(0, 0, 210, 40, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text('REPORTE DE INGRESOS DE MINERAL', 105, 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text('SISTEMA DE GESTIÓN LOGÍSTICA - MINERA INMACULADA CONCEPCIÓN', 105, 30, { align: 'center' });
+
+    // Client Info
+    doc.setTextColor(33, 33, 33);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DATOS DEL CLIENTE', 14, 55);
+    doc.line(14, 57, 196, 57);
+
+    doc.setFont('helvetica', 'normal');
+    const infoY = 65;
+    doc.text(`Cliente: ${client.name}`, 14, infoY);
+    doc.text(`Tipo: ${client.client_type || 'N/A'}`, 14, infoY + 7);
+    doc.text(`Zona Principal: ${client.zone || 'N/A'}`, 14, infoY + 14);
+    doc.text(`Fecha Reporte: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })}`, 120, infoY);
+
+    // Summary table
+    autoTable(doc, {
+      startY: 90,
+      head: [['STOCK ACTUAL', 'CUARZO VALORADO', 'LLAMPO VALORADO', 'TOTAL BALANCÉ']],
+      body: [[
+        'STOCK DISPONIBLE',
+        `${client.stock_cuarzo || 0} sacos`,
+        `${client.stock_llampo || 0} sacos`,
+        `${(client.stock_cuarzo || 0) + (client.stock_llampo || 0)} sacos`
+      ]],
+      theme: 'grid',
+      headStyles: { fillColor: [63, 81, 181], textColor: [255, 255, 255], fontStyle: 'bold' },
+    });
+
+    // Detailed Batches table
+    doc.setFont('helvetica', 'bold');
+    doc.text('DETALLE DE LOTES (HISTORIAL DE INGRESOS)', 14, (doc as any).lastAutoTable.finalY + 15);
+
+    const tableData = batches.map(b => [
+      format(new Date(b.created_at), 'dd/MM/yyyy', { locale: es }),
+      b.sub_mineral,
+      b.zone || 'N/A',
+      b.initial_quantity,
+      b.remaining_quantity,
+      b.remaining_quantity > 0 ? 'ACTIVO' : 'AGOTADO'
+    ]);
+
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 20,
+      head: [['FECHA', 'TIPO', 'ZONA', 'INICIAL', 'RESTANTE', 'ESTADO']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [51, 51, 51] },
+      didDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 5) {
+          const status = data.cell.raw;
+          if (status === 'ACTIVO') {
+            doc.setTextColor(0, 150, 0); // Green
+          } else {
+            doc.setTextColor(200, 0, 0); // Red
+          }
+        }
+      }
+    });
+
+    // Save
+    doc.save(`Reporte_Ingresos_${client.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`);
+    toast.success('PDF Generado', 'El reporte se ha descargado correctamente.');
   };
 
   return (
@@ -301,85 +406,173 @@ const Stock: React.FC = () => {
                   </td>
                 </tr>
               ) : sortedClients.map((client) => (
-                <tr key={client.id} className="hover:bg-slate-50/80 transition-all group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center">
-                      <div className="w-12 h-12 bg-indigo-50 rounded-xl mr-4 flex items-center justify-center border border-indigo-100 text-indigo-600 font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                        {client.name.charAt(0).toUpperCase()}
+                <React.Fragment key={client.id}>
+                  <tr className="hover:bg-slate-50/80 transition-all group">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center">
+                        <div className="w-12 h-12 bg-indigo-50 rounded-xl mr-4 flex items-center justify-center border border-indigo-100 text-indigo-600 font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                          {client.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-black text-slate-900 tracking-tight text-base truncate">{client.name}</p>
+                          <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded text-[9px] font-black uppercase tracking-tighter bg-indigo-50 text-indigo-600">
+                            {client.client_type}
+                          </span>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-black text-slate-900 tracking-tight text-base truncate">{client.name}</p>
-                        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded text-[9px] font-black uppercase tracking-tighter bg-indigo-50 text-indigo-600">
-                          {client.client_type}
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      {client.zone ? (
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-500 border border-slate-200">
+                          {client.zone}
                         </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6 text-center">
-                    {client.zone ? (
-                      <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-500 border border-slate-200">
-                        {client.zone}
-                      </span>
-                    ) : (
-                      <span className="text-slate-300 italic text-xs">---</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-6 text-center bg-amber-50/10">
-                    <span className="text-lg font-black text-amber-600">{(client.stock_cuarzo || 0).toLocaleString()}</span>
-                  </td>
-                  <td className="px-6 py-6 text-center bg-indigo-50/10">
-                    <span className="text-lg font-black text-indigo-600">{(client.stock_llampo || 0).toLocaleString()}</span>
-                  </td>
-                  <td className="px-6 py-6 text-center">
-                    <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-black text-slate-900 mb-1" title="Total Histórico (Cuarzo + Llampo)">
-                        TOTAL: {((client.cumulative_cuarzo || 0) + (client.cumulative_llampo || 0)).toLocaleString()}
-                      </span>
-                      <div className="flex gap-2">
-                        <span className="text-[9px] font-black text-amber-600/60" title="Total Cuarzo histórico">H. Cu: {(client.cumulative_cuarzo || 0).toLocaleString()}</span>
-                        <span className="text-[9px] font-black text-indigo-600/60" title="Total Llampo histórico">H. Ll: {(client.cumulative_llampo || 0).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6 text-center">
-                    <div className="inline-flex flex-col items-center">
-                      <span className="text-xl font-black text-slate-900 leading-none">
-                        {((client.stock_cuarzo || 0) + (client.stock_llampo || 0)).toLocaleString()}
-                      </span>
-                      <span className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest">Sacos</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6 text-center">
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs font-black text-slate-700">
-                        <Calendar size={12} className="inline mr-1 text-slate-400" />
-                        {client.last_intake_date ? new Date(client.last_intake_date).toLocaleDateString() : 'SIN REGISTRO'}
-                      </span>
-                      {client.last_intake_zone && (
-                        <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mt-1">
-                          ZONA: {client.last_intake_zone}
-                        </span>
+                      ) : (
+                        <span className="text-slate-300 italic text-xs">---</span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <button
-                      className="p-3 bg-white border border-slate-200 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm active:scale-90"
-                      onClick={() => {
-                        setNuevoIngreso(prev => ({
-                          ...prev,
-                          clienteId: client.id,
-                          tipoCliente: client.client_type || '',
-                          clienteNombre: client.name,
-                          zona: client.zone || ''
-                        }));
-                        setShowModal(true);
-                      }}
-                    >
-                      <Plus size={20} strokeWidth={3} />
-                    </button>
-                  </td>
-                </tr>
+                    </td>
+                    <td className="px-6 py-6 text-center bg-amber-50/10">
+                      <span className="text-lg font-black text-amber-600">{(client.stock_cuarzo || 0).toLocaleString()}</span>
+                    </td>
+                    <td className="px-6 py-6 text-center bg-indigo-50/10">
+                      <span className="text-lg font-black text-indigo-600">{(client.stock_llampo || 0).toLocaleString()}</span>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className="text-[10px] font-black text-slate-900 mb-1" title="Total Histórico (Cuarzo + Llampo)">
+                          TOTAL: {((client.cumulative_cuarzo || 0) + (client.cumulative_llampo || 0)).toLocaleString()}
+                        </span>
+                        <div className="flex gap-2">
+                          <span className="text-[9px] font-black text-amber-600/60" title="Total Cuarzo histórico">H. Cu: {(client.cumulative_cuarzo || 0).toLocaleString()}</span>
+                          <span className="text-[9px] font-black text-indigo-600/60" title="Total Llampo histórico">H. Ll: {(client.cumulative_llampo || 0).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      <div className="inline-flex flex-col items-center">
+                        <span className="text-xl font-black text-slate-900 leading-none">
+                          {((client.stock_cuarzo || 0) + (client.stock_llampo || 0)).toLocaleString()}
+                        </span>
+                        <span className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest">Sacos</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className="text-xs font-black text-slate-700">
+                          <Calendar size={12} className="inline mr-1 text-slate-400" />
+                          {client.last_intake_date ? new Date(client.last_intake_date).toLocaleDateString() : 'SIN REGISTRO'}
+                        </span>
+                        {client.last_intake_zone && (
+                          <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mt-1">
+                            ZONA: {client.last_intake_zone}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex gap-2">
+                        <button
+                          className="p-3 bg-white border border-slate-200 text-indigo-600 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-90"
+                          onClick={() => toggleBatches(client.id)}
+                          title="Ver Lotes / Historial"
+                        >
+                          {expandedClient === client.id ? <ChevronUp size={20} strokeWidth={3} /> : <FileText size={20} strokeWidth={3} />}
+                        </button>
+                        <button
+                          className="p-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-90"
+                          onClick={() => {
+                            setNuevoIngreso(prev => ({
+                              ...prev,
+                              clienteId: client.id,
+                              tipoCliente: client.client_type || '',
+                              clienteNombre: client.name,
+                              zona: client.zone || ''
+                            }));
+                            setShowModal(true);
+                          }}
+                          title="Registrar Ingreso"
+                        >
+                          <Plus size={20} strokeWidth={3} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {/* Expanded Batches View */}
+                  {expandedClient === client.id && (
+                    <tr className="bg-slate-50 border-x-4 border-l-indigo-500 border-r-transparent">
+                      <td colSpan={8} className="px-8 py-8">
+                        <div className="flex items-center justify-between mb-6">
+                          <div>
+                            <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Historial Detallado por Lotes</h4>
+                            <p className="text-xs text-slate-500 font-medium">Traceabilidad de ingresos y consumo FIFO para {client.name}</p>
+                          </div>
+                          <button
+                            onClick={() => exportPDF(client, clientBatches)}
+                            className="flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:text-indigo-600 hover:border-indigo-600 transition-all font-bold text-xs"
+                          >
+                            <Download size={16} className="mr-2" /> PDF PROFESIONAL
+                          </button>
+                        </div>
+
+                        {batchesLoading ? (
+                          <div className="flex justify-center py-10">
+                            <LoadingSpinner text="Cargando historial de lotes..." />
+                          </div>
+                        ) : clientBatches.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {clientBatches.map((batch: any) => (
+                              <div
+                                key={batch.id}
+                                className={`p-5 rounded-2xl border transition-all ${batch.remaining_quantity > 0
+                                  ? 'bg-white border-slate-200 shadow-sm'
+                                  : 'bg-slate-100/50 border-slate-100 opacity-70'
+                                  }`}
+                              >
+                                <div className="flex justify-between items-start mb-3">
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${batch.sub_mineral === 'CUARZO'
+                                    ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                                    : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
+                                    }`}>
+                                    {batch.sub_mineral}
+                                  </span>
+                                  <span className="text-[10px] font-black text-slate-400">
+                                    {format(new Date(batch.created_at), 'dd MMM yyyy', { locale: es })}
+                                  </span>
+                                </div>
+
+                                <div className="mb-4">
+                                  <div className="flex items-baseline justify-between mb-1">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saldo Restante</p>
+                                    <p className="text-xl font-black text-slate-900">{batch.remaining_quantity} <span className="text-xs font-bold text-slate-400">sacos</span></p>
+                                  </div>
+                                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full transition-all duration-500 ${batch.sub_mineral === 'CUARZO' ? 'bg-amber-500' : 'bg-indigo-500'}`}
+                                      style={{ width: `${Math.min(100, (batch.remaining_quantity / batch.initial_quantity) * 100)}%` }}
+                                    ></div>
+                                  </div>
+                                  <div className="flex justify-between mt-1.5 text-[9px] font-bold text-slate-400 uppercase">
+                                    <span>Inicial: {batch.initial_quantity}</span>
+                                    <span>{Math.round((batch.remaining_quantity / batch.initial_quantity) * 100)}% disponible</span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 pt-3 border-t border-slate-50">
+                                  <Truck size={12} className="text-slate-400" />
+                                  <span className="text-[10px] font-bold text-slate-600 uppercase">Zona: {batch.zone || 'N/A'}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-2xl">
+                            <Package className="mx-auto text-slate-300 mb-2" size={32} />
+                            <p className="text-slate-500 font-bold">No hay lotes registrados para este cliente</p>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

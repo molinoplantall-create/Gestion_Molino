@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Moliendas from './pages/Moliendas';
 import RegistroMolienda from './pages/RegistroMolienda';
 import Stock from './pages/Stock';
+import Analitica from './pages/Analitica';
 import Reportes from './pages/Reportes';
 import Mantenimiento from './pages/Mantenimiento';
 import Clientes from './pages/Clientes';
@@ -45,6 +46,7 @@ function App() {
         <Route element={user ? <Layout /> : <Navigate to="/login" />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/moliendas" element={<Moliendas />} />
+          <Route path="/analitica" element={<Analitica />} />
           <Route path="/registro-molienda" element={<RegistroMolienda />} />
           <Route path="/stock" element={<Stock />} />
           <Route path="/reportes" element={<Reportes />} />

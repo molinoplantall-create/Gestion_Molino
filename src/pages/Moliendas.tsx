@@ -3,9 +3,12 @@ import { Search, Filter, Download, MessageSquare, Eye, Edit, Trash2, Calendar, C
 import { MillingLog } from '@/types';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { Table } from '@/components/common/Table';
+import { useModal } from '@/hooks/useModal';
+import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
 
 const Moliendas: React.FC = () => {
-  const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills, deleteMillingLog } = useSupabaseStore();
+  const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills, deleteMillingLog, loading } = useSupabaseStore();
+  const deleteModal = useModal<{ id: string, name: string }>();
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedMill, setSelectedMill] = useState<string>('all');
@@ -153,10 +156,11 @@ const Moliendas: React.FC = () => {
             <Edit size={18} strokeWidth={1.5} />
           </button>
           <button
-            onClick={async () => {
-              if (window.confirm('¿Está seguro de borrar este registro? Los sacos se devolverán al stock del cliente.')) {
-                await deleteMillingLog(session.id);
-              }
+            onClick={() => {
+              deleteModal.open({
+                id: session.id,
+                name: `molienda de ${session.clients?.name || 'Cliente'} (${session.total_sacks} sacos)`
+              });
             }}
             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
@@ -175,6 +179,15 @@ const Moliendas: React.FC = () => {
     const tiempoPromedio = millingLogs.length > 0 ? "2.1h" : "0h";
     return { totalSacos, finalizadas, tiempoPromedio };
   }, [millingLogs]);
+
+  const handleDeleteConfirm = async () => {
+    if (deleteModal.data) {
+      const success = await deleteMillingLog(deleteModal.data.id);
+      if (success) {
+        deleteModal.close();
+      }
+    }
+  };
 
   return (
     <div className="space-y-8 pb-20 max-w-[1600px] mx-auto px-4 md:px-6">
@@ -342,6 +355,16 @@ const Moliendas: React.FC = () => {
           emptyMessage="No se encontraron registros en el rango seleccionado."
         />
       </div>
+
+      <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={deleteModal.close}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteModal.data?.name || ''}
+        title="¿Confirmar borrado de molienda?"
+        message="¿Estás seguro de borrar este registro? Los sacos se devolverán automáticamente al stock del cliente y se liberará el molino si estaba en proceso."
+        isLoading={loading}
+      />
     </div>
   );
 };

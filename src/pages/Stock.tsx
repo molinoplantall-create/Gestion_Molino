@@ -296,7 +296,7 @@ const Stock: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               {clientsLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-20">
+                  <td colSpan={8} className="px-6 py-20">
                     <LoadingSpinner text="Sincronizando existencias..." />
                   </td>
                 </tr>
@@ -332,8 +332,13 @@ const Stock: React.FC = () => {
                   </td>
                   <td className="px-6 py-6 text-center">
                     <div className="flex flex-col items-center">
-                      <span className="text-xs font-black text-amber-600/60" title="Total Cuarzo histórico">H. Cu: {(client.cumulative_cuarzo || 0).toLocaleString()}</span>
-                      <span className="text-xs font-black text-indigo-600/60" title="Total Llampo histórico">H. Ll: {(client.cumulative_llampo || 0).toLocaleString()}</span>
+                      <span className="text-[10px] font-black text-slate-900 mb-1" title="Total Histórico (Cuarzo + Llampo)">
+                        TOTAL: {((client.cumulative_cuarzo || 0) + (client.cumulative_llampo || 0)).toLocaleString()}
+                      </span>
+                      <div className="flex gap-2">
+                        <span className="text-[9px] font-black text-amber-600/60" title="Total Cuarzo histórico">H. Cu: {(client.cumulative_cuarzo || 0).toLocaleString()}</span>
+                        <span className="text-[9px] font-black text-indigo-600/60" title="Total Llampo histórico">H. Ll: {(client.cumulative_llampo || 0).toLocaleString()}</span>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-6 text-center">

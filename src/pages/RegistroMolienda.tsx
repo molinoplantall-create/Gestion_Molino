@@ -585,8 +585,11 @@ const RegistroMolienda: React.FC = () => {
       mensaje += `🏁 *Final Estimado:* ${horaFin}\n`;
     }
 
-    if (molienda.stockRestanteTotal >= 0) {
-      mensaje += `\n📉 *Stock Restante:* ${totalCalculado.stockRestanteTotal} sacos\n`;
+    if (totalCalculado.stockRestanteTotal >= 0) {
+      mensaje += `\n📉 *STOCK RESTANTE:*\n`;
+      mensaje += `• *Total:* ${totalCalculado.stockRestanteTotal} sacos\n`;
+      mensaje += `• Cuarzo: ${totalCalculado.stockRestanteCuarzo}\n`;
+      mensaje += `• Llampo: ${totalCalculado.stockRestanteLlampo}\n`;
     }
 
     if (molienda.observaciones) {

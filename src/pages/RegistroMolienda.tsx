@@ -580,9 +580,8 @@ const RegistroMolienda: React.FC = () => {
       mensaje += `\n⏰ *Inicio:* ${molienda.horaInicio}\n`;
     }
 
-    const horaFin = document.getElementById('estimated-end-time')?.innerText;
-    if (horaFin) {
-      mensaje += `🏁 *Final Estimado:* ${horaFin}\n`;
+    if (totalCalculado.horaFin) {
+      mensaje += `🏁 *Final Estimado:* ${totalCalculado.horaFin}\n`;
     }
 
     if (totalCalculado.stockRestanteTotal >= 0) {

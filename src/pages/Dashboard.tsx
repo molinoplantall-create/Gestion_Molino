@@ -13,8 +13,8 @@ import {
   PieChart, Pie, Legend
 } from 'recharts';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import MillCard from '@/components/dashboard/MillCard';
 import StatsCard from '@/components/dashboard/StatsCard';
 import RecentSessions from '@/components/dashboard/RecentSessions';
@@ -87,7 +87,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleGeneratePDF = () => {
-    const doc = new jsPDF() as any;
+    const doc = new jsPDF();
     doc.setFontSize(20);
     doc.text('REPORTE GERENCIAL DE PRODUCCIÓN', 14, 20);
     doc.setFontSize(10);
@@ -100,7 +100,7 @@ const Dashboard: React.FC = () => {
       log.total_sacks
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: 35,
       head: [['FECHA', 'CLIENTE', 'MINERAL', 'SACOS']],
       body: body,

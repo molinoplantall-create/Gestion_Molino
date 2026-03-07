@@ -332,8 +332,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .select(`
           *,
           mills (
-            name,
-            nombre
+            *
           )
         `, { count: 'exact' });
 
@@ -389,7 +388,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       // Normalization: Mapeo de columnas español/inglés
-      const normalizedLogs = (data || []).map(log => ({
+      const normalizedLogs = ((data as any[]) || []).map((log: any) => ({
         ...log,
         id: log.id,
         mill_id: log.mill_id || log.molino_id,

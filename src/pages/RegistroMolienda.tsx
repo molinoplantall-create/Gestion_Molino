@@ -561,10 +561,15 @@ const RegistroMolienda: React.FC = () => {
       mensaje += `🔄 *Total moliendas activas del cliente:* ${moliendasActivas + 1}\n\n`;
     }
 
-    mensaje += `📦 *DETALLE DE CARGA:*\n`;
+    mensaje += `\n📦 *DETALLE DE CARGA:*\n`;
     mensaje += `• *Total Sacos:* ${totalCalculado.totalSacos}\n`;
     mensaje += `• Cuarzo: ${totalCalculado.totalCuarzo} sacos\n`;
     mensaje += `• Llampo: ${totalCalculado.totalLlampo} sacos\n\n`;
+
+    mensaje += `📋 *STOCK DEL CLIENTE:*\n`;
+    mensaje += `• *Total:* ${molienda.stockTotal}\n`;
+    mensaje += `• Cuarzo: ${molienda.stockCuarzo}\n`;
+    mensaje += `• Llampo: ${molienda.stockLlampo}\n\n`;
 
     mensaje += `⚙️ *DISTRIBUCIÓN POR MOLINO:*\n`;
     molinosActivos.forEach(m => {
@@ -578,6 +583,10 @@ const RegistroMolienda: React.FC = () => {
     const horaFin = document.getElementById('estimated-end-time')?.innerText;
     if (horaFin) {
       mensaje += `🏁 *Final Estimado:* ${horaFin}\n`;
+    }
+
+    if (molienda.stockRestanteTotal >= 0) {
+      mensaje += `\n📉 *Stock Restante:* ${totalCalculado.stockRestanteTotal} sacos\n`;
     }
 
     if (molienda.observaciones) {
@@ -627,13 +636,6 @@ const RegistroMolienda: React.FC = () => {
           >
             <Printer size={18} className="mr-3" />
             VISTA PREVIA TICKET
-          </button>
-          <button
-            onClick={generarReporteWhatsApp}
-            className="flex items-center px-6 py-3.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 font-bold text-sm"
-          >
-            <MessageSquare size={18} className="mr-3" />
-            NOTIFICAR POR WHATSAPP
           </button>
         </div>
       </div>
@@ -776,10 +778,18 @@ const RegistroMolienda: React.FC = () => {
       {/* Final Action */}
       <div className="flex justify-end">
         <button
+          onClick={generarReporteWhatsApp}
+          className="flex items-center px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 font-bold text-sm tracking-tight mr-4"
+        >
+          <MessageSquare size={18} className="mr-2" />
+          NOTIFICAR WHATSAPP
+        </button>
+
+        <button
           onClick={registrarMolienda}
           className={`flex items-center px-6 py-3 rounded-xl transition-all shadow-lg font-bold text-sm tracking-tight ${isRegistering
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
+            ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
+            : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
             }`}
           disabled={isRegistering || molienda.procesoIniciado}
         >

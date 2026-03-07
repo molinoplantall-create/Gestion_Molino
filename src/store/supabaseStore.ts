@@ -426,11 +426,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       let isHistorical = false;
 
       if (data.fecha) {
-        // Parsear YYYY-MM-DD sin interpretación de zona horaria
-        const [year, month, day] = data.fecha.split('-').map(Number);
-        isHistorical = year !== nowDate.getFullYear() ||
-          (month - 1) !== nowDate.getMonth() ||
-          day !== nowDate.getDate();
+        // Robusto: Comparar solo el componente de fecha YYYY-MM-DD
+        const datePart = data.fecha.split('T')[0];
+        const [year, month, day] = datePart.split('-').map(Number);
+
+        isHistorical = year < nowDate.getFullYear() ||
+          (year === nowDate.getFullYear() && (month - 1) < nowDate.getMonth()) ||
+          (year === nowDate.getFullYear() && (month - 1) === nowDate.getMonth() && day < nowDate.getDate());
+
+        console.log('📅 registerMilling: date check:', {
+          provided: datePart,
+          today: nowDate.toISOString().split('T')[0],
+          isHistorical
+        });
       }
 
       const { data: millingData, error: millingError } = await supabase

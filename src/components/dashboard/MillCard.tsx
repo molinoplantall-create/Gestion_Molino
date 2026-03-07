@@ -81,9 +81,9 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
         return {
           color: 'bg-orange-50 border-orange-200',
           icon: <PlayCircle className="text-orange-600" size={20} />,
-          label: 'Ocupado',
+          label: 'En Proceso',
           badge: 'bg-orange-100 text-orange-800',
-          description: 'Procesando mineral'
+          description: 'Molienda activa'
         };
       case 'mantenimiento':
         return {

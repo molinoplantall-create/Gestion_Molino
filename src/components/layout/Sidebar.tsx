@@ -26,12 +26,10 @@ const Sidebar = () => {
 
   const menuItems = [
     { path: '/dashboard', icon: <Home size={20} strokeWidth={1.5} />, label: 'Dashboard' },
-    { path: '/analitica', icon: <Factory size={20} strokeWidth={1.5} />, label: 'Analítica' },
     { path: '/moliendas', icon: <Factory size={20} strokeWidth={1.5} />, label: 'Moliendas' },
     { path: '/registro-molienda', icon: <PlusCircle size={20} strokeWidth={1.5} />, label: 'Nueva Molienda' },
     { path: '/stock', icon: <Package size={20} strokeWidth={1.5} />, label: 'Stock' },
     { path: '/clientes', icon: <UserCircle size={20} strokeWidth={1.5} />, label: 'Clientes' },
-    { path: '/reportes', icon: <FileText size={20} strokeWidth={1.5} />, label: 'Reportes' },
     { path: '/mantenimiento', icon: <Wrench size={20} strokeWidth={1.5} />, label: 'Mantenimiento' },
   ];
 

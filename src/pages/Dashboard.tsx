@@ -1,19 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Package, Clock, CheckCircle, AlertTriangle,
   TrendingUp, Users, Calendar, BarChart3,
   Factory, ShoppingBag, DollarSign, Activity,
-  Bell, Download, Plus, ChevronRight
+  Bell, Download, Plus, ChevronRight, FileText,
+  PieChart as PieIcon, Map, Filter
 } from 'lucide-react';
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
+  CartesianGrid, Tooltip, BarChart, Bar, Cell,
+  PieChart, Pie, Legend
+} from 'recharts';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 import MillCard from '@/components/dashboard/MillCard';
 import StatsCard from '@/components/dashboard/StatsCard';
 import RecentSessions from '@/components/dashboard/RecentSessions';
 import ActivityChart from '@/components/dashboard/ActivityChart';
 import { useSupabaseStore } from '@/store/supabaseStore';
+import { useToast } from '@/hooks/useToast';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const {
     mills,
     clients,
@@ -24,11 +35,81 @@ const Dashboard: React.FC = () => {
     fetchMillingLogs
   } = useSupabaseStore();
 
+  const [activeTab, setActiveTab] = useState<'operaciones' | 'gerencia'>('operaciones');
+
   useEffect(() => {
     fetchMills();
     fetchClients();
-    fetchMillingLogs({ pageSize: 15 });
+    fetchMillingLogs({ pageSize: 50 });
   }, [fetchMills, fetchClients, fetchMillingLogs]);
+
+  // --- Lógica de Analítica (Gerencia) ---
+  const stats = useMemo(() => {
+    const zoneData: Record<string, number> = {};
+    const typeData: Record<string, number> = { 'MINERO': 0, 'PALLAQUERO': 0 };
+    const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4'];
+
+    clients.forEach(c => {
+      const volume = (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0);
+      const zone = c.zone || 'SIN ZONA';
+      zoneData[zone] = (zoneData[zone] || 0) + volume;
+
+      if (c.client_type === 'MINERO') typeData['MINERO'] += volume;
+      else if (c.client_type === 'PALLAQUERO') typeData['PALLAQUERO'] += volume;
+    });
+
+    const chartZoneData = Object.entries(zoneData)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    const chartTypeData = Object.entries(typeData)
+      .map(([name, value]) => ({ name, value }));
+
+    return { chartZoneData, chartTypeData, COLORS };
+  }, [clients]);
+
+  // --- Exportación de Reportes ---
+  const handleExportExcel = () => {
+    if (!millingLogs.length) return toast.warning('Sin Datos', 'No hay registros para exportar.');
+    const data = millingLogs.map(log => ({
+      Fecha: new Date(log.created_at).toLocaleDateString(),
+      Cliente: log.clients?.name || 'N/A',
+      Mineral: log.mineral_type,
+      Total: log.total_sacks,
+      Cuarzo: log.total_cuarzo,
+      Llampo: log.total_llampo
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Producción");
+    XLSX.writeFile(wb, `Reporte_Planta_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Excel Generado', 'El reporte se ha descargado correctamente.');
+  };
+
+  const handleGeneratePDF = () => {
+    const doc = new jsPDF() as any;
+    doc.setFontSize(20);
+    doc.text('REPORTE GERENCIAL DE PRODUCCIÓN', 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 28);
+
+    const body = millingLogs.slice(0, 20).map(log => [
+      new Date(log.created_at).toLocaleDateString(),
+      log.clients?.name || '---',
+      log.mineral_type,
+      log.total_sacks
+    ]);
+
+    doc.autoTable({
+      startY: 35,
+      head: [['FECHA', 'CLIENTE', 'MINERAL', 'SACOS']],
+      body: body,
+      theme: 'grid'
+    });
+
+    doc.save(`Reporte_Gerencial_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success('PDF Generado', 'El informe formal está listo.');
+  };
 
   if (millsLoading && mills.length === 0) {
     return (
@@ -41,25 +122,12 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Cálculos dinámicos
+  // Cálculos Operativos (KPIs)
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
   const totalSacosHoy = millingLogs
     .filter(log => new Date(log.created_at) >= today)
     .reduce((acc, log) => acc + (log.total_sacks || 0), 0);
-
-  const totalSacosAyer = millingLogs
-    .filter(log => {
-      const d = new Date(log.created_at);
-      return d >= yesterday && d < today;
-    })
-    .reduce((acc, log) => acc + (log.total_sacks || 0), 0);
-
-  const diffAyer = totalSacosHoy - totalSacosAyer;
-  const trendHoy = diffAyer >= 0 ? "+ " : "- ";
 
   const totalStockSacos = clients.reduce((acc, client) => acc + (client.stock_cuarzo || 0) + (client.stock_llampo || 0), 0);
   const totalClientes = clients.length;
@@ -72,179 +140,189 @@ const Dashboard: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-8 bg-indigo-600 rounded-full"></div>
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600">CENTRO DE MANDO OPERATIVO</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600">CENTRO DE CONTROL E INTELIGENCIA</span>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Dashboard General</h1>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Molinera Inmaculada</h1>
           <p className="text-slate-500 font-medium flex items-center mt-1">
             <Activity size={16} className="mr-2 text-indigo-500" />
-            Supervisión técnica de planta y flujo de producción en tiempo real
+            Control operativo y análisis gerencial unificado
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        {/* TABS SELECTOR */}
+        <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
           <button
-            onClick={() => navigate('/reportes')}
-            className="flex items-center px-5 py-3 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-indigo-600 hover:text-indigo-600 transition-all shadow-sm font-bold text-sm"
+            onClick={() => setActiveTab('operaciones')}
+            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'operaciones' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            <BarChart3 size={18} className="mr-3" />
-            VER ANALÍTICA
+            Operaciones
           </button>
           <button
-            onClick={() => navigate('/registro-molienda')}
-            className="flex items-center px-5 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 font-bold text-sm"
+            onClick={() => setActiveTab('gerencia')}
+            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'gerencia' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            <Plus size={18} className="mr-3" />
-            NUEVA MOLIENDA
-          </button>
-        </div>
-      </div>
-
-      {/* KPI CARDS - ESTILO INDUSTRIAL PREMIUM */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        {[
-          { label: 'PRODUCCIÓN HOY', value: totalSacosHoy.toLocaleString(), icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', trend: `${trendHoy}${Math.abs(diffAyer)}`, trendUp: diffAyer >= 0 },
-          { label: 'STOCK TOTAL', value: totalStockSacos.toLocaleString(), icon: ShoppingBag, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', trend: 'Sacos', trendUp: true },
-          { label: 'CLIENTES ACTIVOS', value: totalClientes.toString(), icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', trend: 'Base Datos', trendUp: true },
-          { label: 'INGRESOS HIST.', value: `$${ingresosEstimados.toLocaleString()}`, icon: DollarSign, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100', trend: 'Estimado', trendUp: true },
-        ].map((kpi, i) => (
-          <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-start justify-between mb-4">
-              <div className={`p-4 ${kpi.bg} ${kpi.border} rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <kpi.icon className={kpi.color} size={28} strokeWidth={2.5} />
-              </div>
-              <div className={`flex items-center px-2 py-1 rounded-lg text-[10px] font-black ${kpi.trendUp ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
-                {kpi.trend}
-              </div>
-            </div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{kpi.label}</p>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
-              <span className="text-xs font-bold text-slate-400 font-mono uppercase">{i === 3 ? 'USD' : 'UNDS'}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ESTADO DE MOLINOS - REDISEÑO INDUSTRIAL */}
-      <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-50/50 rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none"></div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 relative z-10">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Estado de Planta (Molinos)</h2>
-            <p className="text-sm text-slate-500 font-medium italic">Monitor de carga y disponibilidad operativa</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
-            <div className="flex items-center px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-100">
-              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full mr-2"></div>
-              <span className="text-[10px] text-slate-600 font-black uppercase tracking-wider">Libre</span>
-            </div>
-            <div className="flex items-center px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-100">
-              <div className="w-2.5 h-2.5 bg-orange-500 rounded-full mr-2"></div>
-              <span className="text-[10px] text-slate-600 font-black uppercase tracking-wider">Ocupado</span>
-            </div>
-            <div className="flex items-center px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-100">
-              <div className="w-2.5 h-2.5 bg-rose-500 rounded-full mr-2"></div>
-              <span className="text-[10px] text-slate-600 font-black uppercase tracking-wider">Mantenimiento</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
-          {mills.map((mill) => (
-            <div key={mill.id} className="hover:scale-[1.02] transition-transform duration-300">
-              <MillCard mill={mill} />
-            </div>
-          ))}
-          {mills.length === 0 && (
-            <div className="col-span-full py-20 text-center bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
-              <Factory size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-500 font-bold italic">No hay sistemas de molienda registrados</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* SECCIÓN INFERIOR: GRÁFICAS Y ACTIVIDAD */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* GRÁFICA DE ACTIVIDAD - ESTILO PREMIUM */}
-        <div className="lg:col-span-3 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Actividad en Planta</h2>
-              <p className="text-sm text-slate-500 font-medium">Historial de molienda reciente (Últimos logs)</p>
-            </div>
-            <div className="flex items-center gap-3 print:hidden">
-              <div className="p-2 bg-indigo-50 rounded-xl">
-                <BarChart3 className="text-indigo-600" size={20} strokeWidth={2.5} />
-              </div>
-              <select className="text-xs font-black border-2 border-slate-100 rounded-xl px-4 py-2.5 bg-white text-slate-600 outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer">
-                <option>Recientes</option>
-              </select>
-            </div>
-          </div>
-          <div className="h-80 w-full">
-            <ActivityChart />
-          </div>
-        </div>
-
-        {/* LOGS RECIENTES - ESTILO LISTA INDUSTRIAL */}
-        <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Protocolos Recientes</h2>
-              <p className="text-sm text-slate-500 font-medium italic">Bitácora de moliendas acabadas</p>
-            </div>
-            <button
-              onClick={() => navigate('/moliendas')}
-              className="text-indigo-600 hover:text-indigo-800 text-xs font-black flex items-center transition-all px-3 py-2 bg-indigo-50 hover:bg-indigo-100 rounded-xl"
-            >
-              VER TODO <ChevronRight className="ml-1" size={14} strokeWidth={3} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto pr-1">
-            <RecentSessions sessions={millingLogs} mills={mills} />
-          </div>
-          <button
-            onClick={() => navigate('/registro-molienda')}
-            className="mt-8 w-full inline-flex items-center justify-center px-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95 uppercase"
-          >
-            <span>+ Ejecutar Registro de Molienda</span>
+            Gerencia / Reportes
           </button>
         </div>
       </div>
 
-      {/* ALERTAS INDUSTRIALES - DISEÑO TIPO NOTIFICACIÓN CRÍTICA */}
-      <div className="bg-slate-50 rounded-[2.5rem] p-8 border border-white shadow-xl shadow-slate-200/50 mb-10">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <div className="bg-rose-600 p-3 rounded-2xl mr-4 shadow-lg shadow-rose-200">
-              <Bell className="text-white" size={24} strokeWidth={2.5} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Monitor de Eventos Críticos</h2>
-              <p className="text-sm text-slate-500 font-medium italic">Alertas automáticas de hardware y stock</p>
-            </div>
+      {activeTab === 'operaciones' ? (
+        <>
+          {/* KPI CARDS OPERATIVAS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+            {[
+              { label: 'PRODUCCIÓN HOY', value: totalSacosHoy.toLocaleString(), icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+              { label: 'STOCK TOTAL', value: totalStockSacos.toLocaleString(), icon: ShoppingBag, color: 'text-amber-600', bg: 'bg-amber-50' },
+              { label: 'CLIENTES ACTIVOS', value: totalClientes.toString(), icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+              { label: 'INGRESOS HIST.', value: `$${ingresosEstimados.toLocaleString()}`, icon: DollarSign, color: 'text-violet-600', bg: 'bg-violet-50' },
+            ].map((kpi, i) => (
+              <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
+                <div className={`p-4 ${kpi.bg} rounded-2xl w-fit mb-4`}>
+                  <kpi.icon className={kpi.color} size={28} strokeWidth={2.5} />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{kpi.label}</p>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
+              </div>
+            ))}
           </div>
-          <div className="hidden sm:block text-[10px] font-black text-rose-600 border-2 border-rose-100 bg-rose-50 px-4 py-1.5 rounded-full uppercase tracking-widest">
-            Sincronización Activa
-          </div>
-        </div>
 
+          {/* ESTADO DE MOLINOS */}
+          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Estado de Planta</h2>
+              <button
+                onClick={() => navigate('/registro-molienda')}
+                className="btn-primary flex items-center px-6 py-3"
+              >
+                <Plus size={18} className="mr-2" /> NUEVA MOLIENDA
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {mills.map((mill) => <MillCard key={mill.id} mill={mill} />)}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="lg:col-span-3 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+              <h2 className="text-xl font-black text-slate-900 mb-6">Actividad Reciente</h2>
+              <div className="h-80 w-full"><ActivityChart /></div>
+            </div>
+            <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+              <h2 className="text-xl font-black text-slate-900 mb-6">Logs de Molienda</h2>
+              <RecentSessions sessions={millingLogs.slice(0, 10)} mills={mills} />
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* SECCIÓN GERENCIAL / ANALÍTICA */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* HERRAMIENTAS DE EXPORTACIÓN */}
+            <div className="lg:col-span-1 bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl">
+              <div className="inline-flex items-center px-4 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-full text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-6">
+                Acciones de Gerencia
+              </div>
+              <h2 className="text-3xl font-black mb-2 tracking-tight">Exportar Todo</h2>
+              <p className="text-slate-400 text-sm font-medium mb-8">Descarga los registros históricos completos para auditoría externa o SUNAT.</p>
+
+              <div className="space-y-4">
+                <button
+                  onClick={handleExportExcel}
+                  className="w-full flex items-center justify-between p-5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group"
+                >
+                  <div className="flex items-center">
+                    <Download className="text-emerald-400 mr-4" size={24} />
+                    <span className="font-bold">Libro de Molienda (Excel)</span>
+                  </div>
+                  <ChevronRight size={18} className="text-slate-600 group-hover:text-white" />
+                </button>
+                <button
+                  onClick={handleGeneratePDF}
+                  className="w-full flex items-center justify-between p-5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group"
+                >
+                  <div className="flex items-center">
+                    <FileText className="text-rose-400 mr-4" size={24} />
+                    <span className="font-bold">Informe Situacional (PDF)</span>
+                  </div>
+                  <ChevronRight size={18} className="text-slate-600 group-hover:text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* CHARTS DE ANALÍTICA INTEGRADAS */}
+            <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-black text-slate-900">Volumen por Zona de Procedencia</h3>
+                <Map size={24} className="text-indigo-600" />
+              </div>
+              <div className="h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.chartZoneData} layout="vertical">
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10, fontWeight: 900 }} axisLine={false} tickLine={false} />
+                    <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' }} />
+                    <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={25}>
+                      {stats.chartZoneData.map((e, i) => (
+                        <Cell key={i} fill={stats.COLORS[i % stats.COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-black text-slate-900">Distribución por Cliente</h3>
+                <PieIcon size={24} className="text-indigo-600" />
+              </div>
+              <div className="h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={stats.chartTypeData} cx="50%" cy="50%" innerRadius={80} outerRadius={120} paddingAngle={5} dataKey="value">
+                      {stats.chartTypeData.map((e, i) => <Cell key={i} fill={stats.COLORS[i % stats.COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend verticalAlign="bottom" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+              <h3 className="text-xl font-black text-slate-900 mb-8">Top Zonas (Sacos Totales)</h3>
+              <div className="space-y-4">
+                {stats.chartZoneData.slice(0, 5).map((z, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                    <span className="font-bold text-slate-700">{z.name}</span>
+                    <span className="text-xl font-black text-indigo-600">{z.value.toLocaleString()} <small className="text-[10px] text-slate-400">SACOS</small></span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ALERTAS CRÍTICAS (Siempre visibles) */}
+      <div className="bg-slate-50 rounded-[2.5rem] p-8 border border-white shadow-sm">
+        <div className="flex items-center mb-6">
+          <Bell className="text-indigo-600 mr-4" size={24} strokeWidth={2.5} />
+          <h2 className="text-2xl font-black text-slate-900">Monitor de Sistema</h2>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { title: 'Balance de Stock', desc: 'Sistema de alerta de existencias mínimas configurado y monitoreando.', icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-100', status: 'Atención' },
-            { title: 'Arquitectura Segura', desc: 'Gestión de roles y auditoría de accesos activa en todos los módulos.', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100', status: 'Validado' },
-            { title: 'Sensores de Molinos', desc: 'Telemetría de motores reportando estado óptimo en todas las unidades.', icon: Factory, color: 'text-indigo-600', bg: 'bg-indigo-100', status: 'Sincro' }
+            { title: 'Trazabilidad FIFO', desc: 'Despacho automático de lotes más antiguos activo.', icon: Package, color: 'text-indigo-600' },
+            { title: 'Sincro Supabase', desc: 'Conexión en tiempo real con la nube establecida.', icon: Activity, color: 'text-emerald-600' },
+            { title: 'Auditoría Gerencial', desc: 'Reportes generados con firma digital del sistema.', icon: FileText, color: 'text-violet-600' }
           ].map((item, i) => (
-            <div key={i} className="flex items-start p-6 bg-white hover:bg-slate-50/50 rounded-3xl transition-all border border-slate-100 group shadow-sm">
-              <div className={`${item.bg} p-3 rounded-2xl mr-4 shrink-0 group-hover:scale-110 transition-transform shadow-sm`}>
-                <item.icon size={20} strokeWidth={2.5} className={item.color} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start mb-1">
-                  <p className="font-black text-slate-900 text-sm tracking-tight truncate">{item.title}</p>
-                </div>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">{item.desc}</p>
+            <div key={i} className="flex items-start p-5 bg-white rounded-2xl border border-slate-100">
+              <item.icon size={20} className={`${item.color} mr-4 mt-1`} />
+              <div>
+                <p className="font-black text-slate-900 text-sm tracking-tight">{item.title}</p>
+                <p className="text-xs text-slate-500 font-medium">{item.desc}</p>
               </div>
             </div>
           ))}

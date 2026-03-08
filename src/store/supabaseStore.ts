@@ -81,6 +81,7 @@ interface SupabaseStore {
   finalizeMilling: (millId: string) => Promise<boolean>;
   updateMillHours: (millId: string, hoursToAdd: number) => Promise<boolean>;
   finalizeMaintenance: (id: string, millId: string) => Promise<boolean>;
+  resetMillOil: (millId: string) => Promise<boolean>;
   deleteMillingLog: (logId: string) => Promise<boolean>;
   startPollingMills: () => void;
   stopPollingMills: () => void;
@@ -1215,6 +1216,40 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return true;
     } catch (error) {
       console.error('❌ Error updateMillHours:', error);
+      return false;
+    }
+  },
+
+  resetMillOil: async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('mills')
+        .update({
+          hours_to_oil_change: 500,
+          last_maintenance: new Date().toISOString().split('T')[0]
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Auto-log the maintenance action
+      const mill = get().mills.find(m => m.id === id);
+      if (mill) {
+        await supabase.from('maintenance_logs').insert({
+          mill_id: id,
+          type: 'PREVENTIVO',
+          status: 'COMPLETADO',
+          description: 'Cambio de Aceite Automático (500h reset)',
+          technician_name: 'Sistema',
+          worked_hours: 0
+        });
+      }
+
+      get().fetchMills();
+      get().fetchMaintenanceLogs({});
+      return true;
+    } catch (error) {
+      console.error('❌ Error resetMillOil:', error);
       return false;
     }
   },

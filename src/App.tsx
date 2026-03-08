@@ -11,15 +11,31 @@ import Mantenimiento from './pages/Mantenimiento';
 import Clientes from './pages/Clientes';
 import { useAuthStore } from './store/authStore';
 import { ToastContainer } from './components/common/Toast';
+import { useSupabaseStore } from './store/supabaseStore';
 
 function App() {
-  const { user, initialized, loading, initialize } = useAuthStore();
+  const { user, initialized, loading: authLoading, initialize } = useAuthStore();
+  const { mills, checkAndLiberateMills } = useSupabaseStore();
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  if (!initialized || loading) {
+  // Global polling for auto-liberation of mills
+  useEffect(() => {
+    if (!user || mills.length === 0) return;
+
+    // Check immediately on mount/update
+    checkAndLiberateMills(mills);
+
+    const intervalId = setInterval(() => {
+      checkAndLiberateMills(useSupabaseStore.getState().mills);
+    }, 60000); // Check every minute
+
+    return () => clearInterval(intervalId);
+  }, [user, mills.length]);
+
+  if (!initialized || authLoading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center">

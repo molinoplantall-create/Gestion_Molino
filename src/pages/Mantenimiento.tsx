@@ -33,7 +33,7 @@ interface MaintenanceRecord {
 }
 
 const Mantenimiento: React.FC = () => {
-  const { mills, maintenanceLogs, fetchMills, fetchMaintenanceLogs, registerMaintenance, loading } = useSupabaseStore();
+  const { mills, maintenanceLogs, fetchMills, fetchMaintenanceLogs, registerMaintenance, resetMillOil, loading } = useSupabaseStore();
   const toast = useToast();
 
   // Filters
@@ -314,6 +314,17 @@ _Enviado desde el sistema de Gestión de Molinos_`;
     }
   };
 
+  const handleResetOil = async (millId: string, millName: string) => {
+    if (confirm(`¿Estás seguro de registrar un cambio de aceite para el ${millName}? Las horas se reiniciarán a 500.`)) {
+      const success = await resetMillOil(millId);
+      if (success) {
+        toast.success('Cambio de Aceite Registrado', `Se resetearon las horas del ${millName} a 500h.`);
+      } else {
+        toast.error('Error', 'No se pudo registrar el cambio de aceite.');
+      }
+    }
+  };
+
   return (
     <div className="space-y-6 p-4 md:p-0">
       {/* Header */}
@@ -483,11 +494,19 @@ _Enviado desde el sistema de Gestión de Molinos_`;
               </div>
 
               <div className="mt-4">
-                <div className="text-xs text-gray-500 mb-1">Vida Aceite</div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-xs text-gray-500 font-bold">Vida Util Aceite</span>
+                  <button
+                    onClick={() => handleResetOil(molino.id, molino.name)}
+                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded transition-colors uppercase tracking-widest"
+                  >
+                    Renovar
+                  </button>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className={`h-2 rounded-full ${molino.hours_to_oil_change! > 20 ? 'bg-green-500' : 'bg-red-500'}`}
-                    style={{ width: `${Math.min(100, (molino.hours_to_oil_change! / 100) * 100)}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${molino.hours_to_oil_change! > 50 ? 'bg-emerald-500' : molino.hours_to_oil_change! > 20 ? 'bg-amber-400' : 'bg-red-500'}`}
+                    style={{ width: `${Math.min(100, (molino.hours_to_oil_change! / 500) * 100)}%` }}
                   ></div>
                 </div>
               </div>

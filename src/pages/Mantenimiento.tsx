@@ -9,6 +9,7 @@ import { MaintenanceForm } from '@/components/mantenimiento/MaintenanceForm';
 import { MaintenanceTable } from '@/components/mantenimiento/MaintenanceTable';
 import { MaintenanceFilters } from '@/components/mantenimiento/MaintenanceFilters';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import { InputModal } from '@/components/ui/InputModal';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { maintenanceSchema } from '@/schemas/maintenanceSchema';
 import * as XLSX from 'xlsx';
@@ -53,6 +54,7 @@ const Mantenimiento: React.FC = () => {
   const editModal = useModal<MaintenanceRecord>();
   const deleteModal = useModal<MaintenanceRecord>();
   const historyModal = useModal<any>();
+  const [resetOilModal, setResetOilModal] = useState<{ isOpen: boolean, millId: string, millName: string }>({ isOpen: false, millId: '', millName: '' });
 
   // Form state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,6 +64,7 @@ const Mantenimiento: React.FC = () => {
     categoria: '',
     descripcion: '',
     prioridad: 'MEDIA' as const,
+    estado: 'PENDIENTE' as const,
     fechaProgramada: new Date().toISOString().split('T')[0],
     horasEstimadas: 4,
     asignadoA: ''
@@ -109,6 +112,7 @@ const Mantenimiento: React.FC = () => {
       categoria: '',
       descripcion: '',
       prioridad: 'MEDIA',
+      estado: 'PENDIENTE',
       fechaProgramada: new Date().toISOString().split('T')[0],
       horasEstimadas: 4,
       asignadoA: ''
@@ -131,7 +135,7 @@ const Mantenimiento: React.FC = () => {
       technician_name: formData.asignadoA,
       worked_hours: formData.horasEstimadas,
       fechaProgramada: formData.fechaProgramada,
-      status: 'PENDIENTE'
+      status: formData.estado
     });
 
     setIsSubmitting(false);
@@ -152,6 +156,7 @@ const Mantenimiento: React.FC = () => {
       categoria: record.category || '',
       descripcion: record.description,
       prioridad: (record.priority || 'MEDIA') as any,
+      estado: (record.status || 'PENDIENTE') as any,
       fechaProgramada: record.created_at,
       horasEstimadas: record.worked_hours || 4,
       asignadoA: record.technician_name || ''
@@ -178,6 +183,7 @@ const Mantenimiento: React.FC = () => {
       category: formData.categoria,
       description: formData.descripcion,
       priority: formData.prioridad,
+      status: formData.estado,
       worked_hours: formData.horasEstimadas,
       technician_name: formData.asignadoA,
       created_at: formData.fechaProgramada ? new Date(formData.fechaProgramada).toISOString() : new Date().toISOString()
@@ -343,23 +349,24 @@ _Enviado desde el sistema de Gestión de Molinos_`;
     }
   };
 
-  const handleResetOil = async (millId: string, millName: string) => {
-    const rawInput = prompt(`¿A cuántas horas deseas reiniciar la vida útil del aceite para el ${millName}?\n(Por defecto es 500)`, "500");
-    if (rawInput === null) return; // User cancelled
+  const handleResetOil = (millId: string, millName: string) => {
+    setResetOilModal({ isOpen: true, millId, millName });
+  };
 
+  const handleConfirmResetOil = async (rawInput: string) => {
+    setResetOilModal(prev => ({ ...prev, isOpen: false }));
     const targetHours = parseInt(rawInput, 10);
     if (isNaN(targetHours) || targetHours < 1) {
       toast.error('Inválido', 'Debes ingresar un número válido de horas.');
       return;
     }
 
-    if (confirm(`¿Confirmas establecer ${targetHours} horas como la vida útil restante para ${millName}?`)) {
-      const success = await resetMillOil(millId, targetHours);
-      if (success) {
-        toast.success('Horas Reiniciadas', `Se estableció la vida útil del ${millName} en ${targetHours}h.`);
-      } else {
-        toast.error('Error', 'No se pudo registrar el cambio.');
-      }
+    const { millId, millName } = resetOilModal;
+    const success = await resetMillOil(millId, targetHours);
+    if (success) {
+      toast.success('Horas Reiniciadas', `Se estableció la vida útil del ${millName} en ${targetHours}h.`);
+    } else {
+      toast.error('Error', 'No se pudo registrar el cambio.');
     }
   };
 
@@ -617,6 +624,19 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         title="Eliminar Registro"
         message={`¿Estás seguro de que deseas eliminar el registro ${deleteModal.data?.id.substring(0, 8)}...? Esta acción no se puede deshacer.`}
         variant="danger"
+      />
+
+      {/* Reset Oil Modal */}
+      <InputModal
+        isOpen={resetOilModal.isOpen}
+        onClose={() => setResetOilModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmResetOil}
+        title="Reiniciar Vida Útil"
+        message={`¿A cuántas horas deseas reiniciar la vida útil del aceite para el ${resetOilModal.millName}? (Por defecto 500)`}
+        defaultValue="500"
+        type="number"
+        min={1}
+        icon={Settings}
       />
     </div>
   );

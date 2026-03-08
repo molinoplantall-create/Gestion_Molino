@@ -8,6 +8,7 @@ interface MaintenanceFormData {
     categoria: string;
     descripcion: string;
     prioridad: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+    estado: 'PENDIENTE' | 'EN_PROCESO' | 'COMPLETADO' | 'CANCELADO';
     fechaProgramada: string;
     horasEstimadas: number;
     asignadoA: string;
@@ -101,6 +102,23 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         <option value="MEDIA">Media</option>
                         <option value="ALTA">Alta</option>
                         <option value="CRITICA">Crítica</option>
+                    </select>
+                </div>
+
+                {/* Estado */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Estado
+                    </label>
+                    <select
+                        value={formData.estado}
+                        onChange={(e) => onChange('estado', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="EN_PROCESO">En Proceso</option>
+                        <option value="COMPLETADO">Realizado (Completado)</option>
+                        <option value="CANCELADO">Cancelado</option>
                     </select>
                 </div>
 

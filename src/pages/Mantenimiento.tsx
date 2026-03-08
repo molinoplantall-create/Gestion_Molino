@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import { MaintenanceForm } from '@/components/mantenimiento/MaintenanceForm';
 import { MaintenanceTable } from '@/components/mantenimiento/MaintenanceTable';
 import { MaintenanceFilters } from '@/components/mantenimiento/MaintenanceFilters';
+import { KpiIndicators } from '@/components/mantenimiento/KpiIndicators';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { InputModal } from '@/components/ui/InputModal';
 import { useFormValidation } from '@/hooks/useFormValidation';
@@ -58,6 +59,8 @@ const Mantenimiento: React.FC = () => {
 
   // Form state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // All maintenance logs for KPI calculation (unfiltered)
+  const [allMaintenanceLogs, setAllMaintenanceLogs] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     molinoId: '',
     tipo: 'PREVENTIVO' as const,
@@ -90,6 +93,33 @@ const Mantenimiento: React.FC = () => {
       endDate
     });
   }, [fetchMaintenanceLogs, currentPage, search, filterType, filterStatus, selectedMill, startDate, endDate]);
+
+  // Fetch ALL logs (without filters/pagination) for KPI calculation
+  useEffect(() => {
+    const fetchAllLogs = async () => {
+      try {
+        const { data, error } = await (await import('@/lib/supabase')).supabase
+          .from('maintenance_logs')
+          .select('*, mills(*)')
+          .order('created_at', { ascending: false });
+        if (!error && data) {
+          const normalized = data.map((log: any) => ({
+            ...log,
+            mill_id: log.mill_id || log.molino_id,
+            type: log.type || log.tipo || 'PREVENTIVO',
+            status: (log.status || log.estado || 'PENDIENTE').toUpperCase(),
+            failure_start_time: log.failure_start_time || null,
+            completed_at: log.completed_at || null,
+            worked_hours: log.worked_hours || log.horas_trabajadas || 0,
+          }));
+          setAllMaintenanceLogs(normalized);
+        }
+      } catch (e) {
+        console.error('Error fetching all maintenance logs for KPIs:', e);
+      }
+    };
+    fetchAllLogs();
+  }, [maintenanceLogs.length]); // re-fetch when filtered logs change (new records added)
 
   // Reset page when filters change
   useEffect(() => {
@@ -399,84 +429,8 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-        <div className="bg-white rounded-2xl p-4 md:p-6 border">
-          <div className="flex items-center">
-            <div className="p-3 bg-green-100 rounded-xl mr-4">
-              <CheckCircle className="text-green-600" size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Disponibilidad</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {mills.length > 0
-                  ? `${Math.round((mills.filter(m => m.status === 'libre').length / mills.length) * 100)}%`
-                  : '0%'}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-xs text-gray-500">
-              {mills.filter(m => m.status === 'libre').length} de {mills.length} operativos
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-green-500 h-2 rounded-full"
-                style={{
-                  width: mills.length > 0
-                    ? `${(mills.filter(m => m.status === 'libre').length / mills.length) * 100}%`
-                    : '0%'
-                }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 md:p-6 border">
-          <div className="flex items-center">
-            <div className="p-3 bg-orange-100 rounded-xl mr-4">
-              <Clock className="text-orange-600" size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Historial Total</p>
-              <p className="text-2xl font-bold text-gray-900">{maintenanceLogs.length}</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-xs text-gray-500">Registros en base de datos</div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-orange-500 h-2 rounded-full" style={{ width: '100%' }}></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 md:p-6 border">
-          <div className="flex items-center">
-            <div className="p-3 bg-red-100 rounded-xl mr-4">
-              <AlertTriangle className="text-red-600" size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Mantenimientos Urgentes</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {mills.filter(m => (m.hours_to_oil_change || 0) < 20).length}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-xs text-gray-500">Aceite crítico (&lt;20h)</div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-red-500 h-2 rounded-full"
-                style={{
-                  width: mills.length > 0
-                    ? `${(mills.filter(m => (m.hours_to_oil_change || 0) < 20).length / mills.length) * 100}%`
-                    : '0%'
-                }}
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* KPI Section: MTBF, MTTR, Disponibilidad */}
+      <KpiIndicators maintenanceLogs={allMaintenanceLogs} mills={mills} />
 
       {/* Molino Status Dashboard */}
       <div className="bg-white rounded-2xl p-4 md:p-6 border">

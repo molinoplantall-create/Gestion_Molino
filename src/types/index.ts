@@ -79,6 +79,8 @@ export interface MaintenanceLog {
   worked_hours?: number;
   technician_name?: string;
   status: string;
+  failure_start_time?: string;
+  completed_at?: string;
   created_at: string;
   mills?: {
     name: string;

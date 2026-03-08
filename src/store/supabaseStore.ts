@@ -402,6 +402,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         technician_name: log.technician_name || log.asignado_a || '',
         worked_hours: log.worked_hours || log.horas_trabajadas || 0,
         status: (log.status || log.estado || 'PENDIENTE').toUpperCase(),
+        failure_start_time: log.failure_start_time || null,
+        completed_at: log.completed_at || null,
         created_at: log.created_at || log.fecha_registro || new Date().toISOString()
       }));
 
@@ -677,7 +679,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Intentar inserción estandarizada primero
-      const insertData = {
+      const insertData: any = {
         mill_id: data.mill_id,
         type: data.type,
         description: data.description,
@@ -686,6 +688,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         status: data.status || 'PENDIENTE',
         created_at: data.fechaProgramada || new Date().toISOString()
       };
+
+      // MTBF/MTTR: Registrar momento de falla para mantenimientos CORRECTIVOS
+      if (data.type === 'CORRECTIVO') {
+        insertData.failure_start_time = new Date().toISOString();
+      }
 
       let { error } = await supabase
         .from('maintenance_logs')
@@ -768,7 +775,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       // Intentar primero con columna 'status'
       let { error: logError } = await supabase
         .from('maintenance_logs')
-        .update({ status: 'COMPLETADO' })
+        .update({ status: 'COMPLETADO', completed_at: new Date().toISOString() })
         .eq('id', id);
 
       // Fallback a 'estado' si falla

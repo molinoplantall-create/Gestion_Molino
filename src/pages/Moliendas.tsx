@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, MessageSquare, Eye, Edit, Trash2, Calendar, ChevronLeft, ChevronRight, Package, CheckCircle, Clock } from 'lucide-react';
+import { Search, Filter, Download, MessageSquare, Trash2, Calendar, ChevronLeft, ChevronRight, Package, CheckCircle, Clock } from 'lucide-react';
 import { MillingLog } from '@/types';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { Table } from '@/components/common/Table';
@@ -62,6 +62,18 @@ const Moliendas: React.FC = () => {
         {mineral}
       </span>
     );
+  };
+
+  const calculateDuration = (session: MillingLog) => {
+    if (session.mineral_type === 'OXIDO') {
+      return '1h 40min';
+    } else {
+      let mins = 120 + Math.ceil(session.total_sacks * 3);
+      if (mins > 150) mins = 150;
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `${h}h ${m}min`;
+    }
   };
 
   const columns = [
@@ -131,7 +143,7 @@ const Moliendas: React.FC = () => {
     {
       key: 'duration',
       label: 'Duración',
-      render: () => <span className="text-sm text-slate-600 font-medium italic">-</span>
+      render: (session: MillingLog) => <span className="text-sm text-slate-600 font-medium italic">{calculateDuration(session)}</span>
     },
     {
       key: 'status',
@@ -149,12 +161,6 @@ const Moliendas: React.FC = () => {
       className: 'text-right',
       render: (session: MillingLog) => (
         <div className="flex space-x-1 justify-end">
-          <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-            <Eye size={18} strokeWidth={1.5} />
-          </button>
-          <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-            <Edit size={18} strokeWidth={1.5} />
-          </button>
           <button
             onClick={() => {
               deleteModal.open({

@@ -160,9 +160,38 @@ const Mantenimiento: React.FC = () => {
   };
 
   const handleUpdateRecord = async () => {
-    // TODO: Implement update logic
-    toast.info('Función pendiente', 'La actualización de registros estará disponible pronto.');
-    editModal.close();
+    // Basic validation
+    const isValid = await validate(formData);
+    if (!isValid) {
+      toast.warning('Validación fallida', 'Por favor revise los errores en el formulario');
+      return;
+    }
+
+    if (!editModal.data) return;
+
+    setIsSubmitting(true);
+
+    // We update the record via supabaseStore directly
+    const { error } = await useSupabaseStore.getState().updateMaintenanceLog(editModal.data.id, {
+      mill_id: formData.molinoId,
+      type: formData.tipo,
+      category: formData.categoria,
+      description: formData.descripcion,
+      priority: formData.prioridad,
+      worked_hours: formData.horasEstimadas,
+      technician_name: formData.asignadoA,
+      created_at: formData.fechaProgramada ? new Date(formData.fechaProgramada).toISOString() : new Date().toISOString()
+    });
+
+    setIsSubmitting(false);
+
+    if (!error) {
+      toast.success('Registro Actualizado', 'El mantenimiento se ha modificado correctamente.');
+      editModal.close();
+      useSupabaseStore.getState().fetchMaintenanceLogs({});
+    } else {
+      toast.error('Error', 'No se pudo actualizar el registro de mantenimiento.');
+    }
   };
 
   const handleDeleteClick = (record: MaintenanceRecord) => {
@@ -315,12 +344,21 @@ _Enviado desde el sistema de Gestión de Molinos_`;
   };
 
   const handleResetOil = async (millId: string, millName: string) => {
-    if (confirm(`¿Estás seguro de registrar un cambio de aceite para el ${millName}? Las horas se reiniciarán a 500.`)) {
-      const success = await resetMillOil(millId);
+    const rawInput = prompt(`¿A cuántas horas deseas reiniciar la vida útil del aceite para el ${millName}?\n(Por defecto es 500)`, "500");
+    if (rawInput === null) return; // User cancelled
+
+    const targetHours = parseInt(rawInput, 10);
+    if (isNaN(targetHours) || targetHours < 1) {
+      toast.error('Inválido', 'Debes ingresar un número válido de horas.');
+      return;
+    }
+
+    if (confirm(`¿Confirmas establecer ${targetHours} horas como la vida útil restante para ${millName}?`)) {
+      const success = await resetMillOil(millId, targetHours);
       if (success) {
-        toast.success('Cambio de Aceite Registrado', `Se resetearon las horas del ${millName} a 500h.`);
+        toast.success('Horas Reiniciadas', `Se estableció la vida útil del ${millName} en ${targetHours}h.`);
       } else {
-        toast.error('Error', 'No se pudo registrar el cambio de aceite.');
+        toast.error('Error', 'No se pudo registrar el cambio.');
       }
     }
   };
@@ -440,14 +478,6 @@ _Enviado desde el sistema de Gestión de Molinos_`;
             <h3 className="text-lg font-semibold text-gray-900">Estado de Molinos</h3>
             <p className="text-gray-600 text-sm">Dashboard operacional en tiempo real</p>
           </div>
-          <div className="flex space-x-2 mt-4 md:mt-0">
-            <button
-              className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium flex items-center"
-            >
-              <Settings size={16} className="mr-2" />
-              Configurar
-            </button>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -486,10 +516,6 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Horas Cambio:</span>
                   <span className="font-medium">{molino.hours_to_oil_change}h</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Capacidad:</span>
-                  <span className="font-medium">{molino.capacity} sacos</span>
                 </div>
               </div>
 

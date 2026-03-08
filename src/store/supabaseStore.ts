@@ -81,7 +81,8 @@ interface SupabaseStore {
   finalizeMilling: (millId: string) => Promise<boolean>;
   updateMillHours: (millId: string, hoursToAdd: number) => Promise<boolean>;
   finalizeMaintenance: (id: string, millId: string) => Promise<boolean>;
-  resetMillOil: (millId: string) => Promise<boolean>;
+  resetMillOil: (millId: string, targetHours: number) => Promise<boolean>;
+  updateMaintenanceLog: (id: string, updateData: any) => Promise<{ error: any }>;
   deleteMillingLog: (logId: string) => Promise<boolean>;
   startPollingMills: () => void;
   stopPollingMills: () => void;
@@ -744,6 +745,20 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
+  updateMaintenanceLog: async (id: string, updateData: any) => {
+    try {
+      const { error } = await supabase
+        .from('maintenance_logs')
+        .update(updateData)
+        .eq('id', id);
+
+      return { error };
+    } catch (error) {
+      console.error('Error updateMaintenanceLog:', error);
+      return { error };
+    }
+  },
+
   finalizeMaintenance: async (id: string, millId: string) => {
     set({ loading: true, error: null });
     try {
@@ -1220,12 +1235,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  resetMillOil: async (id: string) => {
+  resetMillOil: async (id: string, targetHours: number) => {
     try {
       const { error } = await supabase
         .from('mills')
         .update({
-          hours_to_oil_change: 500,
+          hours_to_oil_change: targetHours,
           last_maintenance: new Date().toISOString().split('T')[0]
         })
         .eq('id', id);
@@ -1239,7 +1254,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           mill_id: id,
           type: 'PREVENTIVO',
           status: 'COMPLETADO',
-          description: 'Cambio de Aceite Automático (500h reset)',
+          description: `Cambio de Aceite Automático (Reiniciado a ${targetHours}h)`,
           technician_name: 'Sistema',
           worked_hours: 0
         });

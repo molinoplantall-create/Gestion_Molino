@@ -1221,20 +1221,26 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       const { data, error: fetchError } = await supabase
         .from('mills')
-        .select('total_hours_worked')
+        .select('total_hours_worked, hours_to_oil_change')
         .eq('id', millId)
         .single();
 
       if (fetchError) throw fetchError;
 
-      const newHours = Number(((data?.total_hours_worked || 0) + hoursToAdd).toFixed(2));
+      const newHoursWorked = Number(((data?.total_hours_worked || 0) + hoursToAdd).toFixed(2));
+      const currentOilHours = data?.hours_to_oil_change ?? 500;
+      const newOilHours = Math.max(0, Number((currentOilHours - hoursToAdd).toFixed(2)));
 
       const { error: updateError } = await supabase
         .from('mills')
-        .update({ total_hours_worked: newHours })
+        .update({
+          total_hours_worked: newHoursWorked,
+          hours_to_oil_change: newOilHours
+        })
         .eq('id', millId);
 
       if (updateError) throw updateError;
+      console.log(`🔧 updateMillHours: ${millId} +${hoursToAdd}h → total=${newHoursWorked}h, aceite=${newOilHours}h restantes`);
       return true;
     } catch (error) {
       console.error('❌ Error updateMillHours:', error);

@@ -429,6 +429,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .single();
 
       if (clientFetchError) throw clientFetchError;
+      console.log('🏁 registerMilling: 1. Cliente verificado', clientData);
 
       const nowDate = new Date();
       let isHistorical = false;
@@ -472,6 +473,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .single();
 
       if (millingError) throw millingError;
+      console.log('🏁 registerMilling: 2. Log de molienda creado', millingData.id);
 
       const newCuarzo = (clientData.stock_cuarzo || 0) - data.totalCuarzo;
       const newLlampo = (clientData.stock_llampo || 0) - data.totalLlampo;
@@ -485,6 +487,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .eq('id', data.clientId);
 
       if (stockError) throw stockError;
+      console.log('🏁 registerMilling: 3. Stock general de cliente actualizado');
 
       // --- FIFO Batch Consumption ---
       const consumeBatches = async (clientId: string, subMineral: 'CUARZO' | 'LLAMPO', totalToConsume: number) => {
@@ -535,6 +538,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (data.totalLlampo > 0) {
         await consumeBatches(data.clientId, 'LLAMPO', data.totalLlampo);
       }
+      console.log('🏁 registerMilling: 4. Lotes (FIFO) consumidos');
       // -------------------------------
 
       const millUpdates = data.mills.map(async (m) => {
@@ -584,13 +588,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         return { error: null };
       });
 
+      console.log('🏁 registerMilling: 5. Iniciando actualización de molinos...', millUpdates.length);
       await Promise.all(millUpdates);
+      console.log('🏁 registerMilling: 6. Molinos actualizados');
 
       await Promise.all([
         get().fetchMills(),
         get().fetchClients(),
         get().fetchMillingLogs({ pageSize: 12 })
       ]);
+      console.log('🏁 registerMilling: 7. Datos de UI refrescados');
 
       return true;
     } catch (error: any) {

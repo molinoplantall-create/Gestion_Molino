@@ -481,13 +481,29 @@ const RegistroMolienda: React.FC = () => {
       const [year, month, day] = dateStr.split('-').map(Number);
 
       // Crear objeto fecha en horario local del navegador
-      const startDate = new Date(year, month - 1, day, startH, startM, 0, 0);
+      let startDate = new Date(year, month - 1, day, startH, startM, 0, 0);
+
+      // Fallback si la fecha es inválida
+      if (isNaN(startDate.getTime())) {
+        console.error('❌ RegistroMolienda: Fecha inválida detectada:', { dateStr, startH, startM });
+        startDate = new Date();
+      }
+
       const horaInicioISO = startDate.toISOString();
 
       const tiempoPorMolino = getTiempoSeleccionado();
       const endDate = new Date(startDate.getTime() + (tiempoPorMolino * 60 * 1000));
       const horaFinISO = endDate.toISOString();
       const horaFinCalculada = endDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+      console.log('📦 RegistroMolienda: Datos a enviar:', {
+        clientId: molienda.clienteId,
+        mineralType: molienda.mineral,
+        totalSacos: totalCalculado.totalSacos,
+        mills: molinosActivos.map(m => m.name),
+        horaInicioISO,
+        horaFinISO
+      });
 
       const success = await registerMilling({
         clientId: molienda.clienteId,
@@ -576,15 +592,15 @@ const RegistroMolienda: React.FC = () => {
       mensaje += `🔄 *Total moliendas activas del cliente:* ${moliendasActivas + 1}\n\n`;
     }
 
-    mensaje += `\n📦 *DETALLE DE CARGA:*\n`;
-    mensaje += `• *Total Sacos:* ${totalCalculado.totalSacos}\n`;
-    mensaje += `• Cuarzo: ${totalCalculado.totalCuarzo} sacos\n`;
-    mensaje += `• Llampo: ${totalCalculado.totalLlampo} sacos\n\n`;
-
     mensaje += `📋 *STOCK DEL CLIENTE:*\n`;
     mensaje += `• *Total:* ${molienda.stockTotal}\n`;
     mensaje += `• Cuarzo: ${molienda.stockCuarzo}\n`;
     mensaje += `• Llampo: ${molienda.stockLlampo}\n\n`;
+
+    mensaje += `📦 *DETALLE DE CARGA:*\n`;
+    mensaje += `• *Total Sacos:* ${totalCalculado.totalSacos}\n`;
+    mensaje += `• Cuarzo: ${totalCalculado.totalCuarzo} sacos\n`;
+    mensaje += `• Llampo: ${totalCalculado.totalLlampo} sacos\n\n`;
 
     mensaje += `⚙️ *DISTRIBUCIÓN POR MOLINO:*\n`;
     molinosActivos.forEach(m => {

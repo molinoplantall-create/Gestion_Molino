@@ -282,8 +282,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        // Buscamos en observaciones o tipo de mineral
-        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%`);
+        // En Supabase v2, para buscar en tablas relacionadas se usa el formato 'tabla.columna'
+        // Buscamos en observaciones, tipo de mineral o el nombre del cliente
+        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%,clients.name.ilike.%${search}%`);
       }
 
       if (zone && zone !== 'all') {

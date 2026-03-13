@@ -254,53 +254,53 @@ const Moliendas: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 pb-20 max-w-[1600px] mx-auto px-4 md:px-6">
-      {/* HEADER INDUSTRIAL UNIFICADO */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-slate-200 pb-6">
+    <div className="space-y-4 pb-10 max-w-[1600px] mx-auto px-4 md:px-6">
+      {/* HEADER INDUSTRIAL COMPACTO */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-8 bg-indigo-600 rounded-full"></div>
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600">HISTORIAL TÉCNICO</span>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-1.5 h-6 bg-indigo-600 rounded-full"></div>
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-600">HISTORIAL TÉCNICO</span>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Bitácora de Moliendas</h1>
-          <p className="text-slate-500 font-medium flex items-center mt-1">
-            <Calendar size={16} className="mr-2 text-indigo-500" />
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Bitácora de Moliendas</h1>
+          <p className="text-slate-500 font-medium text-xs flex items-center mt-0.5">
+            <Calendar size={14} className="mr-1.5 text-indigo-500" />
             Registro cronológico detallado de todos los procesos operativos
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <button className="flex items-center px-5 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 font-bold text-sm">
-            <MessageSquare size={18} className="mr-3" />
+        <div className="flex flex-wrap gap-2">
+          <button className="flex items-center px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 font-bold text-xs">
+            <MessageSquare size={16} className="mr-2" />
             WHATSAPP
           </button>
           <button
             onClick={() => alert('Exportando historial...')}
-            className="flex items-center px-5 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 font-bold text-sm"
+            className="flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 font-bold text-xs"
           >
-            <Download size={18} className="mr-3" />
+            <Download size={16} className="mr-2" />
             EXPORTAR ANALÍTICA
           </button>
         </div>
       </div>
 
-      {/* KPI SUMMARY - ESTILO PREMIUM */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      {/* KPI SUMMARY - ESTILO COMPACTO */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: 'TOTAL PROCESADO', value: stats.totalSacos.toLocaleString(), icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', suffix: 'Sacos' },
-          { label: 'MOLIENDAS ÉXITO', value: stats.finalizadas.toLocaleString(), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', suffix: 'Protocolos' },
+          { label: 'MOLIENDAS ÉXITO', value: stats.finalizadas.toLocaleString(), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', suffix: 'Logs' },
           { label: 'TIEMPO ESTIMADO', value: stats.tiempoPromedio, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', suffix: 'Horas/Prom' },
         ].map((kpi, i) => (
-          <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm transition-all duration-300">
+          <div key={i} className="group bg-white rounded-2xl p-4 border border-slate-100 shadow-sm transition-all duration-300">
             <div className="flex items-center">
-              <div className={`p-4 ${kpi.bg} ${kpi.border} rounded-2xl border mr-5`}>
-                <kpi.icon className={kpi.color} size={28} strokeWidth={2.5} />
+              <div className={`p-3 ${kpi.bg} ${kpi.border} rounded-xl border mr-4`}>
+                <kpi.icon className={kpi.color} size={22} strokeWidth={2.5} />
               </div>
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{kpi.label}</p>
-                <div className="flex items-baseline gap-2">
-                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{kpi.suffix}</span>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{kpi.label}</p>
+                <div className="flex items-baseline gap-1.5">
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{kpi.suffix}</span>
                 </div>
               </div>
             </div>
@@ -308,42 +308,42 @@ const Moliendas: React.FC = () => {
         ))}
       </div>
 
-      {/* FILTRADO AVANZADO - ESTILO INDUSTRIAL */}
-      <div className="bg-slate-50 rounded-[2.5rem] p-6 lg:p-8 border border-white shadow-xl shadow-slate-200/50 space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-4 space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Búsqueda Técnica</label>
+      {/* FILTRADO AVANZADO - ESTILO INDUSTRIAL COMPACTO */}
+      <div className="bg-slate-50 rounded-[1.5rem] p-4 lg:p-5 border border-white shadow-lg shadow-slate-200/50 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Búsqueda Técnica</label>
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500" size={16} />
               <input
                 type="text"
-                placeholder="Buscar por cliente u observaciones..."
+                placeholder="Cliente, observaciones..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all shadow-sm text-sm"
               />
             </div>
           </div>
 
-          <div className="lg:col-span-3 space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Estado de Proceso</label>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Estado</label>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm"
+              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm text-sm"
             >
-              <option value="all">Todos los estados operativos</option>
-              <option value="IN_PROGRESS">En Proceso (Activo)</option>
-              <option value="FINALIZADO">Finalizado (Cerrado)</option>
+              <option value="all">Todos los estados</option>
+              <option value="IN_PROGRESS">En Proceso</option>
+              <option value="FINALIZADO">Finalizado</option>
             </select>
           </div>
 
-          <div className="lg:col-span-3 space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unidad de Molienda</label>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Molino</label>
             <select
               value={selectedMill}
               onChange={(e) => setSelectedMill(e.target.value)}
-              className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm"
+              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm text-sm"
             >
               <option value="all">Todos los molinos</option>
               {mills.map(m => (
@@ -352,12 +352,12 @@ const Moliendas: React.FC = () => {
             </select>
           </div>
 
-          <div className="lg:col-span-3 space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Zona de Procedencia</label>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Zona</label>
             <select
               value={selectedZone}
               onChange={(e) => setSelectedZone(e.target.value)}
-              className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm"
+              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm text-sm"
             >
               <option value="all">Todas las zonas</option>
               {zones.map(z => (
@@ -365,8 +365,40 @@ const Moliendas: React.FC = () => {
               ))}
             </select>
           </div>
+        </div>
 
-          <div className="lg:col-span-2 flex items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-slate-200 pt-4">
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango Inicial</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none shadow-sm text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango Final</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none shadow-sm text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Mineral</label>
+            <select
+              value={selectedMineral}
+              onChange={(e) => setSelectedMineral(e.target.value)}
+              className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none shadow-sm appearance-none cursor-pointer text-xs"
+            >
+              <option value="all">Todos los minerales</option>
+              <option value="OXIDO">Oxido</option>
+              <option value="SULFURO">Sulfuro</option>
+            </select>
+          </div>
+          <div className="flex items-end">
             <button
               onClick={() => {
                 setSearch('');
@@ -377,49 +409,16 @@ const Moliendas: React.FC = () => {
                 setStartDate('');
                 setEndDate('');
               }}
-              className="w-full h-[54px] text-[10px] font-black text-indigo-600 bg-indigo-50 border-2 border-indigo-100 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-widest"
+              className="w-full h-[38px] text-[9px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-widest"
             >
               RESET FILTROS
             </button>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 border-t border-slate-200 pt-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango Inicial</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none shadow-sm"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango Final</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none shadow-sm"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Mineral</label>
-            <select
-              value={selectedMineral}
-              onChange={(e) => setSelectedMineral(e.target.value)}
-              className="w-full px-5 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none shadow-sm appearance-none cursor-pointer"
-            >
-              <option value="all">Todos los minerales</option>
-              <option value="OXIDO">Mineral Óxido</option>
-              <option value="SULFURO">Mineral Sulfuro</option>
-            </select>
-          </div>
-        </div>
       </div>
 
-      {/* TABLE SECTION - DISEÑO TIPO REPORTE INDUSTRIAL */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden min-h-[500px]">
+      {/* TABLE SECTION - DISEÑO COMPACTO */}
+      <div className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
         <Table
           data={millingLogs}
           columns={columns}
@@ -431,7 +430,7 @@ const Moliendas: React.FC = () => {
             totalItems: logsCount,
             onPageChange: setCurrentPage
           }}
-          emptyMessage="No se encontraron registros en el rango seleccionado."
+          emptyMessage="No se encontraron registros."
         />
       </div>
 

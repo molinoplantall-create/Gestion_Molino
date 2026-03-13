@@ -88,6 +88,8 @@ interface SupabaseStore {
   stopPollingMills: () => void;
   isPolling: boolean;
   fetchClientBatches: (clientId: string) => Promise<any[]>;
+  updateBatchMineralType: (batchId: string, mineralType: 'OXIDO' | 'SULFURO') => Promise<boolean>;
+  deleteStockBatch: (batchId: string, clientId: string) => Promise<boolean>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -1319,6 +1321,80 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     } catch (error) {
       console.error('❌ Error fetchClientBatches:', error);
       return [];
+    }
+  },
+
+  updateBatchMineralType: async (batchId: string, mineralType: 'OXIDO' | 'SULFURO') => {
+    try {
+      const { error } = await supabase
+        .from('stock_batches')
+        .update({ mineral_type: mineralType })
+        .eq('id', batchId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('❌ Error updateBatchMineralType:', error);
+      return false;
+    }
+  },
+
+  deleteStockBatch: async (batchId: string, clientId: string) => {
+    set({ loading: true, error: null });
+    try {
+      // 1. Obtener los datos del lote antes de borrarlo
+      const { data: batch, error: fetchError } = await supabase
+        .from('stock_batches')
+        .select('*')
+        .eq('id', batchId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 2. Obtener el stock actual del cliente
+      const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select('stock_cuarzo, stock_llampo, cumulative_cuarzo, cumulative_llampo')
+        .eq('id', clientId)
+        .single();
+
+      if (clientError) throw clientError;
+
+      // 3. Calcular los nuevos totales (revertir)
+      const updateData: any = {};
+      if (batch.sub_mineral === 'CUARZO') {
+        updateData.stock_cuarzo = Math.max(0, (client.stock_cuarzo || 0) - batch.remaining_quantity);
+        updateData.cumulative_cuarzo = Math.max(0, (client.cumulative_cuarzo || 0) - batch.initial_quantity);
+      } else {
+        updateData.stock_llampo = Math.max(0, (client.stock_llampo || 0) - batch.remaining_quantity);
+        updateData.cumulative_llampo = Math.max(0, (client.cumulative_llampo || 0) - batch.initial_quantity);
+      }
+
+      // 4. Actualizar el cliente
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update(updateData)
+        .eq('id', clientId);
+
+      if (updateError) throw updateError;
+
+      // 5. Borrar el lote
+      const { error: deleteError } = await supabase
+        .from('stock_batches')
+        .delete()
+        .eq('id', batchId);
+
+      if (deleteError) throw deleteError;
+
+      // 6. Refrescar datos
+      await get().fetchClients();
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error deleteStockBatch:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
     }
   }
 }));

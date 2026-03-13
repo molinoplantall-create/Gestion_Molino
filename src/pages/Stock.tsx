@@ -37,7 +37,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 const Stock: React.FC = () => {
   const { user } = useAuthStore();
-  const { clients, zones, loading, clientsLoading, fetchClients, fetchZones, addClientStock } = useSupabaseStore();
+  const { clients, zones, loading, clientsLoading, fetchClients, fetchZones, addClientStock, updateBatchMineralType, deleteStockBatch } = useSupabaseStore();
   const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
@@ -191,6 +191,39 @@ const Stock: React.FC = () => {
     const batches = await fetchClientBatches(clientId);
     setClientBatches(batches);
     setBatchesLoading(false);
+  };
+
+  const handleUpdateMineralType = async (batchId: string, currentType: string) => {
+    const newType = currentType === 'OXIDO' ? 'SULFURO' : 'OXIDO';
+    const success = await updateBatchMineralType(batchId, newType);
+    if (success) {
+      toast.success('Tipo Actualizado', `El lote ahora es ${newType}`);
+      // Refresh current client batches
+      if (expandedClient) {
+        const batches = await fetchClientBatches(expandedClient);
+        setClientBatches(batches);
+      }
+    } else {
+      toast.error('Error', 'No se pudo actualizar el tipo de mineral');
+    }
+  };
+
+  const handleDeleteBatch = async (batch: any) => {
+    if (!window.confirm(`¿Está seguro de eliminar este ingreso de ${batch.initial_quantity} sacos? El stock del cliente se revertirá.`)) {
+      return;
+    }
+
+    const success = await deleteStockBatch(batch.id, batch.client_id);
+    if (success) {
+      toast.success('Ingreso Eliminado', 'Se ha revertido el stock del cliente correctamente.');
+      // Refresh current client batches
+      if (expandedClient) {
+        const batches = await fetchClientBatches(expandedClient);
+        setClientBatches(batches);
+      }
+    } else {
+      toast.error('Error', 'No se pudo eliminar el registro.');
+    }
   };
 
   // Export batches to PDF
@@ -534,6 +567,25 @@ const Stock: React.FC = () => {
                                     }`}>
                                     {batch.sub_mineral}
                                   </span>
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={() => handleUpdateMineralType(batch.id, batch.mineral_type || 'OXIDO')}
+                                      className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border transition-all ${batch.mineral_type === 'SULFURO'
+                                        ? 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100'
+                                        : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'
+                                        }`}
+                                      title="Cambiar Tipo (Óxido/Sulfuro)"
+                                    >
+                                      {batch.mineral_type || 'OXIDO'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteBatch(batch)}
+                                      className="p-1 text-slate-400 hover:text-rose-500 transition-colors"
+                                      title="Eliminar este ingreso"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
                                   <span className="text-[10px] font-black text-slate-400">
                                     {format(new Date(batch.created_at), 'dd MMM yyyy', { locale: es })}
                                   </span>

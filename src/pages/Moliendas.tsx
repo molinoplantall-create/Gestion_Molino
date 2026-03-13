@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, MessageSquare, Trash2, Calendar, ChevronLeft, ChevronRight, Package, CheckCircle, Clock } from 'lucide-react';
+import { Search, Filter, Download, MessageSquare, Trash2, Calendar, ChevronLeft, ChevronRight, Package, CheckCircle, Clock, FileText } from 'lucide-react';
 import { MillingLog } from '@/types';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { Table } from '@/components/common/Table';
 import { useModal } from '@/hooks/useModal';
 import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
+import { ReceiptModal } from '@/components/molienda/ReceiptModal';
+import { useAuthStore } from '@/store/authStore';
 
 const Moliendas: React.FC = () => {
-  const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills, deleteMillingLog, loading } = useSupabaseStore();
+  const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills, deleteMillingLog, loading, zones, fetchZones } = useSupabaseStore();
   const deleteModal = useModal<{ id: string, name: string }>();
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -15,12 +17,16 @@ const Moliendas: React.FC = () => {
   const [selectedMineral, setSelectedMineral] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [selectedZone, setSelectedZone] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const receiptModal = useModal<any>();
+  const { user } = useAuthStore();
   const pageSize = 10;
 
   useEffect(() => {
     fetchMills();
-  }, [fetchMills]);
+    fetchZones();
+  }, [fetchMills, fetchZones]);
 
   useEffect(() => {
     fetchMillingLogs({
@@ -31,9 +37,10 @@ const Moliendas: React.FC = () => {
       millId: selectedMill,
       mineralType: selectedMineral,
       startDate,
-      endDate
+      endDate,
+      zone: selectedZone
     });
-  }, [fetchMillingLogs, currentPage, search, selectedStatus, selectedMill, selectedMineral, startDate, endDate]);
+  }, [fetchMillingLogs, currentPage, search, selectedStatus, selectedMill, selectedMineral, startDate, endDate, selectedZone]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -137,8 +144,18 @@ const Moliendas: React.FC = () => {
     },
     {
       key: 'mineral_type',
-      label: 'Mineral',
-      render: (session: MillingLog) => getMineralBadge(session.mineral_type)
+      label: 'Carga Detalles',
+      render: (session: MillingLog) => (
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1 mb-1">
+            {getMineralBadge(session.mineral_type)}
+          </div>
+          <div className="text-[10px] font-bold text-slate-500 flex gap-2">
+            <span className="bg-slate-100 px-1.5 py-0.5 rounded">C: {session.total_cuarzo || 0}</span>
+            <span className="bg-slate-100 px-1.5 py-0.5 rounded">Ll: {session.total_llampo || 0}</span>
+          </div>
+        </div>
+      )
     },
     {
       key: 'duration',
@@ -161,6 +178,47 @@ const Moliendas: React.FC = () => {
       className: 'text-right',
       render: (session: MillingLog) => (
         <div className="flex space-x-1 justify-end">
+          <button
+            onClick={() => {
+              // Mapear datos al formato de ReceiptModal
+              const mappedData = {
+                clienteNombre: session.clients?.name || 'Cliente',
+                tipoCliente: (session.clients as any)?.client_type || 'Minero',
+                mineral: session.mineral_type,
+                tiempos: {
+                  oxido: { hora40: true, hora00: false },
+                  sulfuro: { hora00: true, hora30: false }
+                },
+                fechaInicio: new Date(session.created_at).toLocaleDateString(),
+                horaInicio: new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+                horaFin: null, // Podríamos calcularlo pero usualmente el log no guarda hora_fin individual
+                stockTotal: 0,
+                totalSacos: session.total_sacks,
+                totalCuarzo: session.total_cuarzo,
+                totalLlampo: session.total_llampo,
+                stockRestanteTotal: 0,
+                tiempoPorMolino: session.mineral_type === 'OXIDO' ? 100 : 130,
+                molinos: (session.mills_used || []).map((m: any) => ({
+                  id: m.id,
+                  nombre: m.name || `Molino ${m.id}`,
+                  activo: true,
+                  cuarzo: m.cuarzo || 0,
+                  llampo: m.llampo || 0,
+                  total: m.total || 0,
+                  tiempoEstimado: 0,
+                  horaFin: null
+                })),
+                observaciones: session.observations || '',
+                procesoId: session.id.substring(0, 8),
+                estado: session.status
+              };
+              receiptModal.open(mappedData);
+            }}
+            className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+            title="Vista Previa Ticket"
+          >
+            <FileText size={18} strokeWidth={1.5} />
+          </button>
           <button
             onClick={() => {
               deleteModal.open({
@@ -294,6 +352,20 @@ const Moliendas: React.FC = () => {
             </select>
           </div>
 
+          <div className="lg:col-span-3 space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Zona de Procedencia</label>
+            <select
+              value={selectedZone}
+              onChange={(e) => setSelectedZone(e.target.value)}
+              className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm"
+            >
+              <option value="all">Todas las zonas</option>
+              {useSupabaseStore.getState().zones.map(z => (
+                <option key={z.id} value={z.name}>{z.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="lg:col-span-2 flex items-end">
             <button
               onClick={() => {
@@ -301,6 +373,7 @@ const Moliendas: React.FC = () => {
                 setSelectedStatus('all');
                 setSelectedMill('all');
                 setSelectedMineral('all');
+                setSelectedZone('all');
                 setStartDate('');
                 setEndDate('');
               }}
@@ -361,6 +434,13 @@ const Moliendas: React.FC = () => {
           emptyMessage="No se encontraron registros en el rango seleccionado."
         />
       </div>
+
+      <ReceiptModal
+        isOpen={receiptModal.isOpen}
+        onClose={receiptModal.close}
+        moliendaData={receiptModal.data}
+        userEmail={user?.email}
+      />
 
       <DeleteConfirmModal
         isOpen={deleteModal.isOpen}

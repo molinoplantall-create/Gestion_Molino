@@ -37,6 +37,7 @@ interface SupabaseStore {
     mineralType?: string;
     startDate?: string;
     endDate?: string;
+    zone?: string;
     limit?: number; // legacy support
   }) => Promise<void>;
   fetchMaintenanceLogs: (options?: {
@@ -246,6 +247,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     let mineralType = '';
     let startDate = '';
     let endDate = '';
+    let zone = options.zone || '';
 
     if (typeof options === 'number') {
       pageSize = options;
@@ -258,6 +260,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       mineralType = options.mineralType || '';
       startDate = options.startDate || '';
       endDate = options.endDate || '';
+      zone = options.zone || '';
     }
 
     set({ logsLoading: true, error: null });
@@ -279,7 +282,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
+        // Buscamos en observaciones o tipo de mineral
         query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%`);
+      }
+
+      if (zone && zone !== 'all') {
+        // Filtrar por la zona de la tabla relacionada 'clients'
+        // En Supabase, para filtrar por tabla relacionada: 'tabla(columna)'
+        query = query.filter('clients.zone', 'eq', zone);
       }
 
       if (millId && millId !== 'all') {

@@ -181,8 +181,8 @@ const ActivityChart: React.FC = () => {
               key={v.key}
               onClick={() => setViewMode(v.key)}
               className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${viewMode === v.key
-                  ? 'bg-white text-indigo-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
                 }`}
             >
               {v.label}

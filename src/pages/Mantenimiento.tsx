@@ -9,6 +9,7 @@ import { MaintenanceForm } from '@/components/mantenimiento/MaintenanceForm';
 import { MaintenanceTable } from '@/components/mantenimiento/MaintenanceTable';
 import { MaintenanceFilters } from '@/components/mantenimiento/MaintenanceFilters';
 import { KpiIndicators } from '@/components/mantenimiento/KpiIndicators';
+import { FinalizeMaintenanceModal } from '@/components/mantenimiento/FinalizeMaintenanceModal';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { InputModal } from '@/components/ui/InputModal';
 import { useFormValidation } from '@/hooks/useFormValidation';
@@ -55,6 +56,7 @@ const Mantenimiento: React.FC = () => {
   const editModal = useModal<MaintenanceRecord>();
   const deleteModal = useModal<MaintenanceRecord>();
   const historyModal = useModal<any>();
+  const finalizeModal = useModal<any>();
   const [resetOilModal, setResetOilModal] = useState<{ isOpen: boolean, millId: string, millName: string }>({ isOpen: false, millId: '', millName: '' });
 
   // Form state
@@ -370,12 +372,29 @@ _Enviado desde el sistema de Gestión de Molinos_`;
     toast.info('Filtros Limpiados', 'Se han restablecido los filtros de búsqueda.');
   };
 
-  const handleFinalizeMaintenance = async (id: string, millId: string) => {
-    if (confirm('¿Está seguro de finalizar este mantenimiento y liberar el molino?')) {
-      const success = await useSupabaseStore.getState().finalizeMaintenance(id, millId);
-      if (success) {
-        toast.success('¡Limpieza Finalizada!', 'El molino ha vuelto a estado LIBRE y el log se marcó como COMPLETADO.');
-      }
+  const handleFinalizeMaintenance = (id: string, millId: string) => {
+    const record = maintenanceLogs.find(l => l.id === id);
+    if (record) {
+      finalizeModal.open(record);
+    }
+  };
+
+  const handleConfirmFinalize = async (details: { action_taken: string, worked_hours: number, completed_at: string }) => {
+    if (!finalizeModal.data) return;
+
+    setIsSubmitting(true);
+    const success = await useSupabaseStore.getState().finalizeMaintenance(
+      finalizeModal.data.id,
+      finalizeModal.data.mill_id,
+      details
+    );
+    setIsSubmitting(false);
+
+    if (success) {
+      toast.success('Mantenimiento Finalizado', 'El molino ha vuelto a estado LIBRE y se guardaron los detalles.');
+      finalizeModal.close();
+    } else {
+      toast.error('Error', 'No se pudo finalizar el mantenimiento.');
     }
   };
 
@@ -476,7 +495,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Horas Cambio:</span>
-                  <span className="font-medium">{molino.hours_to_oil_change}h</span>
+                  <span className="font-medium">{Math.round(molino.hours_to_oil_change || 0)}h</span>
                 </div>
               </div>
 
@@ -578,6 +597,15 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         title="Eliminar Registro"
         message={`¿Estás seguro de que deseas eliminar el registro ${deleteModal.data?.id.substring(0, 8)}...? Esta acción no se puede deshacer.`}
         variant="danger"
+      />
+
+      {/* Finalize Maintenance Modal */}
+      <FinalizeMaintenanceModal
+        isOpen={finalizeModal.isOpen}
+        onClose={finalizeModal.close}
+        onConfirm={handleConfirmFinalize}
+        record={finalizeModal.data}
+        isLoading={isSubmitting}
       />
 
       {/* Reset Oil Modal */}

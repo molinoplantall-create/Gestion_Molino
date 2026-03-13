@@ -176,7 +176,7 @@ const Dashboard: React.FC = () => {
               { label: 'PRODUCCIÓN HOY', value: totalSacosHoy.toLocaleString(), icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
               { label: 'STOCK TOTAL', value: totalStockSacos.toLocaleString(), icon: ShoppingBag, color: 'text-amber-600', bg: 'bg-amber-50' },
               { label: 'CLIENTES ACTIVOS', value: totalClientes.toString(), icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-              { label: 'HORAS MÁQUINA', value: `${totalHorasMaquina.toFixed(1)}h`, icon: Clock, color: 'text-violet-600', bg: 'bg-violet-50' },
+              { label: 'HORAS MÁQUINA', value: `${Math.round(totalHorasMaquina)}h`, icon: Clock, color: 'text-violet-600', bg: 'bg-violet-50' },
             ].map((kpi, i) => (
               <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
                 <div className={`p-4 ${kpi.bg} rounded-2xl w-fit mb-4`}>

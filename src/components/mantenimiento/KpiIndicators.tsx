@@ -150,12 +150,12 @@ function calculateKPIs(
             name: mill.name || `Molino ${mill.id?.substring(0, 4)}`,
             failureCount,
             preventiveCount,
-            totalRepairHours: Math.round(totalRepairHours * 10) / 10,
-            operativeHours: Math.round(realMillingHours * 10) / 10,
-            totalHoursWorked: mill.total_hours_worked || mill.horas_trabajadas || mill.horasTrabajadas || 0,
-            mtbf: mtbf !== null ? Math.round(mtbf * 10) / 10 : null,
-            mttr: mttr !== null ? Math.round(mttr * 10) / 10 : null,
-            availability: Math.round(availability * 10) / 10
+            totalRepairHours: Math.round(totalRepairHours),
+            operativeHours: Math.round(realMillingHours),
+            totalHoursWorked: Math.round(mill.total_hours_worked || mill.horas_trabajadas || mill.horasTrabajadas || 0),
+            mtbf: mtbf !== null ? Math.round(mtbf) : null,
+            mttr: mttr !== null ? Math.round(mttr) : null,
+            availability: Math.round(availability * 10) / 10 // Disponibilidad keep 1 decimal for precision
         };
     });
 
@@ -186,8 +186,8 @@ function calculateKPIs(
             availability: Math.round(globalAvailability * 10) / 10,
             totalFailures,
             totalPreventive,
-            totalRepairHours: Math.round(totalRepairH * 10) / 10,
-            totalOperativeHours: Math.round(totalOperativeH * 10) / 10
+            totalRepairHours: Math.round(totalRepairH),
+            totalOperativeHours: Math.round(totalOperativeH)
         }
     };
 }
@@ -450,11 +450,11 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
                                 {kpis.mills.map((m, i) => (
                                     <tr key={m.id} className={`${i % 2 === 0 ? 'bg-gray-50/50' : ''} hover:bg-indigo-50/30 transition-colors`}>
                                         <td className="py-2.5 px-3 font-bold text-gray-800">{m.name}</td>
-                                        <td className="py-2.5 px-3 text-center font-black text-violet-600">{m.operativeHours}</td>
+                                        <td className="py-2.5 px-3 text-center font-black text-violet-600">{Math.round(m.operativeHours)}</td>
                                         <td className="py-2.5 px-3 text-center font-medium text-gray-600">{m.failureCount}</td>
                                         <td className="py-2.5 px-3 text-center font-medium text-gray-600">{m.preventiveCount}</td>
-                                        <td className="py-2.5 px-3 text-center font-bold text-indigo-600">{m.mtbf ?? '∞'}</td>
-                                        <td className="py-2.5 px-3 text-center font-bold text-amber-600">{m.mttr ?? '0'}</td>
+                                        <td className="py-2.5 px-3 text-center font-bold text-indigo-600">{m.mtbf !== null ? Math.round(m.mtbf) : '∞'}</td>
+                                        <td className="py-2.5 px-3 text-center font-bold text-amber-600">{m.mttr !== null ? Math.round(m.mttr) : '0'}</td>
                                         <td className={`py-2.5 px-3 text-center font-black ${getAvailabilityColor(m.availability)}`}>
                                             {m.availability}%
                                         </td>

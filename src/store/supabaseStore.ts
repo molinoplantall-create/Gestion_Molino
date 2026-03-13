@@ -81,7 +81,7 @@ interface SupabaseStore {
   checkAndLiberateMills: (millsToProcess: Mill[]) => Promise<void>;
   finalizeMilling: (millId: string) => Promise<boolean>;
   updateMillHours: (millId: string, hoursToAdd: number) => Promise<boolean>;
-  finalizeMaintenance: (id: string, millId: string) => Promise<boolean>;
+  finalizeMaintenance: (id: string, millId: string, details?: { action_taken?: string, worked_hours?: number, completed_at?: string }) => Promise<boolean>;
   resetMillOil: (millId: string, targetHours: number) => Promise<boolean>;
   updateMaintenanceLog: (id: string, updateData: any) => Promise<{ error: any }>;
   deleteMillingLog: (logId: string) => Promise<boolean>;
@@ -786,19 +786,26 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  finalizeMaintenance: async (id: string, millId: string) => {
+  finalizeMaintenance: async (id: string, millId: string, details?: { action_taken?: string, worked_hours?: number, completed_at?: string }) => {
     set({ loading: true, error: null });
     try {
       console.log(`🔧 store: finalizing maintenance ${id} for mill ${millId}`);
 
-      // 1. Actualizar el log de mantenimiento a COMPLETADO
-      // Intentar primero con columna 'status'
+      const updatePayload: any = {
+        status: 'COMPLETADO',
+        completed_at: details?.completed_at || new Date().toISOString()
+      };
+
+      if (details?.action_taken) updatePayload.action_taken = details.action_taken;
+      if (details?.worked_hours !== undefined) updatePayload.worked_hours = details.worked_hours;
+
+      // 1. Actualizar el log de mantenimiento a COMPLETADO con detalles
       let { error: logError } = await supabase
         .from('maintenance_logs')
-        .update({ status: 'COMPLETADO', completed_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq('id', id);
 
-      // Fallback a 'estado' si falla
+      // Fallback a 'estado' si falla columna 'status'
       if (logError && (logError.code === 'PGRST204' || logError.code === '42703')) {
         const { error: retryError } = await supabase
           .from('maintenance_logs')

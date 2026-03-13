@@ -36,35 +36,37 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             closeOnEsc={!isLoading}
         >
             <div className="text-center">
-                {/* Ícono de advertencia */}
-                <div className="mx-auto flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-4">
-                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                {/* Ícono de advertencia con fondo suave */}
+                <div className="mx-auto flex items-center justify-center w-20 h-20 bg-red-50 rounded-[2rem] mb-6 border border-red-100 shadow-inner">
+                    <AlertTriangle className="w-10 h-10 text-red-600" />
                 </div>
 
-                {/* Título */}
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                {/* Título estilo industrial */}
+                <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight uppercase">
                     {title}
                 </h3>
 
-                {/* Mensaje */}
-                <div className="text-slate-600 mb-6">
+                {/* Mensaje descriptivo */}
+                <div className="text-slate-500 font-medium mb-8 text-sm leading-relaxed px-4">
                     {message || (
                         <>
                             ¿Estás seguro de que deseas eliminar{' '}
-                            <span className="font-semibold text-slate-900">{itemName}</span>?
+                            <span className="font-bold text-slate-900 border-b-2 border-red-200">{itemName}</span>?
                             <br />
-                            Esta acción no se puede deshacer.
+                            <span className="inline-block mt-3 px-3 py-1 bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg">
+                                Esta acción es irreversible
+                            </span>
                         </>
                     )}
                 </div>
 
-                {/* Botones */}
-                <div className="flex items-center justify-center gap-3">
+                {/* Botones de acción premium */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-2">
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={isLoading}
-                        className="px-4 py-2 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full sm:flex-1 px-6 py-4 text-slate-400 bg-white border-2 border-slate-100 rounded-2xl font-black text-xs uppercase tracking-widest hover:text-slate-600 hover:border-slate-200 hover:bg-slate-50 transition-all disabled:opacity-50 active:scale-95"
                     >
                         Cancelar
                     </button>
@@ -72,10 +74,14 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
                         type="button"
                         onClick={handleConfirm}
                         disabled={isLoading}
-                        className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                        className="w-full sm:flex-[1.5] px-6 py-4 text-white bg-red-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-200 flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95"
                     >
-                        {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Eliminar
+                        {isLoading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <AlertTriangle className="w-4 h-4" />
+                        )}
+                        Confirmar Eliminación
                     </button>
                 </div>
             </div>

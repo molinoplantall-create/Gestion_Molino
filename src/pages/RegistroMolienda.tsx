@@ -456,7 +456,21 @@ const RegistroMolienda: React.FC = () => {
     if (!isValid) return;
 
     setIsRegistering(true);
+
+    // Safety timeout: Reset isRegistering if the operation takes too long (45s)
+    const safetyTimeout = setTimeout(() => {
+      console.warn('⚠️ RegistroMolienda: Safety timeout reached for registration.');
+      setIsRegistering(false);
+      toast.error('Tiempo de Espera Agotado', 'El registro está tardando demasiado. Verifique su conexión o actualice la página.');
+    }, 45000);
+
     try {
+      console.log('🚀 RegistroMolienda: Iniciando registro...', {
+        cliente: molienda.clienteNombre,
+        mineral: molienda.mineral,
+        total: totalCalculado.totalSacos
+      });
+
       const ahora = new Date();
       const horaInicio = molienda.horaInicio || ahora.toTimeString().slice(0, 5);
       const molinosActivos = molienda.molinos.filter(m => m.activo);
@@ -511,6 +525,7 @@ const RegistroMolienda: React.FC = () => {
       console.error('Error in registrarMolienda:', err);
       toast.error('Error Crítico', 'Ocurrió un error inesperado al procesar el registro.');
     } finally {
+      clearTimeout(safetyTimeout);
       setIsRegistering(false);
     }
   };

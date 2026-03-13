@@ -33,22 +33,26 @@ import { useSupabaseStore } from '../store/supabaseStore';
 
 import { useToast } from '../hooks/useToast';
 import { FormModal } from '../components/ui/FormModal';
+import { DeleteConfirmModal } from '../components/ui/DeleteConfirmModal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 const Stock: React.FC = () => {
   const { user } = useAuthStore();
-  const { clients, zones, loading, clientsLoading, fetchClients, fetchZones, addClientStock, updateBatchMineralType, deleteStockBatch } = useSupabaseStore();
+  const { clients, zones, loading, clientsLoading, fetchClients, fetchZones, addClientStock, updateBatchMineralType, deleteStockBatch, fetchClientBatches } = useSupabaseStore();
   const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState('all');
   const [sortOrder, setSortOrder] = useState<'total' | 'name'>('total');
 
-  // Batch viewing state
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [clientBatches, setClientBatches] = useState<any[]>([]);
   const [batchesLoading, setBatchesLoading] = useState(false);
-  const { fetchClientBatches } = useSupabaseStore();
+
+  // Delete Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [batchToDelete, setBatchToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchClients();
@@ -208,22 +212,35 @@ const Stock: React.FC = () => {
     }
   };
 
-  const handleDeleteBatch = async (batch: any) => {
-    if (!window.confirm(`¿Está seguro de eliminar este ingreso de ${batch.initial_quantity} sacos? El stock del cliente se revertirá.`)) {
-      return;
-    }
+  const confirmDeleteBatch = async () => {
+    if (!batchToDelete) return;
 
-    const success = await deleteStockBatch(batch.id, batch.client_id);
-    if (success) {
-      toast.success('Ingreso Eliminado', 'Se ha revertido el stock del cliente correctamente.');
-      // Refresh current client batches
-      if (expandedClient) {
-        const batches = await fetchClientBatches(expandedClient);
-        setClientBatches(batches);
+    setIsDeleting(true);
+    try {
+      const success = await deleteStockBatch(batchToDelete.id, batchToDelete.client_id);
+      if (success) {
+        toast.success('Ingreso Eliminado', 'Se ha revertido el stock del cliente correctamente.');
+        // Refresh current client batches
+        if (expandedClient) {
+          const batches = await fetchClientBatches(expandedClient);
+          setClientBatches(batches);
+        }
+        setShowDeleteModal(false);
+      } else {
+        toast.error('Error', 'No se pudo eliminar el registro.');
       }
-    } else {
-      toast.error('Error', 'No se pudo eliminar el registro.');
+    } catch (error) {
+      console.error('Error deleting batch:', error);
+      toast.error('Error', 'Ocurrió un error al intentar eliminar el lote.');
+    } finally {
+      setIsDeleting(false);
+      setBatchToDelete(null);
     }
+  };
+
+  const handleDeleteClick = (batch: any) => {
+    setBatchToDelete(batch);
+    setShowDeleteModal(true);
   };
 
   // Export batches to PDF
@@ -579,7 +596,7 @@ const Stock: React.FC = () => {
                                       {batch.mineral_type || 'OXIDO'}
                                     </button>
                                     <button
-                                      onClick={() => handleDeleteBatch(batch)}
+                                      onClick={() => handleDeleteClick(batch)}
                                       className="p-1 text-slate-400 hover:text-rose-500 transition-colors"
                                       title="Eliminar este ingreso"
                                     >
@@ -762,6 +779,15 @@ const Stock: React.FC = () => {
           </div>
         </div>
       </FormModal>
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDeleteBatch}
+        itemName={`${batchToDelete?.initial_quantity || 0} sacos`}
+        message={`¿Está seguro de eliminar este ingreso de mineral? Se revertirán los sacos al stock del cliente y esta acción no se puede deshacer.`}
+        isLoading={isDeleting}
+      />
     </div >
   );
 };

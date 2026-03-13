@@ -109,9 +109,9 @@ const RegistroMolienda: React.FC = () => {
 
   // Fetch data
   useEffect(() => {
+    fetchClients({ pageSize: 500 });
     fetchMills();
-    fetchClients();
-  }, [fetchMills, fetchClients]);
+  }, [fetchClients, fetchMills]);
 
   // Utility functions
   const calcularHoraFin = (horaInicio: string, minutosTotales: number): string => {

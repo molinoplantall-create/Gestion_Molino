@@ -55,9 +55,14 @@ const Stock: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    fetchClients();
+    fetchClients({
+      search,
+      pageSize: 100, // Aumentamos para mostrar más clientes en stock
+      status: 'all'  // Queremos ver todos los que tengan stock, incluso si están inactivos? 
+      // Por defecto fetchClients ahora permite ver todos si status es 'all'
+    });
     fetchZones();
-  }, [fetchClients, fetchZones]);
+  }, [fetchClients, fetchZones, search]);
 
   // Estado para nuevo ingreso
   const [nuevoIngreso, setNuevoIngreso] = useState({
@@ -85,16 +90,15 @@ const Stock: React.FC = () => {
   // Filtrar y ordenar clientes para mostrar en la lista
   const sortedClients = [...clients]
     .filter(c => {
-      const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-        (c.zone?.toLowerCase() || '').includes(search.toLowerCase());
+      // El search ya viene filtrado desde el servidor en fetchClients
       const matchesTipo = filterTipo === 'all' || c.client_type === filterTipo;
-      return matchesSearch && matchesTipo;
+      return matchesTipo;
     })
     .sort((a, b) => {
       if (sortOrder === 'total') {
         const totalA = (a.stock_cuarzo || 0) + (a.stock_llampo || 0);
         const totalB = (b.stock_cuarzo || 0) + (b.stock_llampo || 0);
-        return totalB - totalA; // Descendente: mayor a menor
+        return totalB - totalA;
       } else {
         return a.name.localeCompare(b.name);
       }

@@ -172,8 +172,6 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (status && status !== 'all') {
         const isActive = status === 'ACTIVO';
         query = query.eq('is_active', isActive);
-      } else {
-        query = query.eq('is_active', true);
       }
 
       if (zone && zone !== 'all') {
@@ -181,7 +179,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        query = query.ilike('name', `%${search}%`);
+        query = query.or(`name.ilike.%${search}%,contact_name.ilike.%${search}%,phone.ilike.%${search}%,zone.ilike.%${search}%`);
       }
 
       const from = (page - 1) * pageSize;
@@ -273,7 +271,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .select(`
           *,
           clients (
-            name
+            name, contact_name, phone, zone
           )
         `, { count: 'exact' });
 
@@ -284,7 +282,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (search) {
         // En Supabase v2, para buscar en tablas relacionadas se usa el formato 'tabla.columna'
         // Buscamos en observaciones, tipo de mineral o el nombre del cliente
-        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%,clients.name.ilike.%${search}%`);
+        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%,clients.name.ilike.%${search}%,clients.contact_name.ilike.%${search}%,clients.phone.ilike.%${search}%,clients.zone.ilike.%${search}%`);
       }
 
       if (zone && zone !== 'all') {
@@ -367,7 +365,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        query = query.or(`description.ilike.%${search}%,descripcion_falla.ilike.%${search}%`);
+        query = query.or(`description.ilike.%${search}%,descripcion_falla.ilike.%${search}%,mills.name.ilike.%${search}%`);
       }
 
       if (startDate) {

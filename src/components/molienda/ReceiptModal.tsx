@@ -60,6 +60,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   const [firmaOperador, setFirmaOperador] = useState('');
   const [firmaCliente, setFirmaCliente] = useState('');
 
+  if (!isOpen || !moliendaData) return null;
+
   const formatTiempo = (totalMinutos: number): string => {
     const horas = Math.floor(totalMinutos / 60);
     const minutos = totalMinutos % 60;

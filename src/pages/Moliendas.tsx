@@ -360,7 +360,7 @@ const Moliendas: React.FC = () => {
               className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm"
             >
               <option value="all">Todas las zonas</option>
-              {useSupabaseStore.getState().zones.map(z => (
+              {zones.map(z => (
                 <option key={z.id} value={z.name}>{z.name}</option>
               ))}
             </select>

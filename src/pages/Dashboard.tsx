@@ -32,6 +32,7 @@ const Dashboard: React.FC = () => {
     millsLoading,
     fetchMills,
     fetchClients,
+    fetchZones,
     fetchMillingLogs
   } = useSupabaseStore();
 
@@ -40,8 +41,9 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchMills();
     fetchClients();
+    fetchZones();
     fetchMillingLogs({ pageSize: 50 });
-  }, [fetchMills, fetchClients, fetchMillingLogs]);
+  }, [fetchMills, fetchClients, fetchZones, fetchMillingLogs]);
 
   // --- Lógica de Analítica (Gerencia) ---
   const stats = useMemo(() => {

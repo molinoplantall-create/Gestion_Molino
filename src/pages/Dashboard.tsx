@@ -52,7 +52,9 @@ const Dashboard: React.FC = () => {
     const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4'];
 
     clients.forEach(c => {
-      const volume = (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0);
+      const volume = (c.stock_cuarzo || 0) + (c.stock_llampo || 0);
+      if (volume <= 0) return; // Skip clients with no current stock
+
       const zone = c.zone || 'SIN ZONA';
       zoneData[zone] = (zoneData[zone] || 0) + volume;
 

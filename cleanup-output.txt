@@ -1,0 +1,29 @@
+﻿[dotenv@17.3.1] injecting env (2) from .env.local -- tip: ÔÜÖ´©Å  suppress all logs with { quiet: true }
+DELETED: Filomena  (empty duplicate)
+DELETED: Cinthia Champe ch (duplicate)
+DELETED: Sa├║l Herrera (empty duplicate, no data)
+
+Done. Remaining clients:
+  Alejos | stock: c=0 l=0 | cum: c=25 l=0
+  Andr├®s Rojas  | stock: c=0 l=0 | cum: c=0 l=16
+  Baca  | stock: c=0 l=0 | cum: c=5 l=0
+  Charito | stock: c=2 l=0 | cum: c=171 l=52
+  Chinucha  | stock: c=0 l=0 | cum: c=23 l=19
+  Cinthia Champe | stock: c=0 l=0 | cum: c=0 l=0
+  Filomena | stock: c=1 l=0 | cum: c=14 l=0
+  Isabel (gringa) | stock: c=0 l=0 | cum: c=9 l=0
+  Jorge Huamani  | stock: c=0 l=0 | cum: c=0 l=0
+  Jos├® Montoya  | stock: c=0 l=0 | cum: c=52 l=19
+  Masoco  | stock: c=0 l=0 | cum: c=0 l=0
+  Odon Mitma  | stock: c=0 l=0 | cum: c=4 l=0
+  Paulina  | stock: c=0 l=0 | cum: c=6 l=0
+  Ra├║l Yarihuaman | stock: c=0 l=0 | cum: c=0 l=0
+  Rojas | stock: c=0 l=0 | cum: c=17 l=0
+  Sa├║l Herrera | stock: c=0 l=0 | cum: c=5 l=0
+  Soc. Camila  | stock: c=1 l=0 | cum: c=561 l=60
+  Soc. Copacabana  | stock: c=0 l=0 | cum: c=0 l=0
+  Soc. Jorge Duran | stock: c=0 l=0 | cum: c=92 l=19
+  Soc. Ni├▒o Jes├║s | stock: c=0 l=0 | cum: c=117 l=164
+  Soc. Pollo ­ƒÉö | stock: c=10 l=0 | cum: c=73 l=44
+  Soc. Virgen Mar├¡a | stock: c=0 l=0 | cum: c=28 l=0
+  Sra Ochoa  | stock: c=0 l=0 | cum: c=20 l=10

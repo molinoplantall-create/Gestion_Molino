@@ -1,0 +1,63 @@
+﻿[dotenv@17.3.1] injecting env (2) from .env.local -- tip: ÔÜÖ´©Å  enable debug logging with { debug: true }
+
+============================================================
+CLIENTS MATCHING: "Filomena"
+============================================================
+
+  Client: "Filomena" (ID: 5938a980-41ed-4952-8aa7-7a21d7d37131)
+    zone=Zona Camargo, type=PALLAQUERO, created=2026-02-24T00:22:51.502493+00:00
+    stock_cuarzo=1, stock_llampo=0
+    cumulative_cuarzo=14, cumulative_llampo=0
+    last_intake_date=2026-02-24T00:25:22.035+00:00, last_intake_zone=Ni├▒o Jes├║s
+    BATCHES (1):
+      [2026-03-06T21:52:52.689281+00:00] CUARZO init=14 remain=1 zone=Ni├▒o Jes├║s type=OXIDO
+    MILLING LOGS (0):
+
+  Client: "Filomena " (ID: 31b84f91-d6e0-4c00-b9f3-a2a8c5998589)
+    zone=Zona Camargo, type=PALLAQUERO, created=2026-02-06T11:46:54.984645+00:00
+    stock_cuarzo=0, stock_llampo=0
+    cumulative_cuarzo=0, cumulative_llampo=0
+    last_intake_date=2026-02-23T13:12:25.8+00:00, last_intake_zone=Ni├▒o Jes├║s
+    BATCHES (0):
+    MILLING LOGS (0):
+
+============================================================
+CLIENTS MATCHING: "Cinthia"
+============================================================
+
+  Client: "Cinthia Champe" (ID: 228a719d-6f5e-4f81-998e-462376c35733)
+    zone=Santa Rosa, type=PALLAQUERO, created=2026-02-06T03:13:53.488411+00:00
+    stock_cuarzo=0, stock_llampo=0
+    cumulative_cuarzo=0, cumulative_llampo=0
+    last_intake_date=2026-02-06T03:14:22.183+00:00, last_intake_zone=Santa Rosa
+    BATCHES (0):
+    MILLING LOGS (0):
+
+  Client: "Cinthia Champe ch" (ID: e8b05735-0f95-4523-8b88-fb10a6e86d9c)
+    zone=Santa Rosa, type=PALLAQUERO, created=2026-02-05T02:58:12.472643+00:00
+    stock_cuarzo=0, stock_llampo=0
+    cumulative_cuarzo=0, cumulative_llampo=0
+    last_intake_date=2026-02-05T04:08:39.872+00:00, last_intake_zone=Santa Rosa
+    BATCHES (0):
+    MILLING LOGS (0):
+
+============================================================
+CLIENTS MATCHING: "Sa├║l"
+============================================================
+
+  Client: "Sa├║l Herrera" (ID: 486b39ce-95a3-4e26-8a24-bd550ba6bec3)
+    zone=Cortada, type=PALLAQUERO, created=2026-02-23T13:16:24.996906+00:00
+    stock_cuarzo=0, stock_llampo=0
+    cumulative_cuarzo=0, cumulative_llampo=0
+    last_intake_date=null, last_intake_zone=null
+    BATCHES (0):
+    MILLING LOGS (0):
+
+  Client: "Sa├║l Herrera" (ID: 58f196f5-f4fd-4839-928c-c5c89b312c88)
+    zone=Cortada, type=PALLAQUERO, created=2026-02-06T11:48:24.027836+00:00
+    stock_cuarzo=0, stock_llampo=0
+    cumulative_cuarzo=5, cumulative_llampo=0
+    last_intake_date=2026-02-24T00:38:51.079+00:00, last_intake_zone=Cortada
+    BATCHES (1):
+      [2026-03-06T21:52:52.689281+00:00] CUARZO init=5 remain=0 zone=Cortada type=OXIDO
+    MILLING LOGS (0):

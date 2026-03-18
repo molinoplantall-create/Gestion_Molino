@@ -1,0 +1,75 @@
+﻿[dotenv@17.3.1] injecting env (2) from .env.local -- tip: ÔÜÖ´©Å  write to custom object with { processEnv: myObject }
+CLIENTS:
+[
+  {
+    "id": "5dee3413-8f3c-4bdb-b6b2-4663b8764a10",
+    "name": "Soc. Ni├▒o Jes├║s",
+    "email": "",
+    "phone": "",
+    "company": null,
+    "is_active": true,
+    "created_at": "2026-03-03T03:06:25.377786+00:00",
+    "type": "MINERO",
+    "stock_cuarzo": 0,
+    "stock_llampo": 0,
+    "contact_name": "",
+    "ruc_dni": "",
+    "address": "",
+    "zone": "Ni├▒o Jes├║s",
+    "observations": "",
+    "client_type": "MINERO",
+    "last_intake_date": "2026-03-12T14:04:35.219+00:00",
+    "last_intake_zone": "Ni├▒o Jes├║s",
+    "last_mineral_type": "SULFURO",
+    "cumulative_cuarzo": 117,
+    "cumulative_llampo": 164
+  }
+]
+
+BATCHES FOR Soc. Ni├▒o Jes├║s:
+[
+  {
+    "id": "82218b2e-081b-4a3e-89ae-b5c2f38f5329",
+    "client_id": "5dee3413-8f3c-4bdb-b6b2-4663b8764a10",
+    "mineral_type": "SULFURO",
+    "sub_mineral": "LLAMPO",
+    "initial_quantity": 88,
+    "remaining_quantity": 0,
+    "zone": "Ni├▒o Jes├║s",
+    "created_at": "2026-03-06T21:52:52.689281+00:00",
+    "updated_at": "2026-03-09T13:41:12.098514+00:00"
+  },
+  {
+    "id": "f4281f42-8dfc-41ea-9e0b-5ae7187fbff1",
+    "client_id": "5dee3413-8f3c-4bdb-b6b2-4663b8764a10",
+    "mineral_type": "SULFURO",
+    "sub_mineral": "CUARZO",
+    "initial_quantity": 111,
+    "remaining_quantity": 0,
+    "zone": "Ni├▒o Jes├║s",
+    "created_at": "2026-03-06T21:52:52.689281+00:00",
+    "updated_at": "2026-03-10T13:26:14.015583+00:00"
+  },
+  {
+    "id": "dad9dee3-ecf0-4d5a-9f96-042a7cfe34cc",
+    "client_id": "5dee3413-8f3c-4bdb-b6b2-4663b8764a10",
+    "mineral_type": "SULFURO",
+    "sub_mineral": "LLAMPO",
+    "initial_quantity": 76,
+    "remaining_quantity": 0,
+    "zone": "Ni├▒o Jes├║s",
+    "created_at": "2026-03-11T15:14:54.118796+00:00",
+    "updated_at": "2026-03-13T00:20:55.603057+00:00"
+  },
+  {
+    "id": "19e85c5f-d02a-431f-9cd4-35a9406d80fe",
+    "client_id": "5dee3413-8f3c-4bdb-b6b2-4663b8764a10",
+    "mineral_type": "SULFURO",
+    "sub_mineral": "CUARZO",
+    "initial_quantity": 6,
+    "remaining_quantity": 0,
+    "zone": "Ni├▒o Jes├║s",
+    "created_at": "2026-03-11T15:14:53.907229+00:00",
+    "updated_at": "2026-03-13T00:20:58.677331+00:00"
+  }
+]

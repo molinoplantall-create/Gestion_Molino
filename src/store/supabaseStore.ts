@@ -5,6 +5,7 @@ import { Mill, Client, MillingLog, Zone } from '@/types';
 interface SupabaseStore {
   mills: Mill[];
   clients: Client[];
+  allClients: Client[];
   zones: Zone[];
   millingLogs: MillingLog[];
   maintenanceLogs: any[];
@@ -19,6 +20,7 @@ interface SupabaseStore {
 
   // Actions
   fetchMills: () => Promise<void>;
+  fetchAllClients: () => Promise<void>;
   fetchClients: (options?: {
     page?: number;
     pageSize?: number;
@@ -96,6 +98,7 @@ interface SupabaseStore {
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   mills: [],
   clients: [],
+  allClients: [],
   zones: [],
   millingLogs: [],
   maintenanceLogs: [],
@@ -158,6 +161,20 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       set({ error: error.message });
     } finally {
       set({ millsLoading: false });
+    }
+  },
+
+  fetchAllClients: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      set({ allClients: data as Client[] });
+    } catch (error: any) {
+      console.error('❌ Error fetchAllClients:', error);
     }
   },
 

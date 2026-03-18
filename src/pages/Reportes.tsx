@@ -38,7 +38,7 @@ import { useSupabaseStore } from '../store/supabaseStore';
 import { useToast } from '../hooks/useToast';
 
 const Reportes: React.FC = () => {
-  const { millingLogs, mills, clients, fetchMillingLogs, fetchMills, fetchClients } = useSupabaseStore();
+  const { millingLogs, mills, clients, allClients, fetchMillingLogs, fetchMills, fetchClients, fetchAllClients } = useSupabaseStore();
   const toast = useToast();
   const [dateRange, setDateRange] = useState('month');
   const [reportType, setReportType] = useState('general');
@@ -46,8 +46,9 @@ const Reportes: React.FC = () => {
   useEffect(() => {
     fetchMillingLogs({ pageSize: 200 });
     fetchMills();
+    fetchAllClients();
     fetchClients();
-  }, [fetchMillingLogs, fetchMills, fetchClients]);
+  }, [fetchMillingLogs, fetchMills, fetchAllClients, fetchClients]);
 
   // Cálculos dinámicos procesados para Recharts
   const stats = useMemo(() => {
@@ -162,7 +163,7 @@ const Reportes: React.FC = () => {
       head: [['Métrica', 'Valor']],
       body: [
         ['Producción Total', `${stats.totalSacos} sacos`],
-        ['Clientes Atendidos', clients.length],
+        ['Clientes Atendidos', allClients.length],
         ['Promedio por Carga', `${stats.avgSacos.toFixed(2)} sacos`],
         ['Molinos Disponibles', mills.filter(m => m.status === 'LIBRE').length]
       ],

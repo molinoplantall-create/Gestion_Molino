@@ -1,0 +1,56 @@
+﻿[dotenv@17.3.1] injecting env (2) from .env.local -- tip: ­ƒøá´©Å  run anywhere with `dotenvx run -- yourcommand`
+Total clients in DB: 26
+
+=== CHART (OLD CODE - stock_cuarzo + stock_llampo) ===
+  Zona Camargo: 22
+  Charito: 2
+
+=== CHART (NEW CODE - cumulative_cuarzo + cumulative_llampo) ===
+  Zona Camargo: 912
+  Ni├▒o Jes├║s: 287
+  Charito: 223
+  Jos├® Montoya: 71
+  Chinucha: 42
+  Virgen Mar├¡a: 28
+  Caracol: 25
+  Chonguito: 17
+  Santa Rosa: 16
+  Zona joro: 9
+  Cortada: 5
+
+=== CLIENTS IN ZONE 'Ni├▒o Jes├║s' ===
+  Paulina  | zone=Ni├▒o Jes├║s | stock_c=0 stock_l=0 | cum_c=6 cum_l=0
+  Soc. Ni├▒o Jes├║s | zone=Ni├▒o Jes├║s | stock_c=0 stock_l=0 | cum_c=117 cum_l=164
+
+=== PAGINATION ISSUE ===
+Total clients: 26
+Dashboard only loads: 20 (default pageSize)
+First 20 clients (by name order):
+  1. Alejos (zone=Caracol) vol=25
+  2. Andr├®s Rojas  (zone=Santa Rosa) vol=16
+  3. Baca  (zone=Zona Camargo) vol=5
+  4. Charito (zone=Charito) vol=223
+  5. Chinucha  (zone=Chinucha) vol=42
+  6. Cinthia Champe (zone=Santa Rosa) vol=0
+  7. Cinthia Champe ch (zone=Santa Rosa) vol=0
+  8. Filomena (zone=Zona Camargo) vol=14
+  9. Filomena  (zone=Zona Camargo) vol=0
+  10. Isabel (gringa) (zone=Zona joro) vol=9
+  11. Jorge Huamani  (zone=Zona Camargo) vol=10
+  12. Jos├® Montoya  (zone=Jos├® Montoya) vol=71
+  13. Masoco  (zone=Cortada) vol=0
+  14. Odon Mitma  (zone=Zona Camargo) vol=4
+  15. Paulina  (zone=Ni├▒o Jes├║s) vol=6
+  16. Ra├║l Yarihuaman (zone=Zona Camargo) vol=0
+  17. Rojas (zone=Chonguito) vol=17
+  18. Sa├║l Herrera (zone=Cortada) vol=5
+  19. Sa├║l Herrera (zone=Cortada) vol=0
+  20. Soc. Camila  (zone=Zona Camargo) vol=621
+
+Clients MISSING from Dashboard (beyond page 1):
+  21. Soc. Copacabana  (zone=Copacabana) vol=0
+  22. Soc. Jorge Duran (zone=Zona Camargo) vol=111
+  23. Soc. Ni├▒o Jes├║s (zone=Ni├▒o Jes├║s) vol=281
+  24. Soc. Pollo ­ƒÉö (zone=Zona Camargo) vol=117
+  25. Soc. Virgen Mar├¡a (zone=Virgen Mar├¡a) vol=28
+  26. Sra Ochoa  (zone=Zona Camargo) vol=30

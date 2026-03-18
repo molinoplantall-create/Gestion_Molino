@@ -28,10 +28,12 @@ const Dashboard: React.FC = () => {
   const {
     mills,
     clients,
+    allClients,
     millingLogs,
     millsLoading,
     fetchMills,
     fetchClients,
+    fetchAllClients,
     fetchZones,
     fetchMillingLogs
   } = useSupabaseStore();
@@ -40,10 +42,11 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchMills();
+    fetchAllClients();
     fetchClients();
     fetchZones();
     fetchMillingLogs({ pageSize: 50 });
-  }, [fetchMills, fetchClients, fetchZones, fetchMillingLogs]);
+  }, [fetchMills, fetchAllClients, fetchClients, fetchZones, fetchMillingLogs]);
 
   // --- Lógica de Analítica (Gerencia) ---
   const stats = useMemo(() => {
@@ -51,7 +54,7 @@ const Dashboard: React.FC = () => {
     const typeData: Record<string, number> = { 'MINERO': 0, 'PALLAQUERO': 0 };
     const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-    clients.forEach(c => {
+    allClients.forEach(c => {
       const volume = (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0);
       if (volume <= 0) return; // Skip clients with no historical stock
 
@@ -70,7 +73,7 @@ const Dashboard: React.FC = () => {
       .map(([name, value]) => ({ name, value }));
 
     return { chartZoneData, chartTypeData, COLORS };
-  }, [clients]);
+  }, [allClients]);
 
   // --- Exportación de Reportes ---
   const handleExportExcel = () => {
@@ -133,8 +136,8 @@ const Dashboard: React.FC = () => {
     .filter(log => new Date(log.created_at) >= today)
     .reduce((acc, log) => acc + (log.total_sacks || 0), 0);
 
-  const totalStockSacos = clients.reduce((acc, client) => acc + (client.stock_cuarzo || 0) + (client.stock_llampo || 0), 0);
-  const totalClientes = clients.length;
+  const totalStockSacos = allClients.reduce((acc, client) => acc + (client.stock_cuarzo || 0) + (client.stock_llampo || 0), 0);
+  const totalClientes = allClients.length;
   const totalHorasMaquina = mills.reduce((acc, m) => acc + ((m as any).horas_trabajadas || (m as any).horasTrabajadas || 0), 0);
 
   return (

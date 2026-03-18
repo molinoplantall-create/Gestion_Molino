@@ -1,0 +1,29 @@
+﻿[dotenv@17.3.1] injecting env (2) from .env.local -- tip: ÔÜÖ´©Å  load multiple .env files with { path: ['.env.local', '.env'] }
+=== ALL 'JORGE' CLIENTS ===
+
+Client: Jorge Huamani  (ID: 9376ce4e-3c77-4a41-87d1-fb28593715ce)
+  zone=Zona Camargo, type=PALLAQUERO
+  stock_cuarzo=10, stock_llampo=0
+  cumulative_cuarzo=10, cumulative_llampo=0
+  last_intake_date=2026-03-16T05:11:40.378+00:00
+  last_intake_zone=null
+  created_at=2026-02-06T11:49:15.055044+00:00
+
+  BATCHES (1):
+    [2026-03-16T04:54:13.034351+00:00] CUARZO initial=10 remaining=10 zone=Test mineral_type=OXIDO (id=eea9443a-a387-44e1-9723-266227818e9d)
+
+  MILLING LOGS (0):
+
+Client: Soc. Jorge Duran (ID: d599f2ca-9e2e-4264-bc95-a6e3dabe3c49)
+  zone=Zona Camargo, type=MINERO
+  stock_cuarzo=0, stock_llampo=0
+  cumulative_cuarzo=92, cumulative_llampo=19
+  last_intake_date=2026-03-07T03:31:53.623+00:00
+  last_intake_zone=Camargo
+  created_at=2026-03-07T03:31:18.234658+00:00
+
+  BATCHES (2):
+    [2026-03-06T21:52:52.689281+00:00] CUARZO initial=92 remaining=0 zone=Zona Camargo mineral_type=OXIDO (id=230d8f35-8254-4498-a51d-6d0845e033aa)
+    [2026-03-06T21:52:52.689281+00:00] LLAMPO initial=19 remaining=0 zone=Zona Camargo mineral_type=OXIDO (id=aeef5d26-e51e-4e2b-8acc-d20bd8a42532)
+
+  MILLING LOGS (0):

@@ -465,7 +465,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         });
       }
 
-      const { data: millingData, error: millingError } = await supabase
+      let { data: millingData, error: millingError } = await supabase
         .from('milling_logs')
         .insert({
           client_id: data.clientId,
@@ -480,6 +480,25 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         })
         .select()
         .single();
+        
+      if (millingError && millingError.code === 'PGRST204') {
+        console.warn('⚠️ store: missing total_cuarzo columns in milling_logs table. Retrying basic insert...');
+        const { error: retryError, data: retryData } = await supabase
+          .from('milling_logs')
+          .insert({
+            client_id: data.clientId,
+            mineral_type: data.mineralType,
+            total_sacks: data.totalSacos,
+            mills_used: data.mills,
+            status: isHistorical ? 'FINALIZADO' : 'IN_PROGRESS',
+            observations: data.observations || '',
+            created_at: data.fecha || new Date().toISOString()
+          })
+          .select()
+          .single();
+        millingError = retryError;
+        millingData = retryData;
+      }
 
       if (millingError) throw millingError;
       console.log('🏁 registerMilling: 2. Log de molienda creado', millingData.id);

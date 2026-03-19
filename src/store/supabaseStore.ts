@@ -75,7 +75,7 @@ interface SupabaseStore {
   updateMillStatus: (id: string, status: string) => Promise<void>;
   updateClient: (id: string, clientData: Partial<Client>) => Promise<boolean>;
   deleteClient: (id: string) => Promise<boolean>;
-  addClientStock: (clientId: string, cuarzo: number, llampo: number, zone?: string, mineralType?: string) => Promise<boolean>;
+  addClientStock: (clientId: string, cuarzo: number, llampo: number, zone?: string, mineralType?: string, receptionDate?: string) => Promise<boolean>;
   addZone: (name: string) => Promise<boolean>;
   updateZone: (id: string, name: string) => Promise<boolean>;
   deleteZone: (id: string) => Promise<boolean>;
@@ -1091,10 +1091,36 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  addClientStock: async (clientId, cuarzo, llampo, zone, mineralType) => {
-    console.log('🔄 store: addClientStock started', { clientId, cuarzo, llampo, zone, mineralType });
+  addClientStock: async (clientId, cuarzo, llampo, zone, mineralType, receptionDate) => {
     set({ loading: true, error: null });
+    console.log('📡 addClientStock: Params:', { clientId, cuarzo, llampo, zone, mineralType, receptionDate });
     try {
+      // Usar fecha proporcionada o ahora
+      let finalDate = new Date().toISOString();
+      if (receptionDate) {
+        finalDate = `${receptionDate}T12:00:00Z`;
+      }
+
+      // 1. Crear el lote (batch)
+      const { data: batch, error: batchError } = await supabase
+        .from('stock_batches')
+        .insert({
+          client_id: clientId,
+          sub_mineral: cuarzo > 0 ? 'CUARZO' : 'LLAMPO',
+          initial_quantity: cuarzo > 0 ? cuarzo : llampo,
+          remaining_quantity: cuarzo > 0 ? cuarzo : llampo,
+          mineral_type: mineralType,
+          zone: zone || null,
+          created_at: finalDate
+        })
+        .select()
+        .single();
+
+      if (batchError) {
+        console.error('❌ store: Error creating stock batch:', batchError);
+        throw batchError;
+      }
+
       console.log('📡 store: Fetching client current stock...');
       const { data: client, error: fetchError } = await supabase
         .from('clients')
@@ -1556,7 +1582,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       };
 
       if (newData.created_at) {
-        updatePayload.created_at = newData.created_at;
+        // Añadimos mediodía T12:00:00Z para evitar que el desfase de zona horaria 
+        // cambie el día al restarse horas (ej: de 00:00:00 UTC a 19:00:00 UTC-5)
+        updatePayload.created_at = newData.created_at.includes('T') 
+          ? newData.created_at 
+          : `${newData.created_at}T12:00:00Z`;
       }
 
       const { error: batchError } = await supabase

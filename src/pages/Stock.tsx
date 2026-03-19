@@ -160,7 +160,8 @@ const Stock: React.FC = () => {
         nuevoIngreso.cuarzo,
         nuevoIngreso.llampo,
         nuevoIngreso.zona,
-        nuevoIngreso.mineralType
+        nuevoIngreso.mineralType,
+        nuevoIngreso.fechaRecepcion
       );
 
       console.log('📊 Stock: Resultado de addClientStock:', success);

@@ -38,6 +38,20 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 const Stock: React.FC = () => {
   const { user } = useAuthStore();
+
+  // Helper para formatear fechas sin desfase de zona horaria
+  const formatDateSafe = (dateStr: string) => {
+    if (!dateStr) return '---';
+    try {
+      // Extraemos solo YYYY-MM-DD
+      const datePart = dateStr.split('T')[0];
+      const [year, month, day] = datePart.split('-');
+      // Devolvemos formato DD/MM/YYYY
+      return `${day}/${month}/${year}`;
+    } catch (e) {
+      return '---';
+    }
+  };
   const { clients, zones, loading, clientsLoading, fetchClients, fetchZones, addClientStock, updateBatchMineralType, deleteStockBatch, fetchClientBatches } = useSupabaseStore();
   const toast = useToast();
   const [showModal, setShowModal] = useState(false);
@@ -333,15 +347,24 @@ const Stock: React.FC = () => {
     // Summary table
     autoTable(doc, {
       startY: 90,
-      head: [['STOCK ACTUAL', 'CUARZO VALORADO', 'LLAMPO VALORADO', 'TOTAL BALANCÉ']],
-      body: [[
-        'STOCK DISPONIBLE',
-        `${client.stock_cuarzo || 0} sacos`,
-        `${client.stock_llampo || 0} sacos`,
-        `${(client.stock_cuarzo || 0) + (client.stock_llampo || 0)} sacos`
-      ]],
+      head: [['RESUMEN', 'CUARZO', 'LLAMPO', 'TOTAL BALANCE']],
+      body: [
+        [
+          'STOCK DISPONIBLE',
+          `${client.stock_cuarzo || 0} sacos`,
+          `${client.stock_llampo || 0} sacos`,
+          `${(client.stock_cuarzo || 0) + (client.stock_llampo || 0)} sacos`
+        ],
+        [
+          'TOTAL INGRESOS (HISTÓRICO)',
+          `${client.cumulative_cuarzo || 0} sacos`,
+          `${client.cumulative_llampo || 0} sacos`,
+          `${(client.cumulative_cuarzo || 0) + (client.cumulative_llampo || 0)} sacos`
+        ]
+      ],
       theme: 'grid',
       headStyles: { fillColor: [63, 81, 181], textColor: [255, 255, 255], fontStyle: 'bold' },
+      styles: { fontSize: 9 }
     });
 
     // Detailed Batches table
@@ -349,7 +372,7 @@ const Stock: React.FC = () => {
     doc.text('DETALLE DE LOTES (HISTORIAL DE INGRESOS)', 14, (doc as any).lastAutoTable.finalY + 15);
 
     const tableData = batches.map(b => [
-      format(new Date(b.created_at), 'dd/MM/yyyy', { locale: es }),
+      formatDateSafe(b.created_at),
       b.sub_mineral,
       b.zone || 'N/A',
       b.initial_quantity,
@@ -568,7 +591,7 @@ const Stock: React.FC = () => {
                       <div className="flex flex-col items-center">
                         <span className="text-xs font-black text-slate-700">
                           <Calendar size={12} className="inline mr-1 text-slate-400" />
-                          {client.last_intake_date ? new Date(client.last_intake_date).toLocaleDateString() : 'SIN REGISTRO'}
+                          {client.last_intake_date ? formatDateSafe(client.last_intake_date) : 'SIN REGISTRO'}
                         </span>
                         {client.last_intake_zone && (
                           <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mt-1">
@@ -674,7 +697,7 @@ const Stock: React.FC = () => {
                                     </button>
                                   </div>
                                   <span className="text-[10px] font-black text-slate-400">
-                                    {format(new Date(batch.created_at), 'dd MMM yyyy', { locale: es })}
+                                    {formatDateSafe(batch.created_at)}
                                   </span>
                                 </div>
 

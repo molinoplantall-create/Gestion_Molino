@@ -54,6 +54,17 @@ const Stock: React.FC = () => {
   const [batchToDelete, setBatchToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Edit Batch Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [batchToEdit, setBatchToEdit] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState({
+    initial_quantity: 0,
+    remaining_quantity: 0,
+    zone: '',
+    mineral_type: 'OXIDO' as 'OXIDO' | 'SULFURO'
+  });
+  const [isUpdatingBatch, setIsUpdatingBatch] = useState(false);
+
   useEffect(() => {
     fetchClients({
       search,
@@ -245,6 +256,47 @@ const Stock: React.FC = () => {
   const handleDeleteClick = (batch: any) => {
     setBatchToDelete(batch);
     setShowDeleteModal(true);
+  };
+
+  const handleEditClick = (batch: any) => {
+    setBatchToEdit(batch);
+    setEditFormData({
+      initial_quantity: batch.initial_quantity,
+      remaining_quantity: batch.remaining_quantity,
+      zone: batch.zone || '',
+      mineral_type: batch.mineral_type || 'OXIDO'
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateBatch = async () => {
+    if (!batchToEdit) return;
+
+    setIsUpdatingBatch(true);
+    try {
+      const success = await useSupabaseStore.getState().updateStockBatch(
+        batchToEdit.id,
+        batchToEdit.client_id,
+        editFormData
+      );
+
+      if (success) {
+        toast.success('Lote Actualizado', 'Los cambios se han guardado y el stock del cliente ha sido sincronizado.');
+        setShowEditModal(false);
+        // Refresh batches
+        if (expandedClient) {
+          const batches = await fetchClientBatches(expandedClient);
+          setClientBatches(batches);
+        }
+      } else {
+        toast.error('Error', 'No se pudieron guardar los cambios en el lote.');
+      }
+    } catch (error) {
+      console.error('Error updating batch:', error);
+      toast.error('Error', 'Ocurrió un error inesperado al actualizar el lote.');
+    } finally {
+      setIsUpdatingBatch(false);
+    }
   };
 
   // Export batches to PDF
@@ -599,6 +651,17 @@ const Stock: React.FC = () => {
                                     >
                                       {batch.mineral_type || 'OXIDO'}
                                     </button>
+                                    
+                                    {user?.role === 'ADMIN' && (
+                                      <button
+                                        onClick={() => handleEditClick(batch)}
+                                        className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+                                        title="Administrar cantidades (Admin)"
+                                      >
+                                        <Edit size={12} />
+                                      </button>
+                                    )}
+
                                     <button
                                       onClick={() => handleDeleteClick(batch)}
                                       className="p-1 text-slate-400 hover:text-rose-500 transition-colors"
@@ -792,6 +855,80 @@ const Stock: React.FC = () => {
         message={`¿Está seguro de eliminar este ingreso de mineral? Se revertirán los sacos al stock del cliente y esta acción no se puede deshacer.`}
         isLoading={isDeleting}
       />
+
+      {/* Modal de Edición de Lote (Admin) */}
+      <FormModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSubmit={handleUpdateBatch}
+        title="Administrar Lote (Admin)"
+        icon={Edit}
+        submitLabel="Guardar Cambios"
+        isLoading={isUpdatingBatch}
+        size="md"
+      >
+        <div className="space-y-6">
+          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-2 text-center">Aviso de Administrador</p>
+            <p className="text-xs text-amber-800 font-medium text-center">Si modifica las cantidades, el stock total del cliente se ajustará automáticamente para mantener la coherencia.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Cant. Inicial</label>
+              <input
+                type="number"
+                value={editFormData.initial_quantity}
+                onChange={(e) => setEditFormData({ ...editFormData, initial_quantity: parseInt(e.target.value) || 0 })}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-black text-xl outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Cant. Restante</label>
+              <input
+                type="number"
+                value={editFormData.remaining_quantity}
+                onChange={(e) => setEditFormData({ ...editFormData, remaining_quantity: parseInt(e.target.value) || 0 })}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-black text-xl outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Zona de Procedencia</label>
+            <select
+              value={editFormData.zone}
+              onChange={(e) => setEditFormData({ ...editFormData, zone: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">Sin Zona</option>
+              {zones.map(z => (
+                <option key={z.id} value={z.name}>{z.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Tipo de Mineral</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setEditFormData({ ...editFormData, mineral_type: 'OXIDO' })}
+                className={`py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${editFormData.mineral_type === 'OXIDO' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
+              >
+                Óxido
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditFormData({ ...editFormData, mineral_type: 'SULFURO' })}
+                className={`py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${editFormData.mineral_type === 'SULFURO' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}
+              >
+                Sulfuro
+              </button>
+            </div>
+          </div>
+        </div>
+      </FormModal>
     </div >
   );
 };

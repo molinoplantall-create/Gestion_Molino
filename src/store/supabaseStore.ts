@@ -93,6 +93,7 @@ interface SupabaseStore {
   fetchClientBatches: (clientId: string) => Promise<any[]>;
   updateBatchMineralType: (batchId: string, mineralType: 'OXIDO' | 'SULFURO') => Promise<boolean>;
   deleteStockBatch: (batchId: string, clientId: string) => Promise<boolean>;
+  updateStockBatch: (batchId: string, clientId: string, newData: { initial_quantity: number, remaining_quantity: number, zone?: string, mineral_type?: string }) => Promise<boolean>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -1214,14 +1215,43 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   updateZone: async (id: string, name: string) => {
     set({ loading: true, error: null });
     try {
-      const { error } = await supabase
+      // 1. Obtener el nombre antiguo
+      const { data: oldZone, error: fetchError } = await supabase
+        .from('zones')
+        .select('name')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      const oldName = oldZone.name;
+
+      // 2. Actualizar la zona en la tabla zones
+      const { error: zoneError } = await supabase
         .from('zones')
         .update({ name: name })
         .eq('id', id);
 
-      if (error) throw error;
+      if (zoneError) throw zoneError;
+
+      // 3. Sincronizar con clientes (campo zone y last_intake_zone)
+      await supabase
+        .from('clients')
+        .update({ zone: name })
+        .eq('zone', oldName);
+      
+      await supabase
+        .from('clients')
+        .update({ last_intake_zone: name })
+        .eq('last_intake_zone', oldName);
+
+      // 4. Sincronizar con lotes de stock
+      await supabase
+        .from('stock_batches')
+        .update({ zone: name })
+        .eq('zone', oldName);
 
       await get().fetchZones();
+      await get().fetchClients(); // Actualizar lista de clientes para ver el cambio de zona
       return true;
     } catch (error: any) {
       console.error('❌ Error updateZone:', error);
@@ -1235,6 +1265,17 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   deleteZone: async (id: string) => {
     set({ loading: true, error: null });
     try {
+      // 1. Obtener el nombre antes de borrar
+      const { data: zone, error: fetchError } = await supabase
+        .from('zones')
+        .select('name')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      const zoneName = zone.name;
+
+      // 2. Borrar la zona
       const { error } = await supabase
         .from('zones')
         .delete()
@@ -1242,10 +1283,28 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (error) throw error;
 
+      // 3. Limpiar referencias en clientes
+      await supabase
+        .from('clients')
+        .update({ zone: '' })
+        .eq('zone', zoneName);
+      
+      await supabase
+        .from('clients')
+        .update({ last_intake_zone: '' })
+        .eq('last_intake_zone', zoneName);
+
+      // 4. Limpiar en lotes de stock
+      await supabase
+        .from('stock_batches')
+        .update({ zone: '' })
+        .eq('zone', zoneName);
+
       // Limpiar logs antiguos que se quedaron "En Proceso"
       await get().cleanupHistoricalLogs();
 
       set({ zones: get().zones.filter(z => z.id !== id) });
+      await get().fetchClients();
       return true;
     } catch (error) {
       console.error('❌ Error deleteZone:', error);
@@ -1448,8 +1507,71 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       // 6. Refrescar datos
       await get().fetchClients();
       return true;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  updateStockBatch: async (batchId: string, clientId: string, newData: { initial_quantity: number, remaining_quantity: number, zone?: string, mineral_type?: string }) => {
+    set({ loading: true, error: null });
+    try {
+      // 1. Obtener los datos actuales del lote
+      const { data: oldBatch, error: fetchError } = await supabase
+        .from('stock_batches')
+        .select('*')
+        .eq('id', batchId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 2. Obtener el stock actual del cliente
+      const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select('stock_cuarzo, stock_llampo, cumulative_cuarzo, cumulative_llampo')
+        .eq('id', clientId)
+        .single();
+
+      if (clientError) throw clientError;
+
+      // 3. Calcular diferencias
+      const diffInitial = newData.initial_quantity - oldBatch.initial_quantity;
+      const diffRemaining = newData.remaining_quantity - oldBatch.remaining_quantity;
+
+      // 4. Preparar actualización de cliente
+      const clientUpdate: any = {};
+      if (oldBatch.sub_mineral === 'CUARZO') {
+        clientUpdate.stock_cuarzo = Math.max(0, (client.stock_cuarzo || 0) + diffRemaining);
+        clientUpdate.cumulative_cuarzo = Math.max(0, (client.cumulative_cuarzo || 0) + diffInitial);
+      } else {
+        clientUpdate.stock_llampo = Math.max(0, (client.stock_llampo || 0) + diffRemaining);
+        clientUpdate.cumulative_llampo = Math.max(0, (client.cumulative_llampo || 0) + diffInitial);
+      }
+
+      // 5. Ejecutar actualizaciones en transacción-like (secuencial)
+      const { error: batchError } = await supabase
+        .from('stock_batches')
+        .update({
+          initial_quantity: newData.initial_quantity,
+          remaining_quantity: newData.remaining_quantity,
+          zone: newData.zone ?? oldBatch.zone,
+          mineral_type: newData.mineral_type ?? oldBatch.mineral_type
+        })
+        .eq('id', batchId);
+
+      if (batchError) throw batchError;
+
+      const { error: updateClientError } = await supabase
+        .from('clients')
+        .update(clientUpdate)
+        .eq('id', clientId);
+
+      if (updateClientError) throw updateClientError;
+
+      // 6. Refrescar datos
+      await get().fetchClients();
+      return true;
     } catch (error: any) {
-      console.error('❌ Error deleteStockBatch:', error);
+      console.error('❌ Error updateStockBatch:', error);
       set({ error: error.message });
       return false;
     } finally {

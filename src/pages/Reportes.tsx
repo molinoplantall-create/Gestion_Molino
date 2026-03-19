@@ -49,6 +49,18 @@ const Reportes: React.FC = () => {
     fetchAllClients();
     fetchClients();
   }, [fetchMillingLogs, fetchMills, fetchAllClients, fetchClients]);
+  
+  // Helper para formatear fechas sin desfase de zona horaria
+  const formatDateSafe = (dateStr: string) => {
+    if (!dateStr) return '---';
+    try {
+      const datePart = dateStr.split('T')[0];
+      const [year, month, day] = datePart.split('-');
+      return `${day}/${month}/${year}`;
+    } catch (e) {
+      return '---';
+    }
+  };
 
   // Cálculos dinámicos procesados para Recharts
   const stats = useMemo(() => {
@@ -134,7 +146,7 @@ const Reportes: React.FC = () => {
     }
     toast.info('Generando Excel...', 'Procesando historial de molienda');
     const data = millingLogs.map(log => ({
-      Fecha: new Date(log.created_at).toLocaleDateString(),
+      Fecha: formatDateSafe(log.created_at),
       Cliente: log.clients?.name || 'N/A',
       Mineral: log.mineral_type,
       Sacos: log.total_sacks,
@@ -181,6 +193,72 @@ const Reportes: React.FC = () => {
     doc.save(`Balance_Gerencial_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const handleExportIngresosExcel = () => {
+    if (!allClients || allClients.length === 0) {
+      toast.warning('Sin Datos', 'No hay clientes para generar el reporte de ingresos.');
+      return;
+    }
+    toast.info('Generando Excel...', 'Procesando consolidado de ingresos históricos');
+    
+    // Solo clientes que han traído algo históricamente
+    const data = [...allClients]
+      .filter(c => (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0) > 0)
+      .map(c => ({
+        Cliente: c.name,
+        'Tipo Cliente': c.client_type || 'N/A',
+        'Total Cuarzo (Sacos)': c.cumulative_cuarzo || 0,
+        'Total Llampo (Sacos)': c.cumulative_llampo || 0,
+        'Total Histórico': (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0),
+        'Zona Principal': c.zone || 'N/A'
+      }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Consolidado Ingresos");
+    XLSX.writeFile(wb, `Consolidado_Ingresos_Mineral_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleGenerateIngresosPDF = () => {
+    if (!allClients) return;
+    toast.info('Generando PDF...', 'Creando reporte de ingresos consolidados');
+    const doc = new jsPDF() as any;
+
+    doc.setFontSize(22);
+    doc.setTextColor(63, 81, 181);
+    doc.text('REPORTE CONSOLIDADO DE INGRESOS', 14, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('TOTAL DE MINERAL RECIBIDO POR CLIENTE (DESDE INICIO)', 14, 28);
+    doc.text(`Fecha de Emisión: ${new Date().toLocaleString()}`, 14, 33);
+
+    const clientRows = [...allClients]
+      .filter(c => (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0) > 0)
+      .sort((a, b) => ((b.cumulative_cuarzo || 0) + (b.cumulative_llampo || 0)) - ((a.cumulative_cuarzo || 0) + (a.cumulative_llampo || 0)))
+      .map(c => [
+        c.name,
+        c.client_type,
+        c.cumulative_cuarzo || 0,
+        c.cumulative_llampo || 0,
+        (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0)
+      ]);
+
+    doc.autoTable({
+      startY: 40,
+      head: [['CLIENTE', 'TIPO', 'CUARZO', 'LLAMPO', 'TOTAL INGRESOS']],
+      body: clientRows,
+      theme: 'grid',
+      headStyles: { fillColor: [63, 81, 181] },
+      foot: [['TOTALES', '', 
+        clientRows.reduce((sum, row) => sum + (row[2] as number), 0),
+        clientRows.reduce((sum, row) => sum + (row[3] as number), 0),
+        clientRows.reduce((sum, row) => sum + (row[4] as number), 0)
+      ]],
+      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+    });
+
+    doc.save(`Consolidado_Ingresos_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -224,20 +302,49 @@ const Reportes: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={handleExportExcel}
-            className="group flex items-center px-5 py-3 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-indigo-600 hover:text-indigo-600 transition-all shadow-sm font-bold text-sm"
-          >
-            <Download size={18} className="mr-3 group-hover:bounce" />
-            EXPORTAR EXCEL
-          </button>
-          <button
-            onClick={handleGeneratePDF}
-            className="flex items-center px-5 py-3 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 font-bold text-sm"
-          >
-            <FileText size={18} className="mr-3" />
-            BAJAR REPORTE PDF
-          </button>
+          <div className="flex flex-col gap-2">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Ingresos de Mineral</span>
+            <div className="flex gap-2">
+              <button
+                onClick={handleExportIngresosExcel}
+                className="group flex items-center px-4 py-2.5 bg-emerald-50 border-2 border-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-all font-bold text-xs"
+                title="Excel de todos los ingresos históricos sumados"
+              >
+                <Download size={16} className="mr-2" />
+                EXCEL INGRESOS
+              </button>
+              <button
+                onClick={handleGenerateIngresosPDF}
+                className="flex items-center px-4 py-2.5 bg-indigo-50 border-2 border-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-all font-bold text-xs"
+                title="PDF de todos los ingresos históricos sumados"
+              >
+                <FileText size={16} className="mr-2" />
+                PDF INGRESOS
+              </button>
+            </div>
+          </div>
+
+          <div className="w-px h-12 bg-slate-200 mx-2 hidden lg:block"></div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Operación (Moliendas)</span>
+            <div className="flex gap-2">
+              <button
+                onClick={handleExportExcel}
+                className="group flex items-center px-4 py-2.5 bg-white border-2 border-slate-200 text-slate-700 rounded-xl hover:border-slate-400 transition-all font-bold text-xs"
+              >
+                <Download size={16} className="mr-2" />
+                EXCEL MOLIENDA
+              </button>
+              <button
+                onClick={handleGeneratePDF}
+                className="flex items-center px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-lg font-bold text-xs"
+              >
+                <FileText size={16} className="mr-2" />
+                PDF MOLIENDA
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

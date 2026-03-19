@@ -4,6 +4,7 @@ import { Clock } from 'lucide-react';
 interface TiemposProceso {
     oxido: {
         hora40: boolean;
+        hora30: boolean;
         hora00: boolean;
     };
     sulfuro: {
@@ -93,6 +94,19 @@ export const MineralTypeSelector: React.FC<MineralTypeSelectorProps> = ({
                                 />
                                 <span className="ml-2 md:ml-3 text-[11px] md:text-sm font-medium text-amber-900 leading-tight">
                                     1 hora 40 min (<span className="hidden sm:inline">100 min</span>)
+                                </span>
+                            </label>
+
+                            <label className="flex items-center p-2 md:p-3 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    checked={tiempos.oxido.hora30}
+                                    onChange={(e) => onTiempoChange('OXIDO', 'hora30', e.target.checked)}
+                                    disabled={disabled}
+                                    className="w-4 h-4 md:w-5 md:h-5 text-amber-600 rounded focus:ring-2 focus:ring-amber-500"
+                                />
+                                <span className="ml-2 md:ml-3 text-[11px] md:text-sm font-medium text-amber-900 leading-tight">
+                                    1 h 30 min (<span className="hidden sm:inline">90 min</span>)
                                 </span>
                             </label>
 

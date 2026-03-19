@@ -33,7 +33,7 @@ interface MolinoProceso {
 }
 
 interface TiemposProceso {
-  oxido: { hora40: boolean; hora00: boolean };
+  oxido: { hora40: boolean; hora30: boolean; hora00: boolean };
   sulfuro: { hora00: boolean; hora30: boolean };
 }
 
@@ -77,7 +77,7 @@ const RegistroMolienda: React.FC = () => {
     tipoCliente: '',
     mineral: '',
     tiempos: {
-      oxido: { hora40: true, hora00: false },
+      oxido: { hora40: true, hora30: false, hora00: false },
       sulfuro: { hora00: false, hora30: true }
     },
     fechaInicio: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD local robusto
@@ -125,8 +125,8 @@ const RegistroMolienda: React.FC = () => {
 
   const getTiempoSeleccionado = (): number => {
     if (molienda.mineral === 'OXIDO') {
-      if (molienda.tiempos.oxido.hora40 && molienda.tiempos.oxido.hora00) return 100;
       if (molienda.tiempos.oxido.hora40) return 100;
+      if (molienda.tiempos.oxido.hora30) return 90;
       if (molienda.tiempos.oxido.hora00) return 60;
       return 100;
     } else if (molienda.mineral === 'SULFURO') {
@@ -402,7 +402,7 @@ const RegistroMolienda: React.FC = () => {
     }
 
     // 2. Business Logic Validation
-    if (molienda.mineral === 'OXIDO' && !molienda.tiempos.oxido.hora40 && !molienda.tiempos.oxido.hora00) {
+    if (molienda.mineral === 'OXIDO' && !molienda.tiempos.oxido.hora40 && !molienda.tiempos.oxido.hora30 && !molienda.tiempos.oxido.hora00) {
       toast.warning('Tiempo no seleccionado', 'Debe seleccionar al menos un tiempo para Óxido.');
       return false;
     }

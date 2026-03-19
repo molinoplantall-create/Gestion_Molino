@@ -61,7 +61,8 @@ const Stock: React.FC = () => {
     initial_quantity: 0,
     remaining_quantity: 0,
     zone: '',
-    mineral_type: 'OXIDO' as 'OXIDO' | 'SULFURO'
+    mineral_type: 'OXIDO' as 'OXIDO' | 'SULFURO',
+    created_at: ''
   });
   const [isUpdatingBatch, setIsUpdatingBatch] = useState(false);
 
@@ -264,7 +265,8 @@ const Stock: React.FC = () => {
       initial_quantity: batch.initial_quantity,
       remaining_quantity: batch.remaining_quantity,
       zone: batch.zone || '',
-      mineral_type: batch.mineral_type || 'OXIDO'
+      mineral_type: batch.mineral_type || 'OXIDO',
+      created_at: batch.created_at ? new Date(batch.created_at).toISOString().split('T')[0] : ''
     });
     setShowEditModal(true);
   };
@@ -892,6 +894,16 @@ const Stock: React.FC = () => {
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-black text-xl outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Fecha de Ingreso</label>
+            <input
+              type="date"
+              value={editFormData.created_at}
+              onChange={(e) => setEditFormData({ ...editFormData, created_at: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
 
           <div>

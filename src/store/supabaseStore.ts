@@ -93,7 +93,7 @@ interface SupabaseStore {
   fetchClientBatches: (clientId: string) => Promise<any[]>;
   updateBatchMineralType: (batchId: string, mineralType: 'OXIDO' | 'SULFURO') => Promise<boolean>;
   deleteStockBatch: (batchId: string, clientId: string) => Promise<boolean>;
-  updateStockBatch: (batchId: string, clientId: string, newData: { initial_quantity: number, remaining_quantity: number, zone?: string, mineral_type?: string }) => Promise<boolean>;
+  updateStockBatch: (batchId: string, clientId: string, newData: { initial_quantity: number, remaining_quantity: number, zone?: string, mineral_type?: string, created_at?: string }) => Promise<boolean>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -1512,7 +1512,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  updateStockBatch: async (batchId: string, clientId: string, newData: { initial_quantity: number, remaining_quantity: number, zone?: string, mineral_type?: string }) => {
+  updateStockBatch: async (batchId: string, clientId: string, newData: { initial_quantity: number, remaining_quantity: number, zone?: string, mineral_type?: string, created_at?: string }) => {
     set({ loading: true, error: null });
     try {
       // 1. Obtener los datos actuales del lote
@@ -1548,14 +1548,20 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       // 5. Ejecutar actualizaciones en transacción-like (secuencial)
+      const updatePayload: any = {
+        initial_quantity: newData.initial_quantity,
+        remaining_quantity: newData.remaining_quantity,
+        zone: newData.zone ?? oldBatch.zone,
+        mineral_type: newData.mineral_type ?? oldBatch.mineral_type
+      };
+
+      if (newData.created_at) {
+        updatePayload.created_at = newData.created_at;
+      }
+
       const { error: batchError } = await supabase
         .from('stock_batches')
-        .update({
-          initial_quantity: newData.initial_quantity,
-          remaining_quantity: newData.remaining_quantity,
-          zone: newData.zone ?? oldBatch.zone,
-          mineral_type: newData.mineral_type ?? oldBatch.mineral_type
-        })
+        .update(updatePayload)
         .eq('id', batchId);
 
       if (batchError) throw batchError;

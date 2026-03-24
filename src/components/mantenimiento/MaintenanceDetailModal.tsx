@@ -2,7 +2,7 @@ import React from 'react';
 import { BaseModal } from '../ui/BaseModal';
 import { 
   Wrench, Calendar, Clock, User, AlertTriangle, CheckCircle, 
-  X, FileText, Activity 
+  X, FileText, Activity, DollarSign, ListChecks
 } from 'lucide-react';
 
 interface MaintenanceDetailModalProps {
@@ -59,6 +59,30 @@ export const MaintenanceDetailModal: React.FC<MaintenanceDetailModalProps> = ({
           {statusConfig.label}
         </div>
       </div>
+
+      {/* Financial Summary */}
+      {((record as any).cost_pen > 0 || (record as any).cost_usd > 0) && (
+        <div className="mb-6">
+          <div className="flex items-center gap-1.5 mb-2">
+            <DollarSign size={14} className="text-slate-400" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Resumen Financiero</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {(record as any).cost_pen > 0 && (
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-emerald-700">Costo Soles</span>
+                <span className="text-sm font-black text-emerald-800">S/ {(record as any).cost_pen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+            {(record as any).cost_usd > 0 && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-blue-700">Costo Dólares</span>
+                <span className="text-sm font-black text-blue-800">$ {(record as any).cost_usd.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Info Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -124,6 +148,31 @@ export const MaintenanceDetailModal: React.FC<MaintenanceDetailModalProps> = ({
           <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{record.description || 'Sin descripción'}</p>
         </div>
       </div>
+
+      {/* Checklist / Procedimiento */}
+      {record.tasks_checklist && record.tasks_checklist.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-1.5 mb-2">
+            <ListChecks size={14} className="text-slate-400" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Procedimiento Verificado</span>
+          </div>
+          <div className="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
+            {record.tasks_checklist.map((task: any, idx: number) => (
+              <div key={task.id || idx} className={`flex items-center gap-3 px-4 py-2.5 ${idx !== 0 ? 'border-t border-slate-100' : ''}`}>
+                <div className={`p-1 rounded-full ${task.completed ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-400'}`}>
+                  {task.completed ? <CheckCircle size={14} /> : <Clock size={14} />}
+                </div>
+                <span className={`text-sm ${task.completed ? 'text-slate-700' : 'text-slate-500 italic'}`}>
+                  {task.text}
+                </span>
+                {task.completed && (
+                  <span className="ml-auto text-[10px] font-bold text-emerald-500 uppercase">VERIFICADO</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Action Taken (if exists) */}
       {record.action_taken && (

@@ -1,8 +1,7 @@
-import React from 'react';
 import { FormModal } from '../ui/FormModal';
-import { Wrench } from 'lucide-react';
+import { Wrench, Plus, X } from 'lucide-react';
 
-interface MaintenanceFormData {
+export interface MaintenanceFormData {
     molinoId: string;
     tipo: 'PREVENTIVO' | 'CORRECTIVO';
     categoria: string;
@@ -12,6 +11,9 @@ interface MaintenanceFormData {
     fechaProgramada: string;
     horasEstimadas: number;
     asignadoA: string;
+    cost_pen?: number;
+    cost_usd?: number;
+    tasks_checklist?: { id: string, text: string, completed: boolean }[];
 }
 
 interface MaintenanceFormProps {
@@ -38,6 +40,27 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     errors = {}
 }) => {
     const isValid = formData.molinoId && formData.descripcion && formData.asignadoA;
+
+    const handleAddTask = () => {
+        const newTask = { id: crypto.randomUUID(), text: '', completed: false };
+        onChange('tasks_checklist', [...(formData.tasks_checklist || []), newTask]);
+    };
+
+    const handleRemoveTask = (id: string) => {
+        onChange('tasks_checklist', (formData.tasks_checklist || []).filter(t => t.id !== id));
+    };
+
+    const handleUpdateTask = (id: string, text: string) => {
+        onChange('tasks_checklist', (formData.tasks_checklist || []).map(t => 
+            t.id === id ? { ...t, text } : t
+        ));
+    };
+
+    const handleToggleTask = (id: string) => {
+        onChange('tasks_checklist', (formData.tasks_checklist || []).map(t => 
+            t.id === id ? { ...t, completed: !t.completed } : t
+        ));
+    };
 
     return (
         <FormModal
@@ -182,6 +205,79 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         required
                     />
                     {errors.descripcion && <p className="text-xs text-red-500 mt-1">{errors.descripcion}</p>}
+                </div>
+
+                {/* Sección de Costos */}
+                <div className="md:col-span-2 lg:col-span-3 grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-100">
+                    <div className="md:col-span-2 lg:col-span-4">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Presupuesto y Costos (Opcional)</h4>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Costo (S/)</label>
+                        <input
+                            type="number"
+                            value={formData.cost_pen || ''}
+                            onChange={(e) => onChange('cost_pen', parseFloat(e.target.value))}
+                            placeholder="0.00"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Costo ($)</label>
+                        <input
+                            type="number"
+                            value={formData.cost_usd || ''}
+                            onChange={(e) => onChange('cost_usd', parseFloat(e.target.value))}
+                            placeholder="0.00"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                    </div>
+                </div>
+
+                {/* Checklist de Tareas */}
+                <div className="md:col-span-2 lg:col-span-3 pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Procedimiento / Checklist</h4>
+                        <button
+                            type="button"
+                            onClick={handleAddTask}
+                            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                        >
+                            <Plus size={14} /> Agregar Tarea
+                        </button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        {(formData.tasks_checklist || []).length === 0 && (
+                            <p className="text-xs text-gray-400 italic py-2 text-center bg-gray-50 rounded-lg border border-dashed">
+                                No hay tareas añadidas al procedimiento
+                            </p>
+                        )}
+                        {(formData.tasks_checklist || []).map((task) => (
+                            <div key={task.id} className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={task.completed}
+                                    onChange={() => handleToggleTask(task.id)}
+                                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                />
+                                <input
+                                    type="text"
+                                    value={task.text}
+                                    onChange={(e) => handleUpdateTask(task.id, e.target.value)}
+                                    placeholder="Nombre de la tarea..."
+                                    className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemoveTask(task.id)}
+                                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </FormModal>

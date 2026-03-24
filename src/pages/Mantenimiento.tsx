@@ -5,12 +5,14 @@ import {
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useModal } from '@/hooks/useModal';
 import { useToast } from '@/hooks/useToast';
-import { MaintenanceForm } from '@/components/mantenimiento/MaintenanceForm';
+import { MaintenanceForm, MaintenanceFormData } from '@/components/mantenimiento/MaintenanceForm';
 import { MaintenanceTable } from '@/components/mantenimiento/MaintenanceTable';
 import { MaintenanceFilters } from '@/components/mantenimiento/MaintenanceFilters';
 import { KpiIndicators } from '@/components/mantenimiento/KpiIndicators';
 import { FinalizeMaintenanceModal } from '@/components/mantenimiento/FinalizeMaintenanceModal';
 import { MaintenanceDetailModal } from '@/components/mantenimiento/MaintenanceDetailModal';
+import { MillHistoryTimeline } from '@/components/mantenimiento/MillHistoryTimeline';
+import { FailureRanking } from '@/components/mantenimiento/FailureRanking';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { InputModal } from '@/components/ui/InputModal';
 import { useFormValidation } from '@/hooks/useFormValidation';
@@ -80,22 +82,26 @@ const Mantenimiento: React.FC = () => {
   const detailModal = useModal<MaintenanceRecord>();
   const finalizeModal = useModal<any>();
   const [resetOilModal, setResetOilModal] = useState<{ isOpen: boolean, millId: string, millName: string }>({ isOpen: false, millId: '', millName: '' });
+  const [historyTimeline, setHistoryTimeline] = useState<{ isOpen: boolean, millId: string, millName: string }>({ isOpen: false, millId: '', millName: '' });
 
   // Form state
   const [isSubmitting, setIsSubmitting] = useState(false);
   // All maintenance logs for KPI calculation (unfiltered) — cached with ref
   const [allMaintenanceLogs, setAllMaintenanceLogs] = useState<any[]>([]);
   const lastKpiFetchCount = useRef<number>(-1);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<MaintenanceFormData>({
     molinoId: '',
-    tipo: 'PREVENTIVO' as const,
+    tipo: 'PREVENTIVO',
     categoria: '',
     descripcion: '',
-    prioridad: 'MEDIA' as const,
-    estado: 'PENDIENTE' as const,
+    prioridad: 'MEDIA',
+    estado: 'PENDIENTE',
     fechaProgramada: new Date().toISOString().split('T')[0],
     horasEstimadas: 4,
-    asignadoA: ''
+    asignadoA: '',
+    cost_pen: 0,
+    cost_usd: 0,
+    tasks_checklist: []
   });
 
   const { errors, validate, clearErrors, validateField } = useFormValidation({
@@ -118,6 +124,37 @@ const Mantenimiento: React.FC = () => {
       endDate
     });
   }, [fetchMaintenanceLogs, currentPage, debouncedSearch, filterType, filterStatus, selectedMill, startDate, endDate]);
+
+  // Realtime subscription — auto-refresh when maintenance_logs change
+  useEffect(() => {
+    let channel: any;
+    const setupRealtime = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        channel = supabase
+          .channel('maintenance-changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_logs' }, () => {
+            console.log('🔄 Realtime: maintenance_logs changed, refreshing...');
+            fetchMaintenanceLogs({
+              page: currentPage,
+              pageSize: recordsPerPage,
+              search: debouncedSearch,
+              type: filterType,
+              status: filterStatus,
+              millId: selectedMill,
+              startDate,
+              endDate
+            });
+            fetchMills();
+          })
+          .subscribe();
+      } catch (e) {
+        console.warn('Realtime subscription not available:', e);
+      }
+    };
+    setupRealtime();
+    return () => { if (channel) channel.unsubscribe(); };
+  }, []);
 
   // Fetch ALL logs for KPI calculation — cached to avoid redundant requests
   useEffect(() => {
@@ -177,7 +214,10 @@ const Mantenimiento: React.FC = () => {
       estado: 'PENDIENTE',
       fechaProgramada: new Date().toISOString().split('T')[0],
       horasEstimadas: 4,
-      asignadoA: ''
+      asignadoA: '',
+      cost_pen: 0,
+      cost_usd: 0,
+      tasks_checklist: []
     });
     clearErrors();
   };
@@ -197,7 +237,10 @@ const Mantenimiento: React.FC = () => {
       technician_name: formData.asignadoA,
       worked_hours: formData.horasEstimadas,
       fechaProgramada: formData.fechaProgramada,
-      status: formData.estado
+      status: formData.estado,
+      cost_pen: formData.cost_pen,
+      cost_usd: formData.cost_usd,
+      tasks_checklist: formData.tasks_checklist
     });
 
     setIsSubmitting(false);
@@ -221,7 +264,10 @@ const Mantenimiento: React.FC = () => {
       estado: (record.status || 'PENDIENTE') as any,
       fechaProgramada: record.created_at ? record.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
       horasEstimadas: record.worked_hours || 4,
-      asignadoA: record.technician_name || ''
+      asignadoA: record.technician_name || '',
+      cost_pen: (record as any).cost_pen || 0,
+      cost_usd: (record as any).cost_usd || 0,
+      tasks_checklist: (record as any).tasks_checklist || []
     });
     editModal.open(record);
   };
@@ -246,6 +292,9 @@ const Mantenimiento: React.FC = () => {
       status: formData.estado,
       worked_hours: formData.horasEstimadas,
       technician_name: formData.asignadoA,
+      cost_pen: formData.cost_pen,
+      cost_usd: formData.cost_usd,
+      tasks_checklist: formData.tasks_checklist,
       created_at: formData.fechaProgramada ? `${formData.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
     });
 
@@ -281,13 +330,28 @@ const Mantenimiento: React.FC = () => {
   };
 
   const handleViewHistory = (molinoId: string) => {
-    setSelectedMill(molinoId);
-    toast.info('Filtrando Historial', `Mostrando mantenimientos para el molino seleccionado`);
+    const mill = mills.find(m => m.id === molinoId);
+    setHistoryTimeline({ isOpen: true, millId: molinoId, millName: mill?.name || 'Molino' });
+  };
 
-    const tableElement = document.querySelector('.overflow-x-auto');
-    if (tableElement) {
-      tableElement.scrollIntoView({ behavior: 'smooth' });
-    }
+  // Duplicate order handler
+  const handleDuplicateOrder = (record: MaintenanceRecord) => {
+    setFormData({
+      molinoId: record.mill_id,
+      tipo: record.type as any,
+      categoria: record.category || '',
+      descripcion: record.description,
+      prioridad: (record.priority || 'MEDIA') as any,
+      estado: 'PENDIENTE',
+      fechaProgramada: new Date().toISOString().split('T')[0],
+      horasEstimadas: record.worked_hours || 4,
+      asignadoA: record.technician_name || '',
+      cost_pen: (record as any).cost_pen || 0,
+      cost_usd: (record as any).cost_usd || 0,
+      tasks_checklist: (record as any).tasks_checklist || []
+    });
+    createModal.open();
+    toast.info('Orden Duplicada', 'Se ha pre-cargado el formulario con los datos. Modifique lo necesario y guarde.');
   };
 
   // Export ALL filtered data (not just current page) (fix #9)
@@ -717,7 +781,11 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         }}
         onViewHistory={handleViewHistory}
         onFinalize={handleFinalizeMaintenance}
+        onDuplicate={handleDuplicateOrder}
       />
+
+      {/* Failure Ranking Analytics */}
+      <FailureRanking maintenanceLogs={allMaintenanceLogs} mills={mills} />
 
       {/* Create Maintenance Modal */}
       <MaintenanceForm
@@ -788,6 +856,14 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         type="number"
         min={1}
         icon={Settings}
+      />
+
+      {/* Mill History Timeline Modal */}
+      <MillHistoryTimeline
+        isOpen={historyTimeline.isOpen}
+        onClose={() => setHistoryTimeline(prev => ({ ...prev, isOpen: false }))}
+        millId={historyTimeline.millId}
+        millName={historyTimeline.millName}
       />
     </div>
   );

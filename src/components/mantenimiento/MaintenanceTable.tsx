@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Edit, Trash2, CheckCircle, Clock, AlertTriangle, X, Wrench, Calendar, User, AlertCircle, ChevronRight, MoreVertical, History, Check } from 'lucide-react';
+import { Eye, Edit, Trash2, CheckCircle, Clock, AlertTriangle, X, Wrench, Calendar, User, AlertCircle, ChevronRight, MoreVertical, History, Check, Copy } from 'lucide-react';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { EmptyState } from '../common/EmptyState';
 
@@ -31,6 +31,7 @@ interface MaintenanceTableProps {
     onDelete: (id: string) => void;
     onViewHistory: (molinoId: string) => void;
     onFinalize?: (id: string, millId: string) => void;
+    onDuplicate?: (record: MaintenanceRecord) => void;
 }
 
 export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
@@ -43,7 +44,8 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
     onEdit,
     onDelete,
     onViewHistory,
-    onFinalize
+    onFinalize,
+    onDuplicate
 }) => {
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -125,6 +127,7 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
                             <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo/Prioridad</th>
                             <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
                             <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                            <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Costo</th>
                             <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Horas</th>
                             <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
@@ -168,8 +171,15 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
                                         )}
                                     </div>
                                 </td>
-                                <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                                <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
                                     {getStatusBadge(log.status)}
+                                </td>
+                                <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                                    <div className="flex flex-col text-[10px] font-bold">
+                                        {(log as any).cost_pen > 0 && <span className="text-emerald-600">S/ {(log as any).cost_pen}</span>}
+                                        {(log as any).cost_usd > 0 && <span className="text-blue-600">$ {(log as any).cost_usd}</span>}
+                                        {!(log as any).cost_pen && !(log as any).cost_usd && <span className="text-gray-300">-</span>}
+                                    </div>
                                 </td>
                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                     <span className="text-sm text-gray-900">
@@ -216,6 +226,15 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
                                         >
                                             <Trash2 size={16} />
                                         </button>
+                                        {onDuplicate && (
+                                            <button
+                                                onClick={() => onDuplicate(log)}
+                                                className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
+                                                title="Duplicar orden"
+                                            >
+                                                <Copy size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 </td>
                             </tr>

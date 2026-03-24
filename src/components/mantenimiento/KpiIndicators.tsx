@@ -3,7 +3,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Legend
 } from 'recharts';
-import { Activity, Clock, CheckCircle, TrendingUp, Calendar, Gauge, Timer } from 'lucide-react';
+import { Activity, Clock, CheckCircle, TrendingUp, Calendar, Gauge, Timer, DollarSign } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface KpiIndicatorsProps {
@@ -187,7 +187,9 @@ function calculateKPIs(
             totalFailures,
             totalPreventive,
             totalRepairHours: Math.round(totalRepairH),
-            totalOperativeHours: Math.round(totalOperativeH)
+            totalOperativeHours: Math.round(totalOperativeH),
+            totalCostPen: allPeriodLogs.reduce((sum, l) => sum + (l.cost_pen || 0), 0),
+            totalCostUsd: allPeriodLogs.reduce((sum, l) => sum + (l.cost_usd || 0), 0)
         }
     };
 }
@@ -268,7 +270,27 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
             </div>
 
             {/* Tarjetas KPI Principales — 2 filas */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* Costo Inversión */}
+                <div className="bg-white rounded-2xl p-5 border border-indigo-100 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-indigo-50/30">
+                    <div className="flex items-center mb-3">
+                        <div className="p-2.5 bg-emerald-100 rounded-xl mr-3">
+                            <DollarSign className="text-emerald-600" size={22} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">INVERSIÓN</p>
+                            <p className="text-[10px] text-gray-400">Total en período</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-xl font-black text-emerald-600">
+                           S/ {(kpis.global as any).totalCostPen.toLocaleString('es-PE', { maximumFractionDigits: 0 })}
+                        </p>
+                        <p className="text-xs font-bold text-blue-500 mt-1">
+                           $ {(kpis.global as any).totalCostUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                        </p>
+                    </div>
+                </div>
                 {/* MTBF */}
                 <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center mb-3">

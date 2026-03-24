@@ -744,6 +744,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         technician_name: data.technician_name,
         worked_hours: data.worked_hours,
         status: data.status || 'PENDIENTE',
+        cost_pen: data.cost_pen || 0,
+        cost_usd: data.cost_usd || 0,
+        tasks_checklist: data.tasks_checklist || [],
         created_at: data.fechaProgramada ? `${data.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
       };
 
@@ -766,6 +769,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           horas_trabajadas: data.worked_hours,
           asignado_a: data.technician_name,
           estado: data.status || 'PENDIENTE',
+          costo_pen: data.cost_pen || 0,
+          costo_usd: data.cost_usd || 0,
+          checklist: data.tasks_checklist || [],
           accion_tomada: data.description // Fallback a descripcion si falta campo
         };
         const { error: retryError } = await supabase

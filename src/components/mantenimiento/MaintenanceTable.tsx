@@ -134,7 +134,7 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
                             <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                     <div className="text-sm text-gray-900 font-medium">
-                                        {new Date(log.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                        {(() => { const d = log.created_at.split('T')[0].split('-'); return `${d[2]}-${d[1]}-${d[0].slice(2)}`; })()}
                                     </div>
                                     <div className="text-xs text-gray-500 font-mono">
                                         ID: {log.id.substring(0, 5)}
@@ -228,7 +228,7 @@ export const MaintenanceTable: React.FC<MaintenanceTableProps> = ({
             {totalPages > 1 && (
                 <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
                     <div className="text-sm text-gray-600">
-                        Página {currentPage} de {totalPages}
+                        Página {currentPage} de {totalPages} <span className="text-gray-400 mx-1">|</span> <span className="font-medium">{logs.length}</span> registros
                     </div>
                     <div className="flex items-center gap-2">
                         <button

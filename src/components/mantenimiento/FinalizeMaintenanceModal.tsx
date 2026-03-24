@@ -25,7 +25,7 @@ export const FinalizeMaintenanceModal: React.FC<FinalizeMaintenanceModalProps> =
         onConfirm({
             action_taken: actionTaken,
             worked_hours: workedHours,
-            completed_at: new Date(completedAt).toISOString()
+            completed_at: `${completedAt.split('T')[0]}T12:00:00`
         });
     };
 

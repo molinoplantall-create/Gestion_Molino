@@ -9,6 +9,7 @@ interface SupabaseStore {
   zones: Zone[];
   millingLogs: MillingLog[];
   maintenanceLogs: any[];
+  maintenanceLogsCount: number;
   clientsCount: number;
   logsCount: number;
   loading: boolean;
@@ -86,6 +87,7 @@ interface SupabaseStore {
   finalizeMaintenance: (id: string, millId: string, details?: { action_taken?: string, worked_hours?: number, completed_at?: string }) => Promise<boolean>;
   resetMillOil: (millId: string, targetHours: number) => Promise<boolean>;
   updateMaintenanceLog: (id: string, updateData: any) => Promise<{ error: any }>;
+  deleteMaintenanceLog: (id: string) => Promise<boolean>;
   deleteMillingLog: (logId: string) => Promise<boolean>;
   startPollingMills: () => void;
   stopPollingMills: () => void;
@@ -103,6 +105,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   zones: [],
   millingLogs: [],
   maintenanceLogs: [],
+  maintenanceLogsCount: 0,
   clientsCount: 0,
   logsCount: 0,
   loading: false,
@@ -436,7 +439,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         created_at: log.created_at || log.fecha_registro || new Date().toISOString()
       }));
 
-      set({ maintenanceLogs: normalizedLogs });
+      set({ maintenanceLogs: normalizedLogs, maintenanceLogsCount: count || normalizedLogs.length });
       console.log(`✅ store: ${normalizedLogs.length} maintenance logs loaded.`);
     } catch (error: any) {
       console.error('❌ Error fetchMaintenanceLogs:', error);
@@ -741,7 +744,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         technician_name: data.technician_name,
         worked_hours: data.worked_hours,
         status: data.status || 'PENDIENTE',
-        created_at: data.fechaProgramada || new Date().toISOString()
+        created_at: data.fechaProgramada ? `${data.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
       };
 
       // MTBF/MTTR: Registrar momento de falla para mantenimientos CORRECTIVOS
@@ -818,6 +821,45 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     } catch (error) {
       console.error('Error updateMaintenanceLog:', error);
       return { error };
+    }
+  },
+
+  deleteMaintenanceLog: async (id: string) => {
+    try {
+      // Check if the maintenance log has a mill in maintenance state
+      const log = get().maintenanceLogs.find(l => l.id === id);
+      
+      const { error } = await supabase
+        .from('maintenance_logs')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // If the log was PENDIENTE or EN_PROCESO, check if the mill should be freed
+      if (log && (log.status === 'PENDIENTE' || log.status === 'EN_PROCESO')) {
+        // Check if there are other active maintenance logs for this mill
+        const { data: otherLogs } = await supabase
+          .from('maintenance_logs')
+          .select('id')
+          .eq('mill_id', log.mill_id)
+          .in('status', ['PENDIENTE', 'EN_PROCESO'])
+          .neq('id', id);
+
+        if (!otherLogs || otherLogs.length === 0) {
+          await supabase
+            .from('mills')
+            .update({ status: 'LIBRE' })
+            .eq('id', log.mill_id);
+        }
+      }
+
+      await get().fetchMaintenanceLogs({});
+      await get().fetchMills();
+      return true;
+    } catch (error) {
+      console.error('❌ Error deleteMaintenanceLog:', error);
+      return false;
     }
   },
 

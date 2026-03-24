@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, Printer, FileText, MessageSquare, Mail } from 'lucide-react';
+import { Search, Filter, Printer, FileText, MessageSquare, Mail, Calendar } from 'lucide-react';
 
 interface MaintenanceFiltersProps {
     search: string;
@@ -17,6 +17,11 @@ interface MaintenanceFiltersProps {
     onGeneratePDF: () => void;
     onSendWhatsApp: () => void;
     onSendEmail: () => void;
+    startDate: string;
+    setStartDate: (value: string) => void;
+    endDate: string;
+    setEndDate: (value: string) => void;
+    onQuickDateFilter?: (range: 'week' | 'month' | 'quarter') => void;
 }
 
 export const MaintenanceFilters: React.FC<MaintenanceFiltersProps> = ({
@@ -34,12 +39,17 @@ export const MaintenanceFilters: React.FC<MaintenanceFiltersProps> = ({
     onPrint,
     onGeneratePDF,
     onSendWhatsApp,
-    onSendEmail
+    onSendEmail,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+    onQuickDateFilter
 }) => {
     return (
         <div className="bg-white rounded-2xl p-4 md:p-6 border">
             {/* Filtros principales */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Búsqueda */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -92,6 +102,28 @@ export const MaintenanceFilters: React.FC<MaintenanceFiltersProps> = ({
                         ))}
                     </select>
                 </div>
+
+                {/* Fecha Desde */}
+                <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="px-4 py-2 border rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+
+                {/* Fecha Hasta */}
+                <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="px-4 py-2 border rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
             </div>
 
             {/* Botones de acción */}
@@ -138,6 +170,33 @@ export const MaintenanceFilters: React.FC<MaintenanceFiltersProps> = ({
                     Enviar Correo
                 </button>
             </div>
+
+            {/* Quick Date Filters */}
+            {onQuickDateFilter && (
+                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
+                    <span className="text-xs text-gray-500 font-medium flex items-center mr-1">
+                        <Calendar size={12} className="mr-1" /> Rango rápido:
+                    </span>
+                    <button
+                        className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
+                        onClick={() => onQuickDateFilter('week')}
+                    >
+                        Última Semana
+                    </button>
+                    <button
+                        className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
+                        onClick={() => onQuickDateFilter('month')}
+                    >
+                        Último Mes
+                    </button>
+                    <button
+                        className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
+                        onClick={() => onQuickDateFilter('quarter')}
+                    >
+                        Último Trimestre
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

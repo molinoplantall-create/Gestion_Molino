@@ -119,17 +119,15 @@ const Dashboard: React.FC = () => {
     const avgSacos = millingLogs.length > 0 ? totalSacos / millingLogs.length : 0;
     const totalOperaciones = millingLogs.length;
 
-    // 6. Top 5 Clientes
-    const clientPerformance: Record<string, { name: string; total: number; logs: number }> = {};
-    millingLogs.forEach(log => {
-      const cId = log.client_id;
-      if (!clientPerformance[cId]) {
-        clientPerformance[cId] = { name: log.clients?.name || 'Desconocido', total: 0, logs: 0 };
-      }
-      clientPerformance[cId].total += (log.total_sacks || 0);
-      clientPerformance[cId].logs += 1;
-    });
-    const topClients = Object.values(clientPerformance)
+    // 6. Top 5 Clientes — basado en HISTORIAL ACUMULADO REAL (no en logs limitados)
+    const topClients = [...allClients]
+      .map(c => ({
+        name: c.name,
+        total: (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0),
+        stockActual: (c.stock_cuarzo || 0) + (c.stock_llampo || 0),
+        tipo: c.client_type || 'N/A'
+      }))
+      .filter(c => c.total > 0)
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
 
@@ -240,10 +238,10 @@ const Dashboard: React.FC = () => {
     });
 
     // Top Clientes
-    const body = intelligence.topClients.map((c, i) => [i + 1, c.name, c.total.toLocaleString(), c.logs]);
+    const body = intelligence.topClients.map((c, i) => [i + 1, c.name, c.total.toLocaleString(), c.tipo]);
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 12,
-      head: [['#', 'CLIENTE TOP 5', 'TOTAL SACOS', 'OPERACIONES']],
+      head: [['#', 'CLIENTE TOP 5', 'TOTAL SACOS', 'TIPO']],
       body,
       theme: 'grid',
       headStyles: { fillColor: [51, 51, 51] },
@@ -549,7 +547,7 @@ const Dashboard: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="text-xs font-black text-slate-900 tracking-tight">{client.name}</h4>
-                        <span className="text-[10px] font-bold text-slate-400">{client.logs} ops</span>
+                        <span className="text-[10px] font-bold text-slate-400">{client.tipo}</span>
                       </div>
                     </div>
                     <div className="text-right">

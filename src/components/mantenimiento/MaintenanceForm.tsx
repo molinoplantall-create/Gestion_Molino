@@ -14,6 +14,7 @@ export interface MaintenanceFormData {
     cost_pen?: number;
     cost_usd?: number;
     tasks_checklist?: { id: string, text: string, completed: boolean }[];
+    action_taken?: string;
 }
 
 interface MaintenanceFormProps {
@@ -40,6 +41,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     errors = {}
 }) => {
     const isValid = formData.molinoId && formData.descripcion && formData.asignadoA;
+    const isIncidentMode = formData.tipo === 'CORRECTIVO' || formData.estado === 'COMPLETADO';
 
     const handleAddTask = () => {
         const newTask = { id: crypto.randomUUID(), text: '', completed: false };
@@ -145,10 +147,10 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     </select>
                 </div>
 
-                {/* Horas Estimadas */}
+                {/* Horas Estimadas / Inoperativas */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Horas Estimadas
+                        {isIncidentMode ? 'Tiempo Inoperativo (Horas)' : 'Horas Estimadas'}
                     </label>
                     <input
                         type="number"
@@ -163,7 +165,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 {/* Fecha */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Fecha <span className="text-red-500">*</span>
+                        {isIncidentMode ? 'Fecha del Incidente / Intervención' : 'Fecha'} <span className="text-red-500">*</span>
                     </label>
                     <input
                         type="date"
@@ -207,6 +209,22 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     {errors.descripcion && <p className="text-xs text-red-500 mt-1">{errors.descripcion}</p>}
                 </div>
 
+                {/* Evidencia / Diagnóstico (Solo en modo incidente) */}
+                {isIncidentMode && (
+                    <div className="md:col-span-2 lg:col-span-3 pt-4 border-t border-gray-100">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Diagnóstico Acertado y Evidencia (Causa Raíz)
+                        </label>
+                        <textarea
+                            value={formData.action_taken || ''}
+                            onChange={(e) => onChange('action_taken', e.target.value)}
+                            placeholder="Ej. Se encontró el cardán interno roto por fatiga de material. Se procedió al cambio..."
+                            rows={3}
+                            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none border-amber-200 bg-amber-50/30`}
+                        />
+                    </div>
+                )}
+
                 {/* Sección de Costos */}
                 <div className="md:col-span-2 lg:col-span-3 grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-100">
                     <div className="md:col-span-2 lg:col-span-4">
@@ -237,7 +255,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 {/* Checklist de Tareas */}
                 <div className="md:col-span-2 lg:col-span-3 pt-4 border-t border-gray-100">
                     <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Procedimiento / Checklist</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                            {isIncidentMode ? 'Procedimiento / Repuestos Cambiados' : 'Procedimiento / Checklist'}
+                        </h4>
                         <button
                             type="button"
                             onClick={handleAddTask}

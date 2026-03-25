@@ -738,6 +738,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         cost_pen: data.cost_pen || 0,
         cost_usd: data.cost_usd || 0,
         tasks_checklist: data.tasks_checklist || [],
+        action_taken: data.action_taken || null,
         created_at: data.fechaProgramada ? `${data.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
       };
 
@@ -763,7 +764,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           costo_pen: data.cost_pen || 0,
           costo_usd: data.cost_usd || 0,
           checklist: data.tasks_checklist || [],
-          accion_tomada: data.description // Fallback a descripcion si falta campo
+          accion_tomada: data.action_taken || data.description // Fallback
         };
         const { error: retryError } = await supabase
           .from('maintenance_logs')

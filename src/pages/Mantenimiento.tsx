@@ -100,9 +100,9 @@ const Mantenimiento: React.FC = () => {
     fechaProgramada: new Date().toISOString().split('T')[0],
     horasEstimadas: 4,
     asignadoA: '',
-    cost_pen: 0,
     cost_usd: 0,
-    tasks_checklist: []
+    tasks_checklist: [],
+    action_taken: ''
   });
 
   const { errors, validate, clearErrors, validateField } = useFormValidation({
@@ -216,9 +216,9 @@ const Mantenimiento: React.FC = () => {
       fechaProgramada: new Date().toISOString().split('T')[0],
       horasEstimadas: 4,
       asignadoA: '',
-      cost_pen: 0,
       cost_usd: 0,
-      tasks_checklist: []
+      tasks_checklist: [],
+      action_taken: ''
     });
     clearErrors();
   };
@@ -241,7 +241,8 @@ const Mantenimiento: React.FC = () => {
       status: formData.estado,
       cost_pen: formData.cost_pen,
       cost_usd: formData.cost_usd,
-      tasks_checklist: formData.tasks_checklist
+      tasks_checklist: formData.tasks_checklist,
+      action_taken: formData.action_taken
     });
 
     setIsSubmitting(false);
@@ -268,7 +269,8 @@ const Mantenimiento: React.FC = () => {
       asignadoA: record.technician_name || '',
       cost_pen: (record as any).cost_pen || 0,
       cost_usd: (record as any).cost_usd || 0,
-      tasks_checklist: (record as any).tasks_checklist || []
+      tasks_checklist: (record as any).tasks_checklist || [],
+      action_taken: record.action_taken || ''
     });
     editModal.open(record);
   };
@@ -296,6 +298,7 @@ const Mantenimiento: React.FC = () => {
       cost_pen: formData.cost_pen,
       cost_usd: formData.cost_usd,
       tasks_checklist: formData.tasks_checklist,
+      action_taken: formData.action_taken,
       created_at: formData.fechaProgramada ? `${formData.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
     });
 

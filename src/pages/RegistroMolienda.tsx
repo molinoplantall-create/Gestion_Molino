@@ -262,35 +262,50 @@ const RegistroMolienda: React.FC = () => {
   }, [mills]);
 
   // Handlers
-  const handleClienteChange = (clienteId: string) => {
+  const handleClienteChange = async (clienteId: string) => {
     const cliente = clients.find(c => c.id === clienteId);
-    if (cliente) {
-      const stockTotal = (cliente.stock_cuarzo || 0) + (cliente.stock_llampo || 0);
+    if (!cliente) return;
 
-      // Auto-set mineral type if available from client intake history
-      const mineralType = (cliente as any).last_mineral_type as 'OXIDO' | 'SULFURO' | '';
+    // 🔄 Forzar resincronización antes de mostrar stock
+    // Esto recalcula clients.stock_* desde los lotes reales
+    await useSupabaseStore.getState().recalcClientStock(clienteId);
 
-      // Set current time as default if not already set
-      const currentHora = new Date().toTimeString().slice(0, 5);
+    // Obtener datos frescos directo de la base de datos (no del cache del store)
+    const { supabase } = await import('@/lib/supabase');
+    const { data: freshClient } = await supabase
+      .from('clients')
+      .select('stock_cuarzo, stock_llampo, last_mineral_type')
+      .eq('id', clienteId)
+      .single();
 
-      setMolienda(prev => ({
-        ...prev,
-        clienteId: cliente.id,
-        clienteNombre: cliente.name,
-        tipoCliente: (cliente.client_type || 'MINERO') as any,
-        mineral: mineralType || prev.mineral,
-        allowedMineralType: mineralType,
-        horaInicio: prev.horaInicio || currentHora,
-        stockTotal,
-        stockCuarzo: cliente.stock_cuarzo || 0,
-        stockLlampo: cliente.stock_llampo || 0,
-        stockRestanteTotal: stockTotal,
-        stockRestanteCuarzo: cliente.stock_cuarzo || 0,
-        stockRestanteLlampo: cliente.stock_llampo || 0
-      }));
+    const stockCuarzo = freshClient?.stock_cuarzo || 0;
+    const stockLlampo = freshClient?.stock_llampo || 0;
+    const stockTotal = stockCuarzo + stockLlampo;
 
-      toast.info('Cliente Seleccionado', `Se cargó el stock y el tipo de mineral (${mineralType || 'No registrado'})`);
-    }
+    // Auto-set mineral type if available from client intake history
+    const mineralType = (freshClient?.last_mineral_type || cliente.last_mineral_type || '') as 'OXIDO' | 'SULFURO' | '';
+
+    // Set current time as default if not already set
+    const currentHora = new Date().toTimeString().slice(0, 5);
+
+    setMolienda(prev => ({
+      ...prev,
+      clienteId: cliente.id,
+      clienteNombre: cliente.name,
+      tipoCliente: (cliente.client_type || 'MINERO') as any,
+      mineral: mineralType || prev.mineral,
+      allowedMineralType: mineralType,
+      horaInicio: prev.horaInicio || currentHora,
+      stockTotal,
+      stockCuarzo,
+      stockLlampo,
+      stockRestanteTotal: stockTotal,
+      stockRestanteCuarzo: stockCuarzo,
+      stockRestanteLlampo: stockLlampo
+    }));
+
+    console.log(`✅ handleClienteChange: Stock sincronizado para ${cliente.name}: Cu=${stockCuarzo}, Ll=${stockLlampo}, Total=${stockTotal}`);
+    toast.info('Cliente Seleccionado', `Stock verificado: ${stockTotal} sacos (${mineralType || 'Tipo no registrado'})`);
   };
 
   const handleMineralChange = (type: 'OXIDO' | 'SULFURO') => {

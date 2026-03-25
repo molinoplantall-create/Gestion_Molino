@@ -20,6 +20,7 @@ import { maintenanceSchema } from '@/schemas/maintenanceSchema';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { MaintenanceSkeleton } from '@/components/mantenimiento/MaintenanceSkeleton';
 
 interface MaintenanceRecord {
   id: string;
@@ -590,75 +591,103 @@ _Enviado desde el sistema de Gestión de Molinos_`;
     }
   };
 
+  if (loading && !maintenanceLogs.length) return (
+    <div className="p-4 md:p-8 space-y-8 bg-slate-50 min-h-screen">
+      <MaintenanceSkeleton />
+    </div>
+  );
+
   return (
-    <div className="space-y-6 p-4 md:p-0">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Mantenimiento</h1>
-          <p className="text-gray-600 mt-1">Sistema integral de mantenimiento industrial</p>
+    <div className="p-4 md:px-8 pb-12 space-y-8 bg-slate-50 min-h-screen animate-in fade-in duration-700">
+      {/* Page Header — Industrial Strategy Look */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-200">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-100">
+              <Wrench size={24} />
+            </div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Gestión de Mantenimiento</h1>
+          </div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-14">
+            Industrial Assets Management System v2.1
+          </p>
         </div>
-        <div className="mt-4 lg:mt-0 flex flex-wrap gap-3">
+
+        <div className="flex items-center gap-3">
           <button
-            className="btn-primary flex items-center whitespace-nowrap"
             onClick={() => {
               resetForm();
               createModal.open();
             }}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-sm hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 active:scale-95 group"
           >
-            <Plus size={18} className="mr-2" />
-            Nueva Orden
+            <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+            NUEVA ORDEN
           </button>
-          <button
-            className="btn-secondary flex items-center whitespace-nowrap"
+          
+          <button 
             onClick={handleExportExcel}
+            className="p-3 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95 group"
+            title="Exportar Reporte"
           >
-            <Download size={18} className="mr-2" />
-            Exportar Excel
+            <Download size={20} className="group-hover:-translate-y-0.5 transition-transform" />
           </button>
         </div>
       </div>
 
-      {/* Oil Change Alerts (fix #6) */}
+      {/* Oil Change Alerts — Glassmorphism Premium */}
       {oilAlertMills.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-50 to-red-50 rounded-2xl p-4 border border-amber-200 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertOctagon size={20} className="text-amber-600" />
-            <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wide">
-              ⚠️ Alertas de Mantenimiento Preventivo
-            </h3>
+        <div className="bg-amber-500/5 backdrop-blur-md rounded-2xl p-6 border border-amber-500/20 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
+            <AlertOctagon size={120} className="text-amber-500" />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-            {oilAlertMills.map(mill => (
-              <div 
-                key={mill.id} 
-                className={`flex items-center justify-between px-3 py-2 rounded-xl border ${
-                  (mill.hours_to_oil_change || 0) <= 20 
-                    ? 'bg-red-50 border-red-200' 
-                    : 'bg-amber-50 border-amber-200'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full animate-pulse ${
-                    (mill.hours_to_oil_change || 0) <= 20 ? 'bg-red-500' : 'bg-amber-500'
-                  }`} />
-                  <span className="text-xs font-bold text-slate-700">{mill.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-black ${
-                    (mill.hours_to_oil_change || 0) <= 20 ? 'text-red-600' : 'text-amber-600'
-                  }`}>
-                    {Math.round(mill.hours_to_oil_change || 0)}h
-                  </span>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-amber-500 text-white rounded-xl shadow-lg shadow-amber-200 animate-pulse">
+              <AlertOctagon size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-amber-900 uppercase tracking-widest leading-none">
+                Alertas Activas de Mantenimiento
+              </h3>
+              <p className="text-[10px] font-bold text-amber-700/60 mt-1 uppercase">Renovación de Aceite Requerida</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {oilAlertMills.map(mill => {
+              const isCritical = (mill.hours_to_oil_change || 0) <= 20;
+              return (
+                <div 
+                  key={mill.id} 
+                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all hover:scale-[1.02] ${
+                    isCritical 
+                      ? 'bg-red-500/10 border-red-500/30 shadow-red-100' 
+                      : 'bg-amber-500/10 border-amber-500/30'
+                  } shadow-sm`}
+                >
+                  <div className="flex flex-col gap-1">
+                    <span className={`text-[10px] font-black uppercase tracking-tighter ${isCritical ? 'text-red-600' : 'text-amber-700'}`}>
+                      {mill.name}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <div className={`w-2 h-2 rounded-full ${isCritical ? 'bg-red-500 animate-ping' : 'bg-amber-500'}`} />
+                      <span className={`text-lg font-black tracking-tight ${isCritical ? 'text-red-700' : 'text-amber-800'}`}>
+                        {Math.round(mill.hours_to_oil_change || 0)}h
+                      </span>
+                    </div>
+                  </div>
                   <button
                     onClick={() => handleResetOil(mill.id, mill.name)}
-                    className="text-[9px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-0.5 rounded transition-colors uppercase"
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
+                      isCritical 
+                        ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-200' 
+                        : 'bg-amber-600 text-white hover:bg-amber-700 shadow-amber-200'
+                    }`}
                   >
                     Renovar
                   </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

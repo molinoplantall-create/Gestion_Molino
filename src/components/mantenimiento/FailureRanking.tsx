@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { BarChart3, AlertTriangle, Wrench, TrendingUp } from 'lucide-react';
+import { BarChart3, AlertTriangle, Wrench, TrendingUp, CheckCircle } from 'lucide-react';
 
 interface FailureRankingProps {
   maintenanceLogs: any[];
@@ -87,89 +87,104 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
   const maxMonthTotal = Math.max(...rankings.byMonth.map(m => m.preventivo + m.correctivo), 1);
 
   return (
-    <div className="bg-white rounded-2xl p-4 md:p-6 border">
-      <div className="flex items-center gap-2 mb-6">
-        <BarChart3 size={20} className="text-indigo-600" />
-        <h3 className="text-lg font-semibold text-gray-900">Análisis de Fallas</h3>
-        <span className="text-xs text-slate-400 ml-auto">{maintenanceLogs.length} registros totales</span>
+    <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-slate-200 shadow-sm transition-all hover:shadow-md">
+      <div className="flex items-center gap-2 mb-8">
+        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+          <BarChart3 size={20} />
+        </div>
+        <div>
+          <h3 className="text-base font-black text-slate-900 leading-none">Análisis de Fallas</h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Inteligencia de Mantenimiento</p>
+        </div>
+        <div className="ml-auto bg-slate-100 px-3 py-1 rounded-full">
+           <span className="text-[10px] font-black text-slate-500 uppercase">{maintenanceLogs.length} Entradas</span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Column 1: Ranking by Mill */}
-        <div>
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-            <Wrench size={12} /> Ranking por Molino
+        <div className="space-y-4">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
+            <Wrench size={10} /> Frecuencia por Activo
           </h4>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {rankings.byMill.map((mill, idx) => (
-              <div key={mill.id} className="flex items-center gap-3">
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0 ${
-                  idx === 0 ? 'bg-red-500' : idx === 1 ? 'bg-orange-500' : idx === 2 ? 'bg-amber-500' : 'bg-slate-400'
-                }`}>{idx + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-xs font-bold text-slate-700 truncate">{mill.name}</span>
-                    <span className="text-xs font-black text-slate-800 ml-2">{mill.total}</span>
+              <div key={mill.id} className="group cursor-default">
+                <div className="flex items-center justify-between mb-1.5 px-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-4 h-4 rounded-md flex items-center justify-center text-[9px] font-black text-white shrink-0 ${
+                      idx === 0 ? 'bg-red-500 animate-pulse' : idx === 1 ? 'bg-orange-500' : idx === 2 ? 'bg-amber-500' : 'bg-slate-300'
+                    }`}>{idx + 1}</span>
+                    <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">{mill.name}</span>
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                    <div className="h-full rounded-full flex">
-                      <div className="bg-red-400 h-full" style={{ width: `${(mill.correctivo / maxMillTotal) * 100}%` }} />
-                      <div className="bg-blue-400 h-full" style={{ width: `${(mill.preventivo / maxMillTotal) * 100}%` }} />
-                    </div>
+                  <span className="text-[10px] font-black text-slate-400">{mill.total}</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-50">
+                  <div className="h-full rounded-full flex shadow-inner">
+                    <div className="bg-gradient-to-r from-red-400 to-red-500 h-full transition-all duration-700" style={{ width: `${(mill.correctivo / maxMillTotal) * 100}%` }} />
+                    <div className="bg-gradient-to-r from-blue-400 to-blue-500 h-full transition-all duration-700" style={{ width: `${(mill.preventivo / maxMillTotal) * 100}%` }} />
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-3 mt-3 text-[10px] text-slate-400">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> Correctivo</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 inline-block" /> Preventivo</span>
-          </div>
         </div>
 
         {/* Column 2: Monthly Distribution */}
-        <div>
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-            <TrendingUp size={12} /> Tendencia Mensual
+        <div className="space-y-4">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
+            <TrendingUp size={10} /> Tendencia de Carga
           </h4>
-          <div className="flex items-end gap-2 h-32">
+          <div className="flex items-end gap-3 h-36 pt-4">
             {rankings.byMonth.map((month, idx) => {
               const total = month.preventivo + month.correctivo;
               const heightPct = (total / maxMonthTotal) * 100;
               const correctivoPct = total > 0 ? (month.correctivo / total) * 100 : 0;
 
               return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] font-bold text-slate-600">{total}</span>
-                  <div className="w-full rounded-t-md overflow-hidden flex flex-col-reverse" style={{ height: `${Math.max(heightPct, 4)}%` }}>
-                    <div className="bg-blue-400 w-full" style={{ height: `${100 - correctivoPct}%` }} />
-                    <div className="bg-red-400 w-full" style={{ height: `${correctivoPct}%` }} />
+                <div key={idx} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
+                  <div className="relative w-full flex flex-col items-center">
+                     <span className="text-[9px] font-black text-slate-400 absolute -top-4 opacity-0 group-hover:opacity-100 transition-opacity">{total}</span>
+                     <div className="w-full rounded-t-lg overflow-hidden flex flex-col-reverse shadow-sm border border-slate-50 group-hover:shadow-md transition-all" style={{ height: `${Math.max(heightPct, 8)}%`, width: '100%' }}>
+                       <div className="bg-blue-500/80 w-full hover:brightness-110 transition-all" style={{ height: `${100 - correctivoPct}%` }} title="Preventivo" />
+                       <div className="bg-red-500/80 w-full hover:brightness-110 transition-all border-b border-white/20" style={{ height: `${correctivoPct}%` }} title="Correctivo" />
+                     </div>
                   </div>
-                  <span className="text-[9px] font-medium text-slate-400">{month.label}</span>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter truncate w-full text-center">{month.label}</span>
                 </div>
               );
             })}
           </div>
+          <div className="flex items-center justify-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 py-2 rounded-xl border border-slate-100">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500 shadow-sm" /> Correctivo</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" /> Preventivo</span>
+          </div>
         </div>
 
         {/* Column 3: Top Failures */}
-        <div>
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-            <AlertTriangle size={12} /> Top Fallas Correctivas
+        <div className="space-y-4">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
+            <AlertTriangle size={10} /> Problemas Críticos
           </h4>
           {rankings.byType.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {rankings.byType.map((item, idx) => (
-                <div key={idx} className="flex items-start gap-2 bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <span className="text-red-500 font-black text-sm shrink-0">{item.count}x</span>
-                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">{item.desc}</p>
+                <div key={idx} className="group relative flex items-start gap-3 bg-white hover:bg-red-50/50 rounded-xl p-3 border border-slate-100 hover:border-red-100 transition-all cursor-default shadow-sm hover:translate-x-1">
+                  <div className="mt-0.5 w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0 font-black text-xs border border-red-100 group-hover:bg-red-500 group-hover:text-white transition-all">
+                    {item.count}
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-600 font-bold leading-tight line-clamp-2 group-hover:text-slate-900 transition-colors uppercase italic">
+                      "{item.desc.toLowerCase()}"
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-6 text-slate-400">
-              <AlertTriangle size={24} className="mx-auto mb-2 opacity-30" />
-              <p className="text-xs">Sin fallas correctivas registradas</p>
+            <div className="flex flex-col items-center justify-center py-10 text-slate-300 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+              <CheckCircle size={32} className="mb-2 opacity-20 text-emerald-500" />
+              <p className="text-[10px] font-black uppercase tracking-widest">Operación Limpia</p>
             </div>
           )}
         </div>

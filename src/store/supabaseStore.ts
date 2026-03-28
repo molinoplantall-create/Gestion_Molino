@@ -1141,25 +1141,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         finalDate = `${receptionDate}T12:00:00Z`;
       }
 
-      // 1. Crear el lote (batch)
-      const { data: batch, error: batchError } = await supabase
-        .from('stock_batches')
-        .insert({
-          client_id: clientId,
-          sub_mineral: cuarzo > 0 ? 'CUARZO' : 'LLAMPO',
-          initial_quantity: cuarzo > 0 ? cuarzo : llampo,
-          remaining_quantity: cuarzo > 0 ? cuarzo : llampo,
-          mineral_type: mineralType,
-          zone: zone || null,
-          created_at: finalDate
-        })
-        .select()
-        .single();
-
-      if (batchError) {
-        console.error('❌ store: Error creating stock batch:', batchError);
-        throw batchError;
-      }
+      // 1. (El lote de stock se crea en el paso 4 para evitar duplicados en DB)
 
       console.log('📡 store: Fetching client current stock...');
       const { data: client, error: fetchError } = await supabase
@@ -1223,25 +1205,29 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // 4. Create stock batches for FIFO tracking
       if (cuarzo > 0) {
-        await supabase.from('stock_batches').insert({
+        const { error: batchCuarzoError } = await supabase.from('stock_batches').insert({
           client_id: clientId,
           mineral_type: mineralType || 'OXIDO',
           sub_mineral: 'CUARZO',
           initial_quantity: cuarzo,
           remaining_quantity: cuarzo,
-          zone: zone
+          zone: zone || null,
+          created_at: finalDate
         });
+        if (batchCuarzoError) throw batchCuarzoError;
       }
 
       if (llampo > 0) {
-        await supabase.from('stock_batches').insert({
+        const { error: batchLlampoError } = await supabase.from('stock_batches').insert({
           client_id: clientId,
           mineral_type: mineralType || 'OXIDO',
           sub_mineral: 'LLAMPO',
           initial_quantity: llampo,
           remaining_quantity: llampo,
-          zone: zone
+          zone: zone || null,
+          created_at: finalDate
         });
+        if (batchLlampoError) throw batchLlampoError;
       }
 
       console.log('✅ store: Stock updated successfully. Refreshing clients list...');

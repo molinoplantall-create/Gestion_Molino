@@ -95,7 +95,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
           relative w-full ${sizeClasses[size]} 
           bg-white rounded-lg shadow-2xl
           animate-in zoom-in-95 duration-200
-          max-h-[90vh] overflow-y-auto
+          max-h-[90vh] overflow-auto max-w-[calc(100vw-2rem)]
         `}
                 tabIndex={-1}
             >

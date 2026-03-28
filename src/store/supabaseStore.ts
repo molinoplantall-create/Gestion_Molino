@@ -1330,18 +1330,18 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       // 2. Limpiar referencias en clientes
       await supabase
         .from('clients')
-        .update({ zone: '' })
+        .update({ zone: null })
         .eq('zone', zoneName);
       
       await supabase
         .from('clients')
-        .update({ last_intake_zone: '' })
+        .update({ last_intake_zone: null })
         .eq('last_intake_zone', zoneName);
 
       // 3. Limpiar en lotes de stock
       await supabase
         .from('stock_batches')
-        .update({ zone: '' })
+        .update({ zone: null })
         .eq('zone', zoneName);
 
       // 4. Borrar la zona

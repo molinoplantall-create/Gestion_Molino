@@ -63,11 +63,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({
             isLoading={isLoading}
             isValid={!!isValid}
         >
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
                 {/* Información Básica */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="md:col-span-2 lg:col-span-3">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                    <div className="col-span-2 lg:col-span-3">
+                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                             Nombre/Razón Social <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -130,23 +130,23 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                         />
                     </div>
 
-                    <div className="md:col-span-2 lg:col-span-2">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2 text-left">Dirección</label>
+                    <div className="col-span-2 lg:col-span-2">
+                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2 text-left">Dirección</label>
                         <input
                             type="text"
                             name="direccion"
                             value={formData.direccion}
                             onChange={onChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 sm:px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             placeholder="Dirección del cliente..."
                         />
                     </div>
                 </div>
 
                 {/* Detalles Adicionales */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex justify-between items-center">
+                <div className="grid grid-cols-2 gap-3 sm:gap-6">
+                    <div className="col-span-2 sm:col-span-1">
+                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2 flex justify-between items-center">
                             <span>Zona <span className="text-red-500">*</span></span>
                             <div className="flex space-x-2">
                                 {!isEditing && onToggleAddZone && (
@@ -203,8 +203,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                         {errors.zona && <p className="text-xs text-red-500 mt-1">{errors.zona}</p>}
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="col-span-2 sm:col-span-1">
+                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                             Tipo de Cliente <span className="text-red-500">*</span>
                         </label>
                         <select

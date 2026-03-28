@@ -350,8 +350,8 @@ const Reportes: React.FC = () => {
 
       {/* FILTROS MASTER */}
       <div className="bg-slate-50 rounded-[2rem] p-6 lg:p-8 border border-white shadow-xl shadow-slate-200/50 print:hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="space-y-2">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="col-span-2 sm:col-span-1 space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango de Datos</label>
             <div className="relative">
               <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500" size={18} />
@@ -407,26 +407,28 @@ const Reportes: React.FC = () => {
       </div>
 
       {/* KPI CARDS - DISEÑO INDUSTRIAL */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mt-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6 mt-4">
         {[
           { label: 'PRODUCCIÓN HISTÓRICA', value: stats.totalSacos.toLocaleString(), icon: Box, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', trend: 'Total', trendUp: true },
           { label: 'CLIENTES ATENDIDOS', value: clients.length, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', trend: 'Activos', trendUp: true },
           { label: 'PROMEDIO POR CARGA', value: stats.avgSacos.toFixed(1), icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', trend: 'Sacos/Log', trendUp: true },
           { label: 'DISPONIBILIDAD', value: `${((mills.filter(m => m.status === 'LIBRE').length / mills.length) * 100).toFixed(0)}%`, icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', trend: 'Equipo', trendUp: true },
         ].map((kpi, i) => (
-          <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm transition-all duration-300 print:border-slate-300 print:shadow-none">
-            <div className="flex items-start justify-between mb-4 print:hidden">
-              <div className={`p-4 ${kpi.bg} ${kpi.border} rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <kpi.icon className={kpi.color} size={28} strokeWidth={2.5} />
+          <div key={i} className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm transition-all duration-300 print:border-slate-300 print:shadow-none flex flex-col justify-between">
+            <div className="flex items-start justify-between mb-2 sm:mb-4 print:hidden">
+              <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-7 sm:h-7`} strokeWidth={2.5} />
               </div>
-              <div className={`flex items-center px-2 py-1 rounded-lg text-[10px] font-black ${kpi.trendUp ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
+              <div className={`hidden sm:flex items-center px-2 py-1 rounded-lg text-[10px] font-black ${kpi.trendUp ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
                 {kpi.trend}
               </div>
             </div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{kpi.label}</p>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
-              <span className="text-xs font-bold text-slate-400">unidades</span>
+            <div>
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate" title={kpi.label}>{kpi.label}</p>
+              <div className="flex items-baseline gap-1 sm:gap-2 truncate">
+                <h3 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400">unidades</span>
+              </div>
             </div>
           </div>
         ))}

@@ -438,26 +438,28 @@ const Stock: React.FC = () => {
       </div>
 
       {/* KPI CARDS - DISEÑO INDUSTRIAL */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {[
           { label: 'STOCK TOTAL', value: totalStock.toLocaleString(), icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', trend: 'Actual', trendUp: true },
           { label: 'MINERAL CUARZO', value: totalCuarzo.toLocaleString(), icon: ArrowUpDown, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', trend: 'Sacos', trendUp: true },
           { label: 'MINERAL LLAMPO', value: totalLlampo.toLocaleString(), icon: ArrowDownWideNarrow, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-100', trend: 'Sacos', trendUp: true },
           { label: 'CLIENTES ACTIVOS', value: clients.filter(c => (c.stock_cuarzo || 0) + (c.stock_llampo || 0) > 0).length, icon: User, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100', trend: 'Con Saldo', trendUp: true },
         ].map((kpi, i) => (
-          <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm transition-all duration-300">
-            <div className="flex items-start justify-between mb-4">
-              <div className={`p-4 ${kpi.bg} ${kpi.border} rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <kpi.icon className={kpi.color} size={28} strokeWidth={2.5} />
+          <div key={i} className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm transition-all duration-300 flex flex-col justify-between">
+            <div className="flex items-start justify-between mb-2 sm:mb-4">
+              <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-7 sm:h-7`} strokeWidth={2.5} />
               </div>
-              <div className="flex items-center px-2 py-1 rounded-lg text-[10px] font-black text-slate-400 bg-slate-50">
+              <div className="hidden sm:flex items-center px-2 py-1 rounded-lg text-[10px] font-black text-slate-400 bg-slate-50">
                 {kpi.trend}
               </div>
             </div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{kpi.label}</p>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
-              <span className="text-xs font-bold text-slate-400">sacos</span>
+            <div>
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate" title={kpi.label}>{kpi.label}</p>
+              <div className="flex items-baseline gap-1 sm:gap-2 truncate">
+                <h3 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400">sacos</span>
+              </div>
             </div>
           </div>
         ))}

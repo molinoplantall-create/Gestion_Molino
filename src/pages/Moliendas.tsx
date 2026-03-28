@@ -285,7 +285,7 @@ const Moliendas: React.FC = () => {
       </div>
 
       {/* KPI SUMMARY - ESTILO COMPACTO */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         {[
           { label: 'TOTAL PROCESADO', value: stats.totalSacos.toLocaleString(), icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', suffix: 'Sacos' },
           { label: 'MOLIENDAS ÉXITO', value: stats.finalizadas.toLocaleString(), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', suffix: 'Logs' },
@@ -310,7 +310,7 @@ const Moliendas: React.FC = () => {
 
       {/* FILTRADO AVANZADO - ESTILO INDUSTRIAL COMPACTO */}
       <div className="bg-slate-50 rounded-[1.5rem] p-4 lg:p-5 border border-white shadow-lg shadow-slate-200/50 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="space-y-1">
             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Búsqueda Técnica</label>
             <div className="relative">
@@ -367,7 +367,7 @@ const Moliendas: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-slate-200 pt-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 border-t border-slate-200 pt-4">
           <div className="space-y-1">
             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango Inicial</label>
             <input

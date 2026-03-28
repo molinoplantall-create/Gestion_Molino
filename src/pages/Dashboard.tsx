@@ -303,7 +303,7 @@ const Dashboard: React.FC = () => {
       {activeTab === 'operaciones' ? (
         <>
           {/* KPIs Operativos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
             {[
               { label: 'PRODUCCIÓN HOY', value: totalSacosHoy.toLocaleString(), unit: 'sacos', icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100' },
               { label: 'STOCK EN ALMACÉN', value: totalStockSacos.toLocaleString(), unit: 'sacos', icon: ShoppingBag, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
@@ -311,15 +311,15 @@ const Dashboard: React.FC = () => {
               { label: 'DISPONIBILIDAD', value: molinosLibres.toString(), unit: 'libres', icon: CheckCircle, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
             ].map((kpi, i) => (
               <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-4 ${kpi.bg} ${kpi.border} border rounded-2xl group-hover:scale-110 transition-transform`}>
-                    <kpi.icon className={kpi.color} size={28} strokeWidth={2.5} />
+                <div className="flex items-start justify-between mb-2 sm:mb-4">
+                  <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} border rounded-xl sm:rounded-2xl group-hover:scale-110 transition-transform`}>
+                    <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-7 sm:h-7`} strokeWidth={2.5} />
                   </div>
                 </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{kpi.label}</p>
-                <div className="flex items-baseline gap-2">
-                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
-                  <span className="text-xs font-bold text-slate-400">{kpi.unit}</span>
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate">{kpi.label}</p>
+                <div className="flex items-baseline gap-1 sm:gap-2 truncate">
+                  <h3 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-400">{kpi.unit}</span>
                 </div>
               </div>
             ))}
@@ -333,7 +333,7 @@ const Dashboard: React.FC = () => {
                 <Plus size={18} className="mr-2" /> NUEVA MOLIENDA
               </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
               {mills.map((mill) => <MillCard key={mill.id} mill={mill} />)}
             </div>
           </div>
@@ -357,7 +357,7 @@ const Dashboard: React.FC = () => {
           {/* ═══════════════════════════════════════════ */}
 
           {/* KPIs Avanzados con % de cambio */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
+          <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-5">
             {[
               { label: 'PRODUCCIÓN TOTAL', value: intelligence.totalSacos.toLocaleString(), unit: 'sacos', icon: Box, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100' },
               { label: 'ESTE MES', value: intelligence.sacosEsteMes.toLocaleString(), unit: 'sacos', icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', badge: intelligence.pctCambio !== '---' ? `${intelligence.tendenciaPositiva ? '+' : ''}${intelligence.pctCambio}%` : null, badgePositive: intelligence.tendenciaPositiva },
@@ -371,16 +371,16 @@ const Dashboard: React.FC = () => {
                     <kpi.icon className={kpi.color} size={22} strokeWidth={2.5} />
                   </div>
                   {(kpi as any).badge && (
-                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1 ${(kpi as any).badgePositive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                    <span className={`hidden sm:flex text-[10px] font-black px-2 py-1 rounded-lg items-center gap-1 ${(kpi as any).badgePositive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                       {(kpi as any).badgePositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                       {(kpi as any).badge}
                     </span>
                   )}
                 </div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{kpi.label}</p>
-                <div className="flex items-baseline gap-1.5">
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
-                  <span className="text-[10px] font-bold text-slate-400">{kpi.unit}</span>
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 truncate" title={kpi.label}>{kpi.label}</p>
+                <div className="flex items-baseline gap-1 sm:gap-1.5 truncate">
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 truncate">{kpi.unit}</span>
                 </div>
               </div>
             ))}

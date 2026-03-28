@@ -1295,12 +1295,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .eq('zone', oldName);
 
       // 4. Actualizar la zona en la tabla zones
-      const { error: zoneError } = await supabase
+      const { data, error: zoneError } = await supabase
         .from('zones')
         .update({ name: name })
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
       if (zoneError) throw zoneError;
+      if (!data || data.length === 0) throw new Error("Permiso denegado por RLS o no se encontró la zona para actualizar.");
 
       await get().fetchZones();
       await get().fetchClients(); // Actualizar lista de clientes para ver el cambio de zona
@@ -1345,12 +1347,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .eq('zone', zoneName);
 
       // 4. Borrar la zona
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('zones')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Permiso denegado por RLS o no se encontró la zona para eliminar.");
 
       // Limpiar logs antiguos que se quedaron "En Proceso"
       await get().cleanupHistoricalLogs();

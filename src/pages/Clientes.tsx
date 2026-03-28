@@ -260,50 +260,50 @@ const Clientes: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-6 border shadow-sm">
-          <div className="flex items-center">
-            <div className="p-3 bg-blue-50 rounded-xl mr-4 border border-blue-100">
-              <Users className="text-blue-600" size={24} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white rounded-2xl p-3 sm:p-6 border shadow-sm flex flex-col justify-center transition-all hover:shadow-md">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left">
+            <div className="p-2 sm:p-3 bg-blue-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-blue-100 flex-shrink-0">
+              <Users className="text-blue-600 w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Total Clientes</p>
-              <p className="text-2xl font-bold text-gray-900">{totalClientes}</p>
+              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-wide sm:normal-case sm:tracking-normal">Total Clientes</p>
+              <p className="text-lg sm:text-2xl font-black text-gray-900">{totalClientes}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border shadow-sm">
-          <div className="flex items-center">
-            <div className="p-3 bg-emerald-50 rounded-xl mr-4 border border-emerald-100">
-              <CheckCircle className="text-emerald-600" size={24} />
+        <div className="bg-white rounded-2xl p-3 sm:p-6 border shadow-sm flex flex-col justify-center transition-all hover:shadow-md">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left">
+            <div className="p-2 sm:p-3 bg-emerald-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-emerald-100 flex-shrink-0">
+              <CheckCircle className="text-emerald-600 w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Activos</p>
-              <p className="text-2xl font-bold text-gray-900">{clientesActivos}</p>
+              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-wide sm:normal-case sm:tracking-normal">Activos</p>
+              <p className="text-lg sm:text-2xl font-black text-gray-900">{clientesActivos}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border shadow-sm">
-          <div className="flex items-center">
-            <div className="p-3 bg-amber-50 rounded-xl mr-4 border border-amber-100">
-              <AlertTriangle className="text-amber-600" size={24} />
+        <div className="bg-white rounded-2xl p-3 sm:p-6 border shadow-sm flex flex-col justify-center transition-all hover:shadow-md">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left">
+            <div className="p-2 sm:p-3 bg-amber-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-amber-100 flex-shrink-0">
+              <AlertTriangle className="text-amber-600 w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Stock Bajo</p>
-              <p className="text-2xl font-bold text-gray-900">{stockBajo}</p>
+              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-wide sm:normal-case sm:tracking-normal">Stock Bajo</p>
+              <p className="text-lg sm:text-2xl font-black text-gray-900">{stockBajo}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border shadow-sm">
-          <div className="flex items-center">
-            <div className="p-3 bg-purple-50 rounded-xl mr-4 border border-purple-100">
-              <Layers className="text-purple-600" size={24} />
+        <div className="bg-white rounded-2xl p-3 sm:p-6 border shadow-sm flex flex-col justify-center transition-all hover:shadow-md">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left">
+            <div className="p-2 sm:p-3 bg-purple-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-purple-100 flex-shrink-0">
+              <Layers className="text-purple-600 w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-sm text-gray-500 font-medium">Zonas</p>
+              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-wide sm:normal-case sm:tracking-normal">Zonas</p>
               <p className="text-2xl font-bold text-gray-900">{totalZonas}</p>
             </div>
           </div>

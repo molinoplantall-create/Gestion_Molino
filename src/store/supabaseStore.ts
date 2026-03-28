@@ -1277,15 +1277,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (fetchError) throw fetchError;
       const oldName = oldZone.name;
 
-      // 2. Actualizar la zona en la tabla zones
-      const { error: zoneError } = await supabase
-        .from('zones')
-        .update({ name: name })
-        .eq('id', id);
-
-      if (zoneError) throw zoneError;
-
-      // 3. Sincronizar con clientes (campo zone y last_intake_zone)
+      // 2. Sincronizar con clientes (campo zone y last_intake_zone)
       await supabase
         .from('clients')
         .update({ zone: name })
@@ -1296,11 +1288,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .update({ last_intake_zone: name })
         .eq('last_intake_zone', oldName);
 
-      // 4. Sincronizar con lotes de stock
+      // 3. Sincronizar con lotes de stock
       await supabase
         .from('stock_batches')
         .update({ zone: name })
         .eq('zone', oldName);
+
+      // 4. Actualizar la zona en la tabla zones
+      const { error: zoneError } = await supabase
+        .from('zones')
+        .update({ name: name })
+        .eq('id', id);
+
+      if (zoneError) throw zoneError;
 
       await get().fetchZones();
       await get().fetchClients(); // Actualizar lista de clientes para ver el cambio de zona
@@ -1327,15 +1327,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (fetchError) throw fetchError;
       const zoneName = zone.name;
 
-      // 2. Borrar la zona
-      const { error } = await supabase
-        .from('zones')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // 3. Limpiar referencias en clientes
+      // 2. Limpiar referencias en clientes
       await supabase
         .from('clients')
         .update({ zone: '' })
@@ -1346,11 +1338,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .update({ last_intake_zone: '' })
         .eq('last_intake_zone', zoneName);
 
-      // 4. Limpiar en lotes de stock
+      // 3. Limpiar en lotes de stock
       await supabase
         .from('stock_batches')
         .update({ zone: '' })
         .eq('zone', zoneName);
+
+      // 4. Borrar la zona
+      const { error } = await supabase
+        .from('zones')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
 
       // Limpiar logs antiguos que se quedaron "En Proceso"
       await get().cleanupHistoricalLogs();

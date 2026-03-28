@@ -40,10 +40,10 @@ export const ZoneManagerModal: React.FC<ZoneManagerModalProps> = ({ isOpen, onCl
         const success = await deleteZone(deleteModal.data.id);
         if (success) {
             toast.success('Zona Eliminada', 'La zona ha sido eliminada del sistema.');
-            deleteModal.close();
         } else {
-            toast.error('Error', 'No se pudo eliminar la zona. Podría estar en uso.');
+            toast.error('Error', 'No se pudo eliminar la zona. Revise si hay otras referencias activas.');
         }
+        deleteModal.close();
     };
 
     const handleAdd = async () => {

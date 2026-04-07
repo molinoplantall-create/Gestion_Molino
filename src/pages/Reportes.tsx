@@ -38,8 +38,15 @@ import { useSupabaseStore } from '../store/supabaseStore';
 import { useToast } from '../hooks/useToast';
 
 const Reportes: React.FC = () => {
-  const { millingLogs, mills, clients, allClients, fetchMillingLogs, fetchMills, fetchClients, fetchAllClients } = useSupabaseStore();
+  const { millingLogs, mills, clients, allClients, fetchMillingLogs, fetchMills, fetchClients, fetchAllClients, recalcAllClientsStock } = useSupabaseStore();
   const toast = useToast();
+
+  // Normalización de zonas para agrupar errores de escritura comunes
+  const ZONES_MAPPING: Record<string, string> = {
+    'CARMAGO': 'CAMARGO',
+    'CAMAGO': 'CAMARGO',
+    'CAMARGO': 'CAMARGO'
+  };
   const [dateRange, setDateRange] = useState('month');
   const [reportType, setReportType] = useState('general');
 
@@ -48,7 +55,15 @@ const Reportes: React.FC = () => {
     fetchMills();
     fetchAllClients();
     fetchClients();
-  }, [fetchMillingLogs, fetchMills, fetchAllClients, fetchClients]);
+
+    // Reparación silenciosa de datos al cargar (solo una vez por sesión)
+    const repairDone = sessionStorage.getItem('repair_done');
+    if (!repairDone) {
+      recalcAllClientsStock().then(() => {
+        sessionStorage.setItem('repair_done', 'true');
+      });
+    }
+  }, [fetchMillingLogs, fetchMills, fetchAllClients, fetchClients, recalcAllClientsStock]);
   
   // Helper para formatear fechas sin desfase de zona horaria
   const formatDateSafe = (dateStr: string) => {
@@ -209,7 +224,7 @@ const Reportes: React.FC = () => {
         'Total Cuarzo (Sacos)': c.cumulative_cuarzo || 0,
         'Total Llampo (Sacos)': c.cumulative_llampo || 0,
         'Total Histórico': (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0),
-        'Zona Principal': c.zone || 'N/A'
+        'Zona Principal': ZONES_MAPPING[(c.zone || '').trim().toUpperCase()] || (c.zone || 'N/A')
       }));
 
     const ws = XLSX.utils.json_to_sheet(data);

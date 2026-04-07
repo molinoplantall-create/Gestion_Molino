@@ -20,6 +20,13 @@ const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4'
 const Analitica: React.FC = () => {
     const { clients, clientsLoading } = useSupabaseStore();
 
+    // Normalización de zonas para agrupar errores de escritura comunes
+    const ZONES_MAPPING: Record<string, string> = {
+        'CARMAGO': 'CAMARGO',
+        'CAMAGO': 'CAMARGO',
+        'CAMARGO': 'CAMARGO'
+    };
+
     // Data Aggregation
     const stats = useMemo(() => {
         const zoneData: Record<string, number> = {};
@@ -32,7 +39,9 @@ const Analitica: React.FC = () => {
             totalSacks += volume;
 
             // By Zone
-            const zone = c.zone || 'SIN ZONA';
+            let rawZone = (c.zone || 'SIN ZONA').trim().toUpperCase();
+            const zone = ZONES_MAPPING[rawZone] || rawZone;
+            
             zoneData[zone] = (zoneData[zone] || 0) + volume;
 
             // By Type

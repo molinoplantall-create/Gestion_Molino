@@ -98,6 +98,7 @@ interface SupabaseStore {
   deleteStockBatch: (batchId: string, clientId: string) => Promise<boolean>;
   updateStockBatch: (batchId: string, clientId: string, newData: { initial_quantity: number, remaining_quantity: number, zone?: string, mineral_type?: string, created_at?: string }) => Promise<boolean>;
   recalcClientStock: (clientId: string) => Promise<boolean>;
+  recalcAllClientsStock: () => Promise<boolean>;
   pollingIntervalId: ReturnType<typeof setInterval> | null;
 }
 
@@ -1509,6 +1510,18 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .eq('id', batchId);
 
       if (error) throw error;
+      
+      // Obtener el ID del cliente de este lote para recalcular
+      const { data: batch } = await supabase
+        .from('stock_batches')
+        .select('client_id')
+        .eq('id', batchId)
+        .single();
+      
+      if (batch?.client_id) {
+        await get().recalcClientStock(batch.client_id);
+      }
+
       return true;
     } catch (error) {
       logger.error('❌ Error updateBatchMineralType:', error);
@@ -1564,6 +1577,29 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return true;
     } catch (e) {
       logger.error('❌ recalcClientStock: unexpected error:', e);
+      return false;
+    }
+  },
+
+  // REPARACIÓN SILENCIOSA: Recalcula stock de TODOS los clientes (Fuente de verdad: lotes)
+  recalcAllClientsStock: async () => {
+    try {
+      logger.log('🔄 Iniciando recalibración global de stock...');
+      const { data: clients, error: clientError } = await supabase.from('clients').select('id');
+      if (clientError) throw clientError;
+
+      if (!clients || clients.length === 0) return true;
+
+      // Usamos una ejecución controlada para no saturar la conexión
+      for (const client of clients) {
+        await get().recalcClientStock(client.id);
+      }
+
+      logger.log('✅ Recalibración global completada.');
+      await get().fetchClients();
+      return true;
+    } catch (e) {
+      logger.error('❌ Error en recalcAllClientsStock:', e);
       return false;
     }
   },

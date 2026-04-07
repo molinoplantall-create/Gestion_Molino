@@ -25,6 +25,13 @@ import { useToast } from '@/hooks/useToast';
 const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 const MINERAL_COLORS: Record<string, string> = { 'Óxido': '#6366f1', 'Sulfuro': '#facc15' };
 
+// Normalización de zonas para agrupar errores de escritura comunes
+const ZONES_MAPPING: Record<string, string> = {
+  'CARMAGO': 'CAMARGO',
+  'CAMAGO': 'CAMARGO',
+  'CAMARGO': 'CAMARGO'
+};
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
@@ -38,7 +45,8 @@ const Dashboard: React.FC = () => {
     fetchClients,
     fetchAllClients,
     fetchZones,
-    fetchMillingLogs
+    fetchMillingLogs,
+    recalcAllClientsStock
   } = useSupabaseStore();
 
   const [activeTab, setActiveTab] = useState<'operaciones' | 'inteligencia'>('operaciones');
@@ -50,7 +58,15 @@ const Dashboard: React.FC = () => {
     fetchClients();
     fetchZones();
     fetchMillingLogs({ pageSize: 200 });
-  }, [fetchMills, fetchAllClients, fetchClients, fetchZones, fetchMillingLogs]);
+
+    // Reparación silenciosa de datos al cargar (solo una vez por sesión de dashboard)
+    const repairDone = sessionStorage.getItem('repair_done');
+    if (!repairDone) {
+      recalcAllClientsStock().then(() => {
+        sessionStorage.setItem('repair_done', 'true');
+      });
+    }
+  }, [fetchMills, fetchAllClients, fetchClients, fetchZones, fetchMillingLogs, recalcAllClientsStock]);
 
   // ═══════════════════════════════════════════════
   // CÁLCULOS OPERATIVOS
@@ -136,7 +152,11 @@ const Dashboard: React.FC = () => {
     allClients.forEach(c => {
       const volume = (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0);
       if (volume <= 0) return;
-      const zone = c.zone || 'SIN ZONA';
+      
+      let rawZone = (c.zone || 'SIN ZONA').trim().toUpperCase();
+      // Agrupar si existe en el mapeo, sino usar el nombre normalizado
+      const zone = ZONES_MAPPING[rawZone] || rawZone;
+      
       zoneData[zone] = (zoneData[zone] || 0) + volume;
     });
     const chartZoneData = Object.entries(zoneData)

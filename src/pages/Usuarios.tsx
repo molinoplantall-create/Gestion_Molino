@@ -23,7 +23,7 @@ const Usuarios: React.FC = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
-    rol: 'OPERADOR' as UserRole,
+    role: 'OPERADOR' as UserRole,
     password: '',
     confirmPassword: '',
     isActive: true,
@@ -77,7 +77,7 @@ const Usuarios: React.FC = () => {
     setFormData({
       nombre: '',
       email: '',
-      rol: 'OPERADOR',
+      role: 'OPERADOR',
       password: '',
       confirmPassword: '',
       isActive: true,
@@ -91,7 +91,7 @@ const Usuarios: React.FC = () => {
     setFormData({
       nombre: user.nombre || '',
       email: user.email,
-      rol: user.role,
+      role: user.role,
       password: '',
       confirmPassword: '',
       isActive: user.is_active,
@@ -140,7 +140,7 @@ const Usuarios: React.FC = () => {
           await new Promise(resolve => setTimeout(resolve, 800));
 
           const updates: any = {};
-          if (formData.rol !== 'OPERADOR') updates.role = formData.rol;
+          if (formData.role !== 'OPERADOR') updates.role = formData.role;
           if (formData.nombre) updates.nombre = formData.nombre;
 
           if (Object.keys(updates).length > 0) {
@@ -156,8 +156,8 @@ const Usuarios: React.FC = () => {
         if (formData.nombre !== selectedUser.nombre) {
           updates.nombre = formData.nombre;
         }
-        if (formData.rol !== selectedUser.role) {
-          updates.role = formData.rol;
+        if (formData.role !== selectedUser.role) {
+          updates.role = formData.role;
         }
         if (formData.isActive !== selectedUser.is_active) {
           updates.is_active = formData.isActive;
@@ -274,7 +274,7 @@ const Usuarios: React.FC = () => {
     setFormData({
       nombre: '',
       email: '',
-      rol: 'OPERADOR',
+      role: 'OPERADOR',
       password: '',
       confirmPassword: '',
       isActive: true,
@@ -584,8 +584,8 @@ const Usuarios: React.FC = () => {
                       Rol
                     </label>
                     <select
-                      value={formData.rol}
-                      onChange={(e) => setFormData({ ...formData, rol: e.target.value as UserRole })}
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
                       className="input-field w-full"
                     >
                       <option value="OPERADOR">Operador</option>

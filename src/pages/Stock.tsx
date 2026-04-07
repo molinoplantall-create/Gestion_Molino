@@ -36,6 +36,22 @@ import { FormModal } from '../components/ui/FormModal';
 import { DeleteConfirmModal } from '../components/ui/DeleteConfirmModal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
+export interface NuevoIngresoForm {
+  fechaRecepcion: string;
+  tipoCliente: string;
+  clienteId: string;
+  zona: string;
+  mineral: string;
+  mineralType: 'OXIDO' | 'SULFURO';
+  cuarzo: number;
+  llampo: number;
+  total: number;
+  clienteNombre: string;
+  transportista: string;
+  placaCamion: string;
+  observaciones: string;
+}
+
 const Stock: React.FC = () => {
   const { user } = useAuthStore();
 
@@ -91,7 +107,7 @@ const Stock: React.FC = () => {
   }, [fetchClients, fetchZones, search]);
 
   // Estado para nuevo ingreso
-  const [nuevoIngreso, setNuevoIngreso] = useState({
+  const [nuevoIngreso, setNuevoIngreso] = useState<NuevoIngresoForm>({
     fechaRecepcion: new Date().toISOString().slice(0, 10),
     tipoCliente: '',
     clienteId: '',

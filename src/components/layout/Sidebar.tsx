@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Home, Factory, Package, FileText, Wrench,
   Users, UserCircle, LogOut, ChevronLeft,
-  ChevronRight, PlusCircle, Menu, X
+  ChevronRight, PlusCircle, Menu, X, BarChart2
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useState, useEffect } from 'react';
@@ -33,6 +33,11 @@ const Sidebar = () => {
     { path: '/mantenimiento', icon: <Wrench size={20} strokeWidth={1.5} />, label: 'Mantenimiento' },
   ];
 
+  if (user?.role === 'ADMIN' || user?.role === 'GERENCIA') {
+    menuItems.push({ path: '/reportes', icon: <FileText size={20} strokeWidth={1.5} />, label: 'Reportes' });
+    menuItems.push({ path: '/analitica', icon: <BarChart2 size={20} strokeWidth={1.5} />, label: 'Analítica' });
+  }
+
   if (user?.role === 'ADMIN') {
     menuItems.push({ path: '/usuarios', icon: <Users size={20} strokeWidth={1.5} />, label: 'Usuarios' });
   }
@@ -41,17 +46,6 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Botón hamburguesa para móvil */}
-      {isMobile && (
-        <button
-          onClick={toggleSidebar}
-          className="fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg md:hidden"
-          aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
-        >
-          {sidebarOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
-        </button>
-      )}
-
       {/* Overlay para móvil */}
       {isMobile && sidebarOpen && (
         <div

@@ -3,7 +3,8 @@ export type MillStatus = 'LIBRE' | 'OCUPADO' | 'MANTENIMIENTO';
 export type MineralType = 'OXIDO' | 'SULFURO';
 export type SubMineralType = 'CUARZO' | 'LLAMPO';
 export type MillingStatus = 'EN_PROCESO' | 'FINALIZADO';
-export type MaintenanceType = 'PREVENTIVO' | 'CORRECTIVO';
+export type MaintenanceType = 'PREVENTIVO' | 'CORRECTIVO' | 'PREDICTIVO' | 'EMERGENCIA';
+export type MaintenancePriority = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
 
 export interface User {
   id: string;
@@ -73,12 +74,17 @@ export interface MillingLog {
 export interface MaintenanceLog {
   id: string;
   mill_id: string;
-  type: 'PREVENTIVO' | 'CORRECTIVO';
+  type: 'PREVENTIVO' | 'CORRECTIVO' | 'PREDICTIVO' | 'EMERGENCIA';
   description: string;
   action_taken?: string;
   worked_hours?: number;
   technician_name?: string;
   status: string;
+  priority?: MaintenancePriority;
+  category?: string;
+  cost_pen?: number;
+  cost_usd?: number;
+  tasks_checklist?: any[];
   failure_start_time?: string;
   completed_at?: string;
   created_at: string;

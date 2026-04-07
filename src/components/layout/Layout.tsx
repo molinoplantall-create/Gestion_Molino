@@ -30,7 +30,7 @@ const Layout = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex min-h-screen h-dvh bg-slate-50 overflow-hidden">
       {/* Sidebar - Ahora tiene su propio scroll handleado internamente */}
       <Sidebar />
 

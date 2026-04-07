@@ -55,6 +55,16 @@ export interface Client {
   created_at?: string;
 }
 
+export interface MillEntry {
+  id?: string;
+  mill_id: string;
+  name?: string;
+  cuarzo: number;
+  llampo: number;
+  total?: number;
+  total_sacks?: number;
+}
+
 export interface MillingLog {
   id: string;
   client_id: string;
@@ -62,7 +72,7 @@ export interface MillingLog {
   total_sacks: number;
   total_cuarzo: number;
   total_llampo: number;
-  mills_used: any; // array of {mill_id, cuarzo, llampo}
+  mills_used: MillEntry[] | null;
   status: 'IN_PROGRESS' | 'FINALIZADO';
   observations?: string;
   created_at: string;
@@ -116,4 +126,36 @@ export interface ReportFilter {
   clienteId?: string;
   mineral?: MineralType;
   operadorId?: string;
+}
+
+export interface MaintenanceRegisterData {
+  mill_id: string;
+  type: MaintenanceType;
+  category?: string;
+  description: string;
+  priority: MaintenancePriority;
+  status: 'PENDIENTE' | 'EN_PROCESO' | 'COMPLETADO' | 'CANCELADO';
+  fechaProgramada?: string;
+  worked_hours?: number;
+  technician_name: string;
+  cost_pen?: number;
+  cost_usd?: number;
+  tasks_checklist?: { id: string, text: string, completed: boolean }[];
+  action_taken?: string;
+}
+
+export interface MaintenanceUpdateData {
+  mill_id?: string;
+  type?: MaintenanceType;
+  category?: string;
+  description?: string;
+  priority?: MaintenancePriority;
+  status?: string;
+  worked_hours?: number;
+  technician_name?: string;
+  cost_pen?: number;
+  cost_usd?: number;
+  tasks_checklist?: any[];
+  action_taken?: string;
+  created_at?: string;
 }

@@ -87,8 +87,8 @@ const Analitica: React.FC = () => {
                     { label: 'CLIENTES REGISTRADOS', value: stats.clientCount, sub: 'Base de datos activa', icon: Users, color: 'violet' },
                     { label: 'ZONA LÍDER', value: stats.topZone, sub: `${stats.topZoneValue.toLocaleString()} sacos aportados`, icon: Map, color: 'amber' },
                     { label: 'TENENCIA VOLUMÉTRICA', value: 'ALTA', sub: 'Tendencia de ingreso mensual', icon: TrendingUp, color: 'emerald' },
-                ].map((kpi, i) => (
-                    <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+                ].map((kpi) => (
+                    <div key={kpi.label} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden group">
                         <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity`}>
                             <kpi.icon size={80} strokeWidth={1} />
                         </div>
@@ -188,8 +188,8 @@ const Analitica: React.FC = () => {
                     <ChevronRight className="mr-2 text-indigo-400" /> Desglose por Lotes
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {stats.chartZoneData.map((zone, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
+                    {stats.chartZoneData.map((zone) => (
+                        <div key={zone.name} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
                             <span className="font-bold text-slate-400">{zone.name}</span>
                             <span className="text-xl font-black text-white">{zone.value.toLocaleString()} <small className="text-[10px] opacity-40">SACOS</small></span>
                         </div>

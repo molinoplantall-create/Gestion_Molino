@@ -309,8 +309,8 @@ const Dashboard: React.FC = () => {
               { label: 'STOCK EN ALMACÉN', value: totalStockSacos.toLocaleString(), unit: 'sacos', icon: ShoppingBag, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
               { label: 'MOLINOS OPERANDO', value: `${molinosOcupados}/${mills.length}`, unit: 'activos', icon: Factory, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
               { label: 'DISPONIBILIDAD', value: molinosLibres.toString(), unit: 'libres', icon: CheckCircle, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
-            ].map((kpi, i) => (
-              <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            ].map((kpi) => (
+              <div key={kpi.label} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                 <div className="flex items-start justify-between mb-2 sm:mb-4">
                   <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} border rounded-xl sm:rounded-2xl group-hover:scale-110 transition-transform`}>
                     <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-7 sm:h-7`} strokeWidth={2.5} />
@@ -364,8 +364,8 @@ const Dashboard: React.FC = () => {
               { label: 'OPERACIONES', value: intelligence.totalOperaciones.toString(), unit: 'registros', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
               { label: 'PROMEDIO/CARGA', value: intelligence.avgSacos.toFixed(1), unit: 'sacos/op', icon: BarChart3, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
               { label: 'OCUPACIÓN PLANTA', value: `${intelligence.tasaOcupacion}%`, unit: 'equipo', icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100' },
-            ].map((kpi, i) => (
-              <div key={i} className="group bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-lg transition-all duration-300">
+            ].map((kpi) => (
+              <div key={kpi.label} className="group bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-lg transition-all duration-300">
                 <div className="flex items-start justify-between mb-3">
                   <div className={`p-3 ${kpi.bg} ${kpi.border} border rounded-xl group-hover:scale-110 transition-transform`}>
                     <kpi.icon className={kpi.color} size={22} strokeWidth={2.5} />
@@ -513,8 +513,8 @@ const Dashboard: React.FC = () => {
               )}
 
               <div className="space-y-2 max-h-[240px] overflow-y-auto custom-scrollbar">
-                {intelligence.chartZoneData.slice(0, 10).map((z, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all">
+                {intelligence.chartZoneData.slice(0, 10).map((z) => (
+                  <div key={z.name} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
                       <span className={`text-xs font-bold truncate ${z.name === 'SIN ZONA' ? 'text-amber-600 italic' : 'text-slate-700'}`}>
@@ -535,7 +535,7 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="space-y-3">
                 {intelligence.topClients.map((client, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-slate-50/50 rounded-xl hover:bg-slate-50 transition-all group">
+                  <div key={client.name} className="flex items-center justify-between p-3 bg-slate-50/50 rounded-xl hover:bg-slate-50 transition-all group">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${
                         idx === 0 ? 'bg-amber-100 text-amber-600' :

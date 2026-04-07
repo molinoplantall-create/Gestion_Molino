@@ -290,8 +290,8 @@ const Moliendas: React.FC = () => {
           { label: 'TOTAL PROCESADO', value: stats.totalSacos.toLocaleString(), icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', suffix: 'Sacos' },
           { label: 'MOLIENDAS ÉXITO', value: stats.finalizadas.toLocaleString(), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', suffix: 'Logs' },
           { label: 'TIEMPO ESTIMADO', value: stats.tiempoPromedio, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', suffix: 'Horas/Prom' },
-        ].map((kpi, i) => (
-          <div key={i} className="group bg-white rounded-2xl p-4 border border-slate-100 shadow-sm transition-all duration-300">
+        ].map((kpi) => (
+          <div key={kpi.label} className="group bg-white rounded-2xl p-4 border border-slate-100 shadow-sm transition-all duration-300">
             <div className="flex items-center">
               <div className={`p-3 ${kpi.bg} ${kpi.border} rounded-xl border mr-4`}>
                 <kpi.icon className={kpi.color} size={22} strokeWidth={2.5} />

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
-import { Mill, Client, MillingLog, Zone } from '@/types';
+import { Mill, Client, MillingLog, Zone, MaintenanceLog, MaintenanceUpdateData, MaintenanceRegisterData } from '@/types';
+import { logger } from '@/utils/logger';
 
 interface SupabaseStore {
   mills: Mill[];
@@ -8,7 +9,7 @@ interface SupabaseStore {
   allClients: Client[];
   zones: Zone[];
   millingLogs: MillingLog[];
-  maintenanceLogs: any[];
+  maintenanceLogs: MaintenanceLog[];
   maintenanceLogsCount: number;
   clientsCount: number;
   logsCount: number;
@@ -72,7 +73,7 @@ interface SupabaseStore {
       horaFinISO?: string;
     }
   ) => Promise<boolean>;
-  registerMaintenance: (data: any) => Promise<boolean>;
+  registerMaintenance: (data: MaintenanceRegisterData) => Promise<boolean>;
   updateMillStatus: (id: string, status: string) => Promise<void>;
   updateClient: (id: string, clientData: Partial<Client>) => Promise<boolean>;
   deleteClient: (id: string) => Promise<boolean>;
@@ -86,7 +87,7 @@ interface SupabaseStore {
   updateMillHours: (millId: string, hoursToAdd: number) => Promise<boolean>;
   finalizeMaintenance: (id: string, millId: string, details?: { action_taken?: string, worked_hours?: number, completed_at?: string }) => Promise<boolean>;
   resetMillOil: (millId: string, targetHours: number) => Promise<boolean>;
-  updateMaintenanceLog: (id: string, updateData: any) => Promise<{ error: any }>;
+  updateMaintenanceLog: (id: string, updateData: MaintenanceUpdateData) => Promise<{ error: any }>;
   deleteMaintenanceLog: (id: string) => Promise<boolean>;
   deleteMillingLog: (logId: string) => Promise<boolean>;
   startPollingMills: () => void;
@@ -97,6 +98,7 @@ interface SupabaseStore {
   deleteStockBatch: (batchId: string, clientId: string) => Promise<boolean>;
   updateStockBatch: (batchId: string, clientId: string, newData: { initial_quantity: number, remaining_quantity: number, zone?: string, mineral_type?: string, created_at?: string }) => Promise<boolean>;
   recalcClientStock: (clientId: string) => Promise<boolean>;
+  pollingIntervalId: ReturnType<typeof setInterval> | null;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -115,6 +117,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   zonesLoading: false,
   logsLoading: false,
   isPolling: false,
+  pollingIntervalId: null,
   error: null,
 
   fetchMills: async () => {
@@ -129,7 +132,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       `);
 
       if (error) {
-        console.error('❌ Supabase error in fetchMills:', error);
+        logger.error('❌ Supabase error in fetchMills:', error);
         throw error;
       }
 
@@ -157,12 +160,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       normalizedMills.sort((a, b) => a.name.localeCompare(b.name));
 
       set({ mills: normalizedMills });
-      console.log('✅ store: mills loaded and normalized:', normalizedMills.length);
+      logger.log('✅ store: mills loaded and normalized:', normalizedMills.length);
 
       // Liberar molinos automáticamente si ya terminó su tiempo
       await get().checkAndLiberateMills(normalizedMills);
     } catch (error: any) {
-      console.error('❌ Error fetchMills:', error);
+      logger.error('❌ Error fetchMills:', error);
       set({ error: error.message });
     } finally {
       set({ millsLoading: false });
@@ -179,7 +182,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (error) throw error;
       set({ allClients: data as Client[] });
     } catch (error: any) {
-      console.error('❌ Error fetchAllClients:', error);
+      logger.error('❌ Error fetchAllClients:', error);
     }
   },
 
@@ -214,7 +217,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (error) throw error;
       set({ clients: data as Client[], clientsCount: count || 0 });
     } catch (error: any) {
-      console.error('❌ Error fetchClients:', error);
+      logger.error('❌ Error fetchClients:', error);
       set({ error: error.message });
     } finally {
       set({ clientsLoading: false });
@@ -232,7 +235,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (error) throw error;
       set({ zones: data as Zone[] });
     } catch (error: any) {
-      console.error('❌ Error fetchZones:', error);
+      logger.error('❌ Error fetchZones:', error);
       set({ error: error.message });
     } finally {
       set({ zonesLoading: false });
@@ -250,10 +253,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .eq('status', 'IN_PROGRESS')
         .lt('created_at', now.toISOString());
 
-      if (error) console.error('⚠️ store: error cleaning up historical logs:', error);
-      else console.log('✅ store: historical logs cleaned up successfully.');
+      if (error) logger.error('⚠️ store: error cleaning up historical logs:', error);
+      else logger.log('✅ store: historical logs cleaned up successfully.');
     } catch (error) {
-      console.error('❌ Error cleanupHistoricalLogs:', error);
+      logger.error('❌ Error cleanupHistoricalLogs:', error);
     }
   },
 
@@ -351,7 +354,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       set({ millingLogs: normalizedLogs as MillingLog[], logsCount: count || 0 });
     } catch (error: any) {
-      console.error('❌ Error fetchMillingLogs:', error);
+      logger.error('❌ Error fetchMillingLogs:', error);
       set({ error: error.message });
     } finally {
       set({ logsLoading: false });
@@ -362,7 +365,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const { page = 1, pageSize = 20, search, millId, startDate, endDate, type, status } = options;
     set({ loading: true, error: null });
     try {
-      console.log('📡 store: fetching maintenance logs...', { millId, search, type, status });
+      logger.log('📡 store: fetching maintenance logs...', { millId, search, type, status });
 
       let query = supabase
         .from('maintenance_logs')
@@ -407,7 +410,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // FALLBACK 404: Si maintenance_logs no existe, intentar con "Maintenance"
       if (error && ((error as any).status === 404 || error.code === 'PGRST116' || error.code === '42P01')) {
-        console.warn('⚠️ store: maintenance_logs table NOT FOUND, trying fallback "Maintenance" table...');
+        logger.warn('⚠️ store: maintenance_logs table NOT FOUND, trying fallback "Maintenance" table...');
         const { data: retryData, count: retryCount, error: retryError } = await supabase
           .from('Maintenance' as any)
           .select('*, mills(name, nombre)', { count: 'exact' })
@@ -420,7 +423,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (error) {
-        console.error('❌ Supabase error in fetchMaintenanceLogs:', error);
+        logger.error('❌ Supabase error in fetchMaintenanceLogs:', error);
         throw error;
       }
 
@@ -441,9 +444,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }));
 
       set({ maintenanceLogs: normalizedLogs, maintenanceLogsCount: count || normalizedLogs.length });
-      console.log(`✅ store: ${normalizedLogs.length} maintenance logs loaded.`);
+      logger.log(`✅ store: ${normalizedLogs.length} maintenance logs loaded.`);
     } catch (error: any) {
-      console.error('❌ Error fetchMaintenanceLogs:', error);
+      logger.error('❌ Error fetchMaintenanceLogs:', error);
       set({ error: error.message || 'Error al cargar mantenimientos. ¿Se ejecutó el script SQL?' });
     } finally {
       set({ loading: false });
@@ -460,7 +463,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .single();
 
       if (clientFetchError) throw clientFetchError;
-      console.log('🏁 registerMilling: 1. Cliente verificado', clientData);
+      logger.log('🏁 registerMilling: 1. Cliente verificado', clientData);
 
       const nowDate = new Date();
       let isHistorical = false;
@@ -480,7 +483,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           }
         }
 
-        console.log('📅 registerMilling: date check:', {
+        logger.log('📅 registerMilling: date check:', {
           provided: datePart,
           today: nowDate.toISOString().split('T')[0],
           isHistorical
@@ -504,7 +507,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .single();
         
       if (millingError && millingError.code === 'PGRST204') {
-        console.warn('⚠️ store: missing total_cuarzo columns in milling_logs table. Retrying basic insert...');
+        logger.warn('⚠️ store: missing total_cuarzo columns in milling_logs table. Retrying basic insert...');
         const { error: retryError, data: retryData } = await supabase
           .from('milling_logs')
           .insert({
@@ -523,7 +526,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (millingError) throw millingError;
-      console.log('🏁 registerMilling: 2. Log de molienda creado', millingData.id);
+      logger.log('🏁 registerMilling: 2. Log de molienda creado', millingData.id);
 
       // --- FIFO Batch Consumption ---
       const consumeBatches = async (clientId: string, subMineral: 'CUARZO' | 'LLAMPO', totalToConsume: number) => {
@@ -539,7 +542,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           .order('created_at', { ascending: true });
 
         if (fetchBatchesError) {
-          console.error(`❌ store: Error fetching batches for ${subMineral}:`, fetchBatchesError);
+          logger.error(`❌ store: Error fetching batches for ${subMineral}:`, fetchBatchesError);
           return;
         }
 
@@ -558,12 +561,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
             .eq('id', batch.id);
 
           if (batchUpdateError) {
-            console.error(`❌ store: Error updating batch ${batch.id}:`, batchUpdateError);
+            logger.error(`❌ store: Error updating batch ${batch.id}:`, batchUpdateError);
           }
         }
 
         if (remainingToConsume > 0) {
-          console.warn(`⚠️ store: Insufficient batch stock for ${subMineral}. Remaining: ${remainingToConsume}`);
+          logger.warn(`⚠️ store: Insufficient batch stock for ${subMineral}. Remaining: ${remainingToConsume}`);
         }
       };
 
@@ -574,11 +577,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (data.totalLlampo > 0) {
         await consumeBatches(data.clientId, 'LLAMPO', data.totalLlampo);
       }
-      console.log('🏁 registerMilling: 3. Lotes (FIFO) consumidos');
+      logger.log('🏁 registerMilling: 3. Lotes (FIFO) consumidos');
 
       // 4. Recalcular stock del cliente desde lotes reales (fuente única de verdad)
       await get().recalcClientStock(data.clientId);
-      console.log('🏁 registerMilling: 4. Stock recalculado desde lotes');
+      logger.log('🏁 registerMilling: 4. Stock recalculado desde lotes');
       // -------------------------------
 
       const millUpdates = data.mills.map(async (m) => {
@@ -615,7 +618,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
         // FALLBACK PGRST204: Si faltan columnas de tiempo, reintentar sin ellas
         if (millError && millError.code === 'PGRST204') {
-          console.warn('⚠️ store: missing time columns in mills table, retrying basic update...', m.id);
+          logger.warn('⚠️ store: missing time columns in mills table, retrying basic update...', m.id);
           const { estimated_end, start_time, current_cuarzo, current_llampo, ...basicData } = updateData as any;
           const { error: retryError } = await supabase
             .from('mills')
@@ -628,20 +631,20 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         return { error: null };
       });
 
-      console.log('🏁 registerMilling: 5. Iniciando actualización de molinos...', millUpdates.length);
+      logger.log('🏁 registerMilling: 5. Iniciando actualización de molinos...', millUpdates.length);
       await Promise.all(millUpdates);
-      console.log('🏁 registerMilling: 6. Molinos actualizados');
+      logger.log('🏁 registerMilling: 6. Molinos actualizados');
 
       await Promise.all([
         get().fetchMills(),
         get().fetchClients(),
         get().fetchMillingLogs({ pageSize: 12 })
       ]);
-      console.log('🏁 registerMilling: 7. Datos de UI refrescados');
+      logger.log('🏁 registerMilling: 7. Datos de UI refrescados');
 
       return true;
     } catch (error: any) {
-      console.error('❌ Error registerMilling:', error);
+      logger.error('❌ Error registerMilling:', error);
       set({ error: error.message });
       return false;
     } finally {
@@ -662,7 +665,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
     if (millsToLiberate.length === 0) return;
 
-    console.log(`🕒 store: Liberando automáticamente ${millsToLiberate.length} molinos...`);
+    logger.log(`🕒 store: Liberando automáticamente ${millsToLiberate.length} molinos...`);
 
     try {
       for (const mill of millsToLiberate) {
@@ -690,7 +693,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           })
           .eq('id', mill.id);
 
-        if (millError) console.error(`Error liberando molino ${mill.name}:`, millError);
+        if (millError) logger.error(`Error liberando molino ${mill.name}:`, millError);
 
         // 2. Marcar la molienda como FINALIZADO si sigue IN_PROGRESS
         const { error: logError } = await supabase
@@ -700,7 +703,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           .eq('status', 'IN_PROGRESS')
           .contains('mills_used', [{ id: mill.id }]);
 
-        if (logError) console.error(`Error finalizando log para molino ${mill.name}:`, logError);
+        if (logError) logger.error(`Error finalizando log para molino ${mill.name}:`, logError);
       }
 
       // Volver a cargar para reflejar cambios
@@ -720,11 +723,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
     } catch (e) {
-      console.error('Error in checkAndLiberateMills:', e);
+      logger.error('Error in checkAndLiberateMills:', e);
     }
   },
 
-  registerMaintenance: async (data) => {
+  registerMaintenance: async (data: MaintenanceRegisterData) => {
     set({ loading: true, error: null });
     try {
       // Intentar inserción estandarizada primero
@@ -753,7 +756,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // FALLBACK PGRST204: Si fallan columnas inglesas, intentar modo compatibilidad (molino_id, tipo, etc)
       if (error && (error.code === 'PGRST204' || error.code === '42703')) {
-        console.warn('⚠️ store: error in registerMaintenance, retrying with fallback columns (SPANISH)...');
+        logger.warn('⚠️ store: error in registerMaintenance, retrying with fallback columns (SPANISH)...');
         const compatData = {
           molino_id: data.mill_id,
           tipo: data.type,
@@ -774,7 +777,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // FALLBACK 404: Si la tabla maintenance_logs no existe
       if (error && ((error as any).status === 404 || error.code === '42P01')) {
-        console.warn('⚠️ store: table maintenance_logs not found for insert, trying fallback "Maintenance"...');
+        logger.warn('⚠️ store: table maintenance_logs not found for insert, trying fallback "Maintenance"...');
         const { error: finalError } = await supabase
           .from('Maintenance' as any)
           .insert({
@@ -800,7 +803,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       await get().fetchMills(); // Refrescar molinos
       return true;
     } catch (error: any) {
-      console.error('❌ Error registerMaintenance:', error);
+      logger.error('❌ Error registerMaintenance:', error);
       set({ error: error.message || 'Error al registrar mantenimiento. Por favor ejecute fix_maintenance_system.sql' });
       return false;
     } finally {
@@ -808,7 +811,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  updateMaintenanceLog: async (id: string, updateData: any) => {
+  updateMaintenanceLog: async (id: string, updateData: MaintenanceUpdateData) => {
     try {
       const { error } = await supabase
         .from('maintenance_logs')
@@ -817,7 +820,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       return { error };
     } catch (error) {
-      console.error('Error updateMaintenanceLog:', error);
+      logger.error('Error updateMaintenanceLog:', error);
       return { error };
     }
   },
@@ -856,7 +859,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       await get().fetchMills();
       return true;
     } catch (error) {
-      console.error('❌ Error deleteMaintenanceLog:', error);
+      logger.error('❌ Error deleteMaintenanceLog:', error);
       return false;
     }
   },
@@ -864,7 +867,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   finalizeMaintenance: async (id: string, millId: string, details?: { action_taken?: string, worked_hours?: number, completed_at?: string }) => {
     set({ loading: true, error: null });
     try {
-      console.log(`🔧 store: finalizing maintenance ${id} for mill ${millId}`);
+      logger.log(`🔧 store: finalizing maintenance ${id} for mill ${millId}`);
 
       const updatePayload: any = {
         status: 'COMPLETADO',
@@ -903,7 +906,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       await get().fetchMills();
       return true;
     } catch (error: any) {
-      console.error('❌ Error finalizeMaintenance:', error);
+      logger.error('❌ Error finalizeMaintenance:', error);
       set({ error: error.message });
       return false;
     } finally {
@@ -938,7 +941,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (error) throw error;
       get().fetchMills();
     } catch (error) {
-      console.error('Error updating mill status:', error);
+      logger.error('Error updating mill status:', error);
     }
   },
 
@@ -976,7 +979,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // FALLBACK PGRST204: Si faltan columnas de tiempo, reintentar sin ellas
       if (millError && millError.code === 'PGRST204') {
-        console.warn('⚠️ store: estimated_end_time missing, retrying basic liberation...', millId);
+        logger.warn('⚠️ store: estimated_end_time missing, retrying basic liberation...', millId);
         const { estimated_end_time, start_time, ...basicData } = updateData as any;
         const { error: retryError } = await supabase
           .from('mills')
@@ -996,14 +999,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           .eq('status', 'IN_PROGRESS')
           .contains('mills_used', [{ id: millId }]);
 
-        if (logError) console.error('Error finalizing log:', logError);
+        if (logError) logger.error('Error finalizing log:', logError);
       }
 
       await get().fetchMills();
       await get().fetchMillingLogs({ pageSize: 12 });
       return true;
     } catch (error: any) {
-      console.error('Error finalizeMilling:', error);
+      logger.error('Error finalizeMilling:', error);
       set({ error: error.message });
       return false;
     } finally {
@@ -1014,7 +1017,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   deleteMillingLog: async (logId: string) => {
     set({ loading: true, error: null });
     try {
-      console.log(`🗑️ store: intentando borrar molienda ${logId}`);
+      logger.log(`🗑️ store: intentando borrar molienda ${logId}`);
 
       // 1. Obtener detalles del log para revertir stock
       const { data: log, error: fetchError } = await supabase
@@ -1074,7 +1077,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (deleteError) throw deleteError;
 
-      console.log('✅ store: molienda borrada y stock revertido correctamente');
+      logger.log('✅ store: molienda borrada y stock revertido correctamente');
 
       await get().fetchMillingLogs();
       await get().fetchClients();
@@ -1082,7 +1085,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       return true;
     } catch (error: any) {
-      console.error('❌ Error deleteMillingLog:', error);
+      logger.error('❌ Error deleteMillingLog:', error);
       set({ error: error.message });
       return false;
     } finally {
@@ -1102,7 +1105,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       await get().fetchClients();
       return true;
     } catch (error: any) {
-      console.error('❌ Error updateClient:', error);
+      logger.error('❌ Error updateClient:', error);
       set({ error: error.message });
       return false;
     } finally {
@@ -1123,7 +1126,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       await get().fetchClients();
       return true;
     } catch (error: any) {
-      console.error('❌ Error deleteClient:', error);
+      logger.error('❌ Error deleteClient:', error);
       set({ error: error.message });
       return false;
     } finally {
@@ -1133,7 +1136,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   addClientStock: async (clientId, cuarzo, llampo, zone, mineralType, receptionDate) => {
     set({ loading: true, error: null });
-    console.log('📡 addClientStock: Params:', { clientId, cuarzo, llampo, zone, mineralType, receptionDate });
+    logger.log('📡 addClientStock: Params:', { clientId, cuarzo, llampo, zone, mineralType, receptionDate });
     try {
       // Usar fecha proporcionada o ahora
       let finalDate = new Date().toISOString();
@@ -1143,7 +1146,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // 1. (El lote de stock se crea en el paso 4 para evitar duplicados en DB)
 
-      console.log('📡 store: Fetching client current stock...');
+      logger.log('📡 store: Fetching client current stock...');
       const { data: client, error: fetchError } = await supabase
         .from('clients')
         .select('stock_cuarzo, stock_llampo, cumulative_cuarzo, cumulative_llampo')
@@ -1151,11 +1154,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .single();
 
       if (fetchError) {
-        console.error('❌ store: Error fetching client:', fetchError);
+        logger.error('❌ store: Error fetching client:', fetchError);
         throw fetchError;
       }
 
-      console.log('📈 store: Calculating new stock totals...', client);
+      logger.log('📈 store: Calculating new stock totals...', client);
       const updateData: any = {
         stock_cuarzo: (client.stock_cuarzo || 0) + cuarzo,
         stock_llampo: (client.stock_llampo || 0) + llampo,
@@ -1172,7 +1175,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         updateData.last_mineral_type = mineralType;
       }
 
-      console.log('💾 store: Updating client in Supabase...', updateData);
+      logger.log('💾 store: Updating client in Supabase...', updateData);
       let { error: updateError } = await supabase
         .from('clients')
         .update(updateData)
@@ -1180,12 +1183,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // FALLBACK: If columns are missing (Error PGRST204), try updating only the stock
       if (updateError && updateError.code === 'PGRST204') {
-        console.warn('⚠️ store: Missing tracking columns in DB. Falling back to basic stock update...');
+        logger.warn('⚠️ store: Missing tracking columns in DB. Falling back to basic stock update...');
         const basicUpdateData = {
           stock_cuarzo: updateData.stock_cuarzo,
           stock_llampo: updateData.stock_llampo,
         };
-        console.log('💾 store: Retrying basic update...', basicUpdateData);
+        logger.log('💾 store: Retrying basic update...', basicUpdateData);
         const { error: retryError } = await supabase
           .from('clients')
           .update(basicUpdateData)
@@ -1194,12 +1197,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         updateError = retryError;
 
         if (!retryError) {
-          console.log('✅ store: Basic stock update successful (fallback).');
+          logger.log('✅ store: Basic stock update successful (fallback).');
         }
       }
 
       if (updateError) {
-        console.error('❌ store: Error updating client stock:', updateError);
+        logger.error('❌ store: Error updating client stock:', updateError);
         throw updateError;
       }
 
@@ -1230,16 +1233,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         if (batchLlampoError) throw batchLlampoError;
       }
 
-      console.log('✅ store: Stock updated successfully. Refreshing clients list...');
+      logger.log('✅ store: Stock updated successfully. Refreshing clients list...');
       await get().fetchClients();
-      console.log('✨ store: Client list refreshed.');
+      logger.log('✨ store: Client list refreshed.');
       return true;
     } catch (error: any) {
-      console.error('❌ store: catch in addClientStock:', error);
+      logger.error('❌ store: catch in addClientStock:', error);
       set({ error: error.message });
       return false;
     } finally {
-      console.log('🏁 store: addClientStock finally block reached.');
+      logger.log('🏁 store: addClientStock finally block reached.');
       set({ loading: false });
     }
   },
@@ -1256,7 +1259,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       await get().fetchZones();
       return true;
     } catch (error: any) {
-      console.error('❌ Error addZone:', error);
+      logger.error('❌ Error addZone:', error);
       set({ error: error.message });
       return false;
     } finally {
@@ -1308,7 +1311,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       await get().fetchClients(); // Actualizar lista de clientes para ver el cambio de zona
       return true;
     } catch (error: any) {
-      console.error('❌ Error updateZone:', error);
+      logger.error('❌ Error updateZone:', error);
       set({ error: error.message });
       return false;
     } finally {
@@ -1363,7 +1366,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       await get().fetchClients();
       return true;
     } catch (error) {
-      console.error('❌ Error deleteZone:', error);
+      logger.error('❌ Error deleteZone:', error);
       return false;
     } finally {
       set({ loading: false });
@@ -1388,7 +1391,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       await get().fetchMills();
       return true;
     } catch (error) {
-      console.error('❌ Error seedMills:', error);
+      logger.error('❌ Error seedMills:', error);
       return false;
     }
   },
@@ -1416,10 +1419,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .eq('id', millId);
 
       if (updateError) throw updateError;
-      console.log(`🔧 updateMillHours: ${millId} +${hoursToAdd}h → total=${newHoursWorked}h, aceite=${newOilHours}h restantes`);
+      logger.log(`🔧 updateMillHours: ${millId} +${hoursToAdd}h → total=${newHoursWorked}h, aceite=${newOilHours}h restantes`);
       return true;
     } catch (error) {
-      console.error('❌ Error updateMillHours:', error);
+      logger.error('❌ Error updateMillHours:', error);
       return false;
     }
   },
@@ -1453,7 +1456,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       get().fetchMaintenanceLogs({});
       return true;
     } catch (error) {
-      console.error('❌ Error resetMillOil:', error);
+      logger.error('❌ Error resetMillOil:', error);
       return false;
     }
   },
@@ -1468,18 +1471,18 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
     }, 60000);
 
-    (window as any)._millPollingInterval = interval;
-    console.log('📡 store: Polling de molinos iniciado (60s)');
+    set({ pollingIntervalId: interval });
+    logger.log('📡 store: Polling de molinos iniciado (60s)');
   },
 
   stopPollingMills: () => {
-    const interval = (window as any)._millPollingInterval;
+    const interval = get().pollingIntervalId;
     if (interval) {
       clearInterval(interval);
-      (window as any)._millPollingInterval = null;
+      set({ pollingIntervalId: null });
     }
     set({ isPolling: false });
-    console.log('📡 store: Polling de molinos detenido');
+    logger.log('📡 store: Polling de molinos detenido');
   },
 
   fetchClientBatches: async (clientId: string) => {
@@ -1493,7 +1496,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('❌ Error fetchClientBatches:', error);
+      logger.error('❌ Error fetchClientBatches:', error);
       return [];
     }
   },
@@ -1508,7 +1511,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('❌ Error updateBatchMineralType:', error);
+      logger.error('❌ Error updateBatchMineralType:', error);
       return false;
     }
   },
@@ -1523,7 +1526,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .eq('client_id', clientId);
 
       if (error) {
-        console.error('❌ recalcClientStock: error fetching batches:', error);
+        logger.error('❌ recalcClientStock: error fetching batches:', error);
         return false;
       }
 
@@ -1553,14 +1556,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .eq('id', clientId);
 
       if (updateError) {
-        console.error('❌ recalcClientStock: error updating client:', updateError);
+        logger.error('❌ recalcClientStock: error updating client:', updateError);
         return false;
       }
 
-      console.log(`✅ recalcClientStock: [${clientId}] Cu=${stockCuarzo}, Ll=${stockLlampo}`);
+      logger.log(`✅ recalcClientStock: [${clientId}] Cu=${stockCuarzo}, Ll=${stockLlampo}`);
       return true;
     } catch (e) {
-      console.error('❌ recalcClientStock: unexpected error:', e);
+      logger.error('❌ recalcClientStock: unexpected error:', e);
       return false;
     }
   },
@@ -1620,7 +1623,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       await get().fetchClients();
       return true;
     } catch (error: any) {
-      console.error('❌ Error updateStockBatch:', error);
+      logger.error('❌ Error updateStockBatch:', error);
       set({ error: error.message });
       return false;
     } finally {

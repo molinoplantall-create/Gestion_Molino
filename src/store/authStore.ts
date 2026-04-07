@@ -6,6 +6,7 @@ interface AuthStore {
   user: User | null;
   loading: boolean;
   initialized: boolean;
+  authSubscription: { unsubscribe: () => void } | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
@@ -16,9 +17,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   loading: true,
   initialized: false,
+  authSubscription: null,
 
   initialize: async () => {
     try {
+      const existingSub = get().authSubscription;
+      if (existingSub) {
+        existingSub.unsubscribe();
+      }
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) throw sessionError;
@@ -73,7 +79,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         }
       });
 
-      // Guardar la suscripción si fuera necesario para cleanup, pero por ahora basta
+      set({ authSubscription: subscription });
     } catch (error) {
       console.error('❌ Error initializing auth:', error);
     } finally {

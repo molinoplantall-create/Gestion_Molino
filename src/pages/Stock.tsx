@@ -460,8 +460,8 @@ const Stock: React.FC = () => {
           { label: 'MINERAL CUARZO', value: totalCuarzo.toLocaleString(), icon: ArrowUpDown, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', trend: 'Sacos', trendUp: true },
           { label: 'MINERAL LLAMPO', value: totalLlampo.toLocaleString(), icon: ArrowDownWideNarrow, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-100', trend: 'Sacos', trendUp: true },
           { label: 'CLIENTES ACTIVOS', value: clients.filter(c => (c.stock_cuarzo || 0) + (c.stock_llampo || 0) > 0).length, icon: User, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100', trend: 'Con Saldo', trendUp: true },
-        ].map((kpi, i) => (
-          <div key={i} className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm transition-all duration-300 flex flex-col justify-between">
+        ].map((kpi) => (
+          <div key={kpi.label} className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm transition-all duration-300 flex flex-col justify-between">
             <div className="flex items-start justify-between mb-2 sm:mb-4">
               <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
                 <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-7 sm:h-7`} strokeWidth={2.5} />

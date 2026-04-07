@@ -85,7 +85,7 @@ const Reportes: React.FC = () => {
       const prodTotal = millingLogs.reduce((sum, log) => {
         if (!Array.isArray(log.mills_used)) return sum;
         // Soportar tanto mill_id como id por compatibilidad
-        const millEntry = log.mills_used.find((mu: any) => (mu.mill_id === m.id || mu.id === m.id));
+        const millEntry = log.mills_used.find(mu => (mu.mill_id === m.id || mu.id === m.id));
         return sum + (millEntry?.total || millEntry?.total_sacks || (Number(millEntry?.cuarzo || 0) + Number(millEntry?.llampo || 0)) || 0);
       }, 0);
       return {
@@ -413,8 +413,8 @@ const Reportes: React.FC = () => {
           { label: 'CLIENTES ATENDIDOS', value: clients.length, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', trend: 'Activos', trendUp: true },
           { label: 'PROMEDIO POR CARGA', value: stats.avgSacos.toFixed(1), icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', trend: 'Sacos/Log', trendUp: true },
           { label: 'DISPONIBILIDAD', value: `${((mills.filter(m => m.status === 'LIBRE').length / mills.length) * 100).toFixed(0)}%`, icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', trend: 'Equipo', trendUp: true },
-        ].map((kpi, i) => (
-          <div key={i} className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm transition-all duration-300 print:border-slate-300 print:shadow-none flex flex-col justify-between">
+        ].map((kpi) => (
+          <div key={kpi.label} className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm transition-all duration-300 print:border-slate-300 print:shadow-none flex flex-col justify-between">
             <div className="flex items-start justify-between mb-2 sm:mb-4 print:hidden">
               <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
                 <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-7 sm:h-7`} strokeWidth={2.5} />

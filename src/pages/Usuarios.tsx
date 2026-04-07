@@ -6,6 +6,7 @@ import { USER_ROLES } from '@/constants';
 import { useUserStore } from '@/store/userStore';
 import { supabase } from '@/lib/supabase';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import { BaseModal } from '@/components/ui/BaseModal';
 
 const Usuarios: React.FC = () => {
   const { users, loading, fetchUsers, updateUser, deleteUser } = useUserStore();
@@ -538,253 +539,246 @@ const Usuarios: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
       </div>
-
+      </div>
       {/* Modal para crear/editar usuario */}
-      {
-        showModal && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl border border-slate-200">
-              <div className="p-6">
-                <h2 className="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">
-                  {modalMode === 'create' ? 'Nuevo Usuario' : 'Editar Usuario'}
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Nombre completo
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.nombre}
-                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                      className="input-field w-full"
-                      placeholder="Ej: Juan Pérez"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="input-field w-full"
-                      placeholder="ejemplo@molino.com"
-                      disabled={modalMode === 'edit'}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Rol
-                    </label>
-                    <select
-                      value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                      className="input-field w-full"
-                    >
-                      <option value="OPERADOR">Operador</option>
-                      <option value="GERENCIA">Gerencia</option>
-                      <option value="ADMIN">Administrador</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center pt-8">
-                    <input
-                      type="checkbox"
-                      id="isActive"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300"
-                    />
-                    <label htmlFor="isActive" className="ml-2 text-sm text-slate-700">
-                      Usuario activo
-                    </label>
-                  </div>
-
-                  {modalMode === 'create' && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          Contraseña
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            className="input-field w-full pr-10"
-                            placeholder="Mínimo 6 caracteres"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                          >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          Confirmar Contraseña
-                        </label>
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          value={formData.confirmPassword}
-                          onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                          className="input-field w-full"
-                          placeholder="Repite la contraseña"
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-slate-100">
-                  <button
-                    onClick={() => {
-                      setShowModal(false);
-                      resetForm();
-                    }}
-                    className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-xl font-medium transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
-                  >
-                    {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
-                    {modalMode === 'create' ? 'Crear Usuario' : 'Guardar Cambios'}
-                  </button>
-                </div>
-              </div>
-            </div>
+      <BaseModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          resetForm();
+        }}
+        title={modalMode === 'create' ? 'Nuevo Usuario' : 'Editar Usuario'}
+        size="lg"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Nombre completo
+            </label>
+            <input
+              type="text"
+              value={formData.nombre}
+              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              className="input-field w-full"
+              placeholder="Ej: Juan Pérez"
+            />
           </div>
-        )}
 
-      {/* Modal para cambiar contraseña */}
-      {showPasswordModal && selectedUser && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl border border-slate-200">
-            <div className="p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">
-                Establecer Nueva Contraseña
-              </h2>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="input-field w-full"
+              placeholder="ejemplo@molino.com"
+              disabled={modalMode === 'edit'}
+            />
+          </div>
 
-              <div className="space-y-4">
-                <p className="text-sm text-slate-600">
-                  Estás cambiando la contraseña de <strong>{selectedUser.nombre || selectedUser.email}</strong>.
-                </p>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Rol
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+              className="input-field w-full"
+            >
+              <option value="OPERADOR">Operador</option>
+              <option value="GERENCIA">Gerencia</option>
+              <option value="ADMIN">Administrador</option>
+            </select>
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Nueva Contraseña
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="input-field w-full pr-10"
-                      placeholder="Mínimo 6 caracteres"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
+          <div className="flex items-center pt-8">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={formData.isActive}
+              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300"
+            />
+            <label htmlFor="isActive" className="ml-2 text-sm text-slate-700">
+              Usuario activo
+            </label>
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Confirmar Contraseña
-                  </label>
+          {modalMode === 'create' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Contraseña
+                </label>
+                <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="input-field w-full"
-                    placeholder="Repite la contraseña"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="input-field w-full pr-10"
+                    placeholder="Mínimo 6 caracteres"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-slate-100">
-                <button
-                  onClick={() => {
-                    setShowPasswordModal(false);
-                    resetForm();
-                  }}
-                  className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-xl font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handlePasswordChange}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
-                >
-                  {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
-                  Actualizar Contraseña
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Confirmar Contraseña
+                </label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  className="input-field w-full"
+                  placeholder="Repite la contraseña"
+                />
               </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-slate-100">
+          <button
+            onClick={() => {
+              setShowModal(false);
+              resetForm();
+            }}
+            className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-xl font-medium transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
+          >
+            {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
+            {modalMode === 'create' ? 'Crear Usuario' : 'Guardar Cambios'}
+          </button>
+        </div>
+      </BaseModal>
+
+      {/* Modal para cambiar contraseña */}
+      <BaseModal
+        isOpen={showPasswordModal && selectedUser !== null}
+        onClose={() => {
+          setShowPasswordModal(false);
+          resetForm();
+        }}
+        title="Establecer Nueva Contraseña"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Estás cambiando la contraseña de <strong>{selectedUser?.nombre || selectedUser?.email}</strong>.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Nueva Contraseña
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="input-field w-full pr-10"
+                placeholder="Mínimo 6 caracteres"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Confirmar Contraseña
+            </label>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              className="input-field w-full"
+              placeholder="Repite la contraseña"
+            />
+          </div>
         </div>
-      )}
+
+        <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-slate-100">
+          <button
+            onClick={() => {
+              setShowPasswordModal(false);
+              resetForm();
+            }}
+            className="px-4 py-2 text-slate-700 hover:bg-slate-50 rounded-xl font-medium transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handlePasswordChange}
+            disabled={isSubmitting}
+            className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
+          >
+            {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
+            Actualizar Contraseña
+          </button>
+        </div>
+      </BaseModal>
 
       {/* Modal para confirmar eliminación (desactivación) */}
-      {showDeleteModal && selectedUser && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl border border-slate-200">
-            <div className="p-6">
-              <div className="text-center">
-                <div className="mx-auto w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4 border border-red-100">
-                  <Trash2 className="text-red-600" size={24} strokeWidth={1.5} />
-                </div>
-                <h2 className="text-xl font-bold text-slate-900 mb-2">
-                  ¿Eliminar usuario?
-                </h2>
-                <p className="text-slate-600 mb-6 text-sm">
-                  Estás a punto de eliminar definitivamente a <strong>{selectedUser.nombre || selectedUser.email}</strong>. Esta acción no se puede deshacer.
-                </p>
-              </div>
-
-              <div className="flex justify-center space-x-3">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSelectedUser(null);
-                  }}
-                  className="px-5 py-2.5 text-slate-700 hover:bg-slate-50 rounded-xl font-medium transition-colors border border-slate-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  disabled={isSubmitting}
-                  className="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
-                >
-                  {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
-                  Eliminar permanentemente
-                </button>
-              </div>
-            </div>
+      <BaseModal
+        isOpen={showDeleteModal && selectedUser !== null}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedUser(null);
+        }}
+        title="¿Eliminar usuario?"
+        size="sm"
+      >
+        <div className="text-center">
+          <div className="mx-auto w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4 border border-red-100">
+            <Trash2 className="text-red-600" size={24} strokeWidth={1.5} />
           </div>
+          <p className="text-slate-600 mb-6 text-sm">
+            Estás a punto de eliminar definitivamente a <strong>{selectedUser?.nombre || selectedUser?.email}</strong>. Esta acción no se puede deshacer.
+          </p>
         </div>
-      )}
+
+        <div className="flex justify-center space-x-3">
+          <button
+            onClick={() => {
+              setShowDeleteModal(false);
+              setSelectedUser(null);
+            }}
+            className="px-5 py-2.5 text-slate-700 hover:bg-slate-50 rounded-xl font-medium transition-colors border border-slate-200"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={confirmDelete}
+            disabled={isSubmitting}
+            className="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-xl font-medium shadow-sm transition-colors flex items-center disabled:opacity-50"
+          >
+            {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
+            Eliminar permanentemente
+          </button>
+        </div>
+      </BaseModal>
 
       {/* Modal de Éxito / Error (Feedback para el usuario) */}
       <ConfirmationModal

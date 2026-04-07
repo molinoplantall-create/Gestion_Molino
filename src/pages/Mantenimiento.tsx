@@ -259,17 +259,17 @@ const Mantenimiento: React.FC = () => {
   const handleEditClick = (record: MaintenanceRecord) => {
     setFormData({
       molinoId: record.mill_id,
-      tipo: record.type as any,
+      tipo: record.type as 'PREVENTIVO' | 'CORRECTIVO',
       categoria: record.category || '',
       descripcion: record.description,
-      prioridad: (record.priority || 'MEDIA') as any,
-      estado: (record.status || 'PENDIENTE') as any,
+      prioridad: record.priority || 'MEDIA',
+      estado: (record.status as any) || 'PENDIENTE',
       fechaProgramada: record.created_at ? record.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
       horasEstimadas: record.worked_hours || 4,
       asignadoA: record.technician_name || '',
-      cost_pen: (record as any).cost_pen || 0,
-      cost_usd: (record as any).cost_usd || 0,
-      tasks_checklist: (record as any).tasks_checklist || [],
+      cost_pen: record.cost_pen || 0,
+      cost_usd: record.cost_usd || 0,
+      tasks_checklist: record.tasks_checklist || [],
       action_taken: record.action_taken || ''
     });
     editModal.open(record);

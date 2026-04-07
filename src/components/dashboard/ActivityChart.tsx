@@ -293,8 +293,8 @@ const ActivityChart: React.FC = () => {
                 formatter={(value: number) => [`${value.toLocaleString()} sacos`, 'Producción']}
               />
               <Bar dataKey="sacos" name="Sacos" radius={[6, 6, 0, 0]} barSize={28}>
-                {chartData.map((entry, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                {chartData.map((entry) => (
+                  <Cell key={entry.label} fill={COLORS[chartData.indexOf(entry) % COLORS.length]} />
                 ))}
               </Bar>
             </BarChart>

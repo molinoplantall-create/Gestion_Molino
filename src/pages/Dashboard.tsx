@@ -513,7 +513,7 @@ const Dashboard: React.FC = () => {
               )}
 
               <div className="space-y-2 max-h-[240px] overflow-y-auto custom-scrollbar">
-                {intelligence.chartZoneData.slice(0, 10).map((z) => (
+                {intelligence.chartZoneData.slice(0, 10).map((z, i) => (
                   <div key={z.name} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>

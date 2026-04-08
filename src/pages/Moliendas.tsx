@@ -85,40 +85,20 @@ const Moliendas: React.FC = () => {
 
   const columns = [
     {
-      key: 'mill_id',
-      label: 'Molino',
-      render: (session: MillingLog) => {
-        // En moliendas futuras tendremos 'name', en las antiguas intentamos fallback usando el store
-        const millInfo = Array.isArray(session.mills_used)
-          ? session.mills_used.map((m: any) => {
-            if (m.name) return m.name;
-            const storeM = mills.find((sm: any) => sm.id === (m.id || m.mill_id));
-            return storeM?.name || `Molino ${(m.id || m.mill_id || '??').substring(0, 4)}`;
-          }).join(', ')
-          : 'Molino';
-        return (
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center mr-3 border border-indigo-100">
-              <span className="font-bold text-xs text-indigo-600">M</span>
-            </div>
-            <span className="text-sm font-bold text-slate-700 truncate max-w-[120px]" title={millInfo}>
-              {millInfo}
-            </span>
-          </div>
-        );
-      }
-    },
-    {
       key: 'created_at',
-      label: 'Fecha',
+      label: 'Inicio/Fecha',
       render: (session: MillingLog) => {
         const date = new Date(session.created_at);
         return (
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-slate-700">{date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">
+            <div className="flex items-center text-sm font-bold text-slate-700">
+              <Calendar size={12} className="mr-1.5 text-indigo-500" />
+              {date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            </div>
+            <div className="flex items-center text-[10px] text-slate-400 font-medium uppercase tracking-tight mt-1">
+              <Clock size={10} className="mr-1" />
               {date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })}
-            </span>
+            </div>
           </div>
         );
       }
@@ -126,21 +106,29 @@ const Moliendas: React.FC = () => {
     {
       key: 'client_id',
       label: 'Cliente',
+      render: (session: MillingLog) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-slate-900">{session.clients?.name || 'Cliente'}</span>
+          <span className="text-[10px] text-slate-400 font-medium">ID: {session.id.substring(0, 8)}</span>
+        </div>
+      )
+    },
+    {
+      key: 'mills_used',
+      label: 'Molino(s)',
       render: (session: MillingLog) => {
-        const clientName = (session as any).clients?.name || 'Cliente';
+        const mills_used = session.mills_used || [];
         return (
-          <div className="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
-            {clientName}
+          <div className="flex flex-wrap gap-1">
+            {mills_used.map((m: any, idx) => (
+              <span key={idx} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold border border-slate-200">
+                {m.name || `M-${m.id.substring(0, 4)}`}
+              </span>
+            ))}
+            {mills_used.length === 0 && <span className="text-slate-300 italic text-xs">---</span>}
           </div>
         );
       }
-    },
-    {
-      key: 'total_sacks',
-      label: 'Sacos',
-      render: (session: MillingLog) => (
-        <span className="text-sm font-semibold text-slate-700">{session.total_sacks}</span>
-      )
     },
     {
       key: 'mineral_type',
@@ -158,29 +146,73 @@ const Moliendas: React.FC = () => {
       )
     },
     {
-      key: 'duration',
-      label: 'Duración',
-      render: (session: MillingLog) => <span className="text-sm text-slate-600 font-medium italic">{calculateDuration(session)}</span>
+      key: 'total_sacks',
+      label: 'Sacos',
+      className: 'text-center',
+      render: (session: MillingLog) => (
+        <div className="flex flex-col items-center">
+          <span className="text-sm font-black text-slate-700">{session.total_sacks}</span>
+          <span className="text-[9px] text-slate-400 uppercase font-black tracking-tighter">Total</span>
+        </div>
+      )
     },
     {
-      key: 'status',
-      label: 'Estado',
-      render: (session: MillingLog) => getStatusBadge(session.status)
+      key: 'estimated_end',
+      label: 'Fin Estimado',
+      render: (session: MillingLog) => {
+        const start = new Date(session.created_at);
+        const durationHours = session.mineral_type === 'SULFURO' ? 2.25 : 1.67;
+        const end = new Date(start.getTime() + durationHours * 60 * 60 * 1000);
+        const isFinalized = session.status === 'FINALIZADO';
+
+        return (
+          <div className="flex flex-col">
+            <span className={`text-sm font-bold ${isFinalized ? 'text-emerald-600' : 'text-amber-600'}`}>
+              {end.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })}
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">
+              {isFinalized ? 'Completado' : 'Estimado'}
+            </span>
+          </div>
+        );
+      }
     },
     {
       key: 'operator',
       label: 'Operador',
-      render: () => <div className="text-sm text-slate-600">Técnico</div>
+      className: 'text-center',
+      render: (session: any) => (
+        <div className="text-xs font-bold text-slate-600">{session.operator_name || '—'}</div>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Estado',
+      className: 'text-right',
+      render: (session: MillingLog) => (
+        <div className="flex justify-end">
+          {session.status === 'IN_PROGRESS' ? (
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100 flex items-center gap-1.5 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              En Proceso
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-1.5 shadow-sm">
+              <CheckCircle size={10} strokeWidth={3} />
+              Finalizado
+            </span>
+          )}
+        </div>
+      )
     },
     {
       key: 'actions',
-      label: 'Acciones',
+      label: '',
       className: 'text-right',
       render: (session: MillingLog) => (
         <div className="flex space-x-1 justify-end">
           <button
             onClick={() => {
-              // Mapear datos al formato de ReceiptModal
               const mappedData = {
                 clienteNombre: session.clients?.name || 'Cliente',
                 tipoCliente: (session.clients as any)?.client_type || 'Minero',
@@ -191,7 +223,7 @@ const Moliendas: React.FC = () => {
                 },
                 fechaInicio: new Date(session.created_at).toLocaleDateString(),
                 horaInicio: new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-                horaFin: null, // Podríamos calcularlo pero usualmente el log no guarda hora_fin individual
+                horaFin: null,
                 stockTotal: 0,
                 totalSacos: session.total_sacks,
                 totalCuarzo: session.total_cuarzo,
@@ -227,6 +259,7 @@ const Moliendas: React.FC = () => {
               });
             }}
             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Eliminar Log"
           >
             <Trash2 size={18} strokeWidth={1.5} />
           </button>

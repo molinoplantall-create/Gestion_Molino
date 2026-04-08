@@ -71,7 +71,7 @@ const Dashboard: React.FC = () => {
   // ═══════════════════════════════════════════════
   // CÁLCULOS OPERATIVOS
   // ═══════════════════════════════════════════════
-  const now = new Date();
+  const now = useMemo(() => new Date(), []);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const totalSacosHoy = millingLogs
@@ -130,9 +130,19 @@ const Dashboard: React.FC = () => {
       name: name === 'OXIDO' ? 'Óxido' : 'Sulfuro', value
     }));
 
-    // 5. Totales y Promedios
-    const totalSacos = millingLogs.reduce((sum, log) => sum + (log.total_sacks || 0), 0);
-    const avgSacos = millingLogs.length > 0 ? totalSacos / millingLogs.length : 0;
+    // 4.5. Distribución por Tipo de Cliente (PieChart) - ABSORBIDO DE ANALÍTICA
+    const typeData: Record<string, number> = { 'MINERO': 0, 'PALLAQUERO': 0 };
+    allClients.forEach(c => {
+        const volume = (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0);
+        const type = (c.client_type || 'N/A').toUpperCase();
+        if (type === 'MINERO') typeData['MINERO'] += volume;
+        else if (type === 'PALLAQUERO') typeData['PALLAQUERO'] += volume;
+    });
+    const chartTypeData = Object.entries(typeData).map(([name, value]) => ({ name, value }));
+
+    // 5. Totales y Promedios - USO DE allClients PARA TOTAL REAL
+    const totalSacos = allClients.reduce((sum, c) => sum + (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0), 0);
+    const avgSacos = millingLogs.length > 0 ? (millingLogs.reduce((sum, log) => sum + (log.total_sacks || 0), 0) / millingLogs.length) : 0;
     const totalOperaciones = millingLogs.length;
 
     // 6. Top 5 Clientes — basado en HISTORIAL ACUMULADO REAL (no en logs limitados)
@@ -176,9 +186,9 @@ const Dashboard: React.FC = () => {
       millStats, mineralData,
       totalSacos, avgSacos, totalOperaciones,
       topClients, chartZoneData, clientesSinZona,
-      tasaOcupacion, sacosEsteMes
+      tasaOcupacion, sacosEsteMes, chartTypeData
     };
-  }, [millingLogs, mills, allClients]);
+  }, [millingLogs, mills, allClients, now]);
 
   // ═══════════════════════════════════════════════
   // EXPORTACIONES
@@ -482,24 +492,24 @@ const Dashboard: React.FC = () => {
 
           {/* Sección inferior: Mineral + Zonas + Top Clientes */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Distribución Mineral */}
+            {/* Distribución por Tipo de Cliente - NUEVO */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-6">Ratio de Minerales</h3>
+              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-6">Tipo de Clientes</h3>
               <div className="h-[260px] relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={intelligence.mineralData} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value" animationDuration={1200}>
-                      {intelligence.mineralData.map((entry, i) => (
-                        <Cell key={i} fill={MINERAL_COLORS[entry.name] || COLORS[i]} />
+                    <Pie data={intelligence.chartTypeData} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value" animationDuration={1200}>
+                      {intelligence.chartTypeData.map((entry, i) => (
+                        <Cell key={i} fill={COLORS[(i + 2) % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', fontWeight: 700 }} />
                     <Legend verticalAlign="bottom" wrapperStyle={{ fontWeight: 700, fontSize: '11px' }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-10 text-center pointer-events-none">
-                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Balance</span>
-                  <span className="text-xl font-black text-slate-900">Mineral</span>
+                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Mix</span>
+                  <span className="text-xl font-black text-slate-900">Perfiles</span>
                 </div>
               </div>
             </div>
@@ -525,7 +535,7 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-center gap-2 text-left">
                     <AlertCircle size={16} className="text-amber-600 flex-shrink-0" />
                     <span className="text-xs font-bold text-amber-700">
-                      {intelligence.clientesSinZona.length} cliente(s) SIN ZONA asignada
+                      {intelligence.clientesSinZona.length} cliente(s) SIN ZONA
                     </span>
                   </div>
                   <Eye size={14} className="text-amber-500 group-hover:text-amber-700" />

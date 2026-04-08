@@ -1,6 +1,8 @@
-import React from 'react';
-import { Users, Phone, Edit, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, Phone, Edit, Trash2, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Table } from '../common/Table';
+import { useSupabaseStore } from '../../store/supabaseStore';
+import { ClientBatchesTable } from './ClientBatchesTable';
 
 interface Client {
     id: string;
@@ -39,6 +41,30 @@ export const ClientTable: React.FC<ClientTableProps> = ({
     onDelete,
     pagination
 }) => {
+    const { fetchClientBatches } = useSupabaseStore();
+    const [expandedClient, setExpandedClient] = useState<string | null>(null);
+    const [clientBatches, setClientBatches] = useState<any[]>([]);
+    const [batchesLoading, setBatchesLoading] = useState(false);
+
+    const toggleBatches = async (clientId: string) => {
+        if (expandedClient === clientId) {
+            setExpandedClient(null);
+            return;
+        }
+
+        setExpandedClient(clientId);
+        setBatchesLoading(true);
+        try {
+            const batches = await fetchClientBatches(clientId);
+            setClientBatches(batches || []);
+        } catch (error) {
+            console.error('Error fetching batches:', error);
+            setClientBatches([]);
+        } finally {
+            setBatchesLoading(false);
+        }
+    };
+
     const getStatusBadge = (isActive: boolean) => {
         return isActive ? (
             <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-semibold rounded-full flex items-center w-fit">
@@ -146,9 +172,22 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
+                            toggleBatches(client.id);
+                        }}
+                        className={`p-2 rounded-lg transition-all border ${expandedClient === client.id
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'text-indigo-600 hover:bg-slate-50 border-transparent hover:border-indigo-100'
+                            }`}
+                        title="Ver Historial de Ingresos"
+                    >
+                        <FileText size={18} />
+                    </button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
                             onEdit(client);
                         }}
-                        className="p-2 text-indigo-600 hover:bg-slate-50 border border-transparent hover:border-indigo-100 rounded-lg transition-all"
+                        className="p-2 text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg transition-all"
                         title="Editar"
                     >
                         <Edit size={18} />
@@ -176,6 +215,13 @@ export const ClientTable: React.FC<ClientTableProps> = ({
             pagination={pagination}
             emptyMessage="No hay clientes"
             emptyDescription="No se encontraron clientes que coincidan con los filtros."
+            expandedRowId={expandedClient}
+            renderExpandedRow={() => (
+                <ClientBatchesTable
+                    batches={clientBatches}
+                    loading={batchesLoading}
+                />
+            )}
         />
     );
 };

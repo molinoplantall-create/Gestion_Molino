@@ -30,6 +30,9 @@ interface TableProps<T> {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     onSort?: (key: string) => void;
+    // Expansión
+    renderExpandedRow?: (item: T) => React.ReactNode;
+    expandedRowId?: string | number | null;
 }
 
 export function Table<T extends { id: string | number }>({
@@ -42,7 +45,9 @@ export function Table<T extends { id: string | number }>({
     pagination,
     sortBy,
     sortOrder,
-    onSort
+    onSort,
+    renderExpandedRow,
+    expandedRowId
 }: TableProps<T>) {
     const [hoveredRow, setHoveredRow] = useState<string | number | null>(null);
 
@@ -193,28 +198,38 @@ export function Table<T extends { id: string | number }>({
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                         {data.map((item) => (
-                            <tr
-                                key={item.id}
-                                className={`
-                  transition-colors
-                  ${onRowClick ? 'cursor-pointer hover:bg-slate-50' : ''}
-                  ${hoveredRow === item.id ? 'bg-slate-50' : ''}
-                `}
-                                onClick={() => onRowClick?.(item)}
-                                onMouseEnter={() => setHoveredRow(item.id)}
-                                onMouseLeave={() => setHoveredRow(null)}
-                            >
-                                {columns.map((column) => (
-                                    <td
-                                        key={column.key}
-                                        className={`px-6 py-4 text-sm text-slate-900 ${column.className || ''}`}
-                                    >
-                                        {column.render
-                                            ? column.render(item)
-                                            : (item as any)[column.key]}
-                                    </td>
-                                ))}
-                            </tr>
+                            <React.Fragment key={item.id}>
+                                <tr
+                                    className={`
+                                        transition-colors
+                                        ${onRowClick ? 'cursor-pointer hover:bg-slate-50' : ''}
+                                        ${hoveredRow === item.id || expandedRowId === item.id ? 'bg-slate-50' : ''}
+                                    `}
+                                    onClick={() => onRowClick?.(item)}
+                                    onMouseEnter={() => setHoveredRow(item.id)}
+                                    onMouseLeave={() => setHoveredRow(null)}
+                                >
+                                    {columns.map((column) => (
+                                        <td
+                                            key={column.key}
+                                            className={`px-6 py-4 text-sm text-slate-900 ${column.className || ''}`}
+                                        >
+                                            {column.render
+                                                ? column.render(item)
+                                                : (item as any)[column.key]}
+                                        </td>
+                                    ))}
+                                </tr>
+                                {renderExpandedRow && expandedRowId === item.id && (
+                                    <tr className="bg-slate-50/50">
+                                        <td colSpan={columns.length} className="px-6 py-0 animate-in fade-in slide-in-from-top-1 duration-300">
+                                            <div className="pb-6">
+                                                {renderExpandedRow(item)}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
                         ))}
                     </tbody>
                 </table>

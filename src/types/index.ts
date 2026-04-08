@@ -31,6 +31,7 @@ export interface Mill {
   last_maintenance?: string;
   operativo: boolean;
   necesita_mantenimiento: boolean;
+  horasTrabajadas?: number;
 }
 
 export interface Client {

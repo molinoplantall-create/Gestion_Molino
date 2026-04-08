@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  Wrench, CheckCircle, Clock, AlertTriangle, Plus, Download, History, Settings, Activity, FileText, MessageSquare, AlertOctagon
+  Wrench, CheckCircle, Clock, AlertTriangle, Plus, Download, History, Settings, Activity, FileText, MessageSquare, AlertOctagon, Calendar
 } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useModal } from '@/hooks/useModal';
@@ -25,15 +25,26 @@ import { MaintenanceSkeleton } from '@/components/mantenimiento/MaintenanceSkele
 interface MaintenanceRecord {
   id: string;
   mill_id: string;
+  molino_id?: string;
   type: string;
+  tipo?: string;
   status: string;
+  estado?: string;
   priority?: string;
+  prioridad?: string;
   category?: string;
+  categoria?: string;
   description: string;
+  descripcion?: string;
   action_taken?: string;
   worked_hours?: number;
   technician_name?: string;
+  tecnico?: string;
+  cost_pen?: number;
+  cost_usd?: number;
+  tasks_checklist?: any[];
   created_at: string;
+  fecha_registro?: string;
   completed_at?: string;
   failure_start_time?: string;
   name?: string;
@@ -95,15 +106,43 @@ const Mantenimiento: React.FC = () => {
     tipo: 'PREVENTIVO',
     categoria: '',
     descripcion: '',
-    prioridad: 'MEDIA',
-    estado: 'PENDIENTE',
+    prioridad: 'MEDIA' as 'BAJA' | 'MEDIA' | 'ALTA',
+    estado: 'PENDIENTE' as 'PENDIENTE' | 'EN_PROCESO' | 'COMPLETADO',
     fechaProgramada: new Date().toISOString().split('T')[0],
     horasEstimadas: 4,
     asignadoA: '',
+    cost_pen: 0,
     cost_usd: 0,
     tasks_checklist: [],
     action_taken: ''
   });
+
+  // Calculate maintenance counts per mill for Clinical History
+  const millMaintenanceStats = useMemo(() => {
+    const stats: Record<string, { corrective: number, preventive: number, predictive: number, emergency: number, lastDate: string | null }> = {};
+
+    mills.forEach(m => {
+      stats[m.id] = { corrective: 0, preventive: 0, predictive: 0, emergency: 0, lastDate: m.last_maintenance || null };
+    });
+
+    allMaintenanceLogs.forEach(log => {
+      const mid = log.mill_id || log.molino_id;
+      if (stats[mid]) {
+        const type = (log.type || log.tipo || '').toUpperCase();
+        if (type === 'CORRECTIVO') stats[mid].corrective++;
+        else if (type === 'PREVENTIVO') stats[mid].preventive++;
+        else if (type === 'PREDICTIVO') stats[mid].predictive++;
+        else if (type === 'EMERGENCIA') stats[mid].emergency++;
+
+        const logDate = log.created_at || log.fecha_registro;
+        if (!stats[mid].lastDate || new Date(logDate) > new Date(stats[mid].lastDate)) {
+          stats[mid].lastDate = logDate;
+        }
+      }
+    });
+
+    return stats;
+  }, [allMaintenanceLogs, mills]);
 
   const { errors, validate, clearErrors, validateField } = useFormValidation({
     schema: maintenanceSchema
@@ -216,6 +255,7 @@ const Mantenimiento: React.FC = () => {
       fechaProgramada: new Date().toISOString().split('T')[0],
       horasEstimadas: 4,
       asignadoA: '',
+      cost_pen: 0,
       cost_usd: 0,
       tasks_checklist: [],
       action_taken: ''
@@ -231,16 +271,17 @@ const Mantenimiento: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    const success = await registerMaintenance({
+    const success = await useSupabaseStore.getState().registerMaintenance({
       mill_id: formData.molinoId,
-      type: formData.tipo,
+      type: formData.tipo as any,
       description: formData.descripcion,
+      priority: formData.prioridad as any,
       technician_name: formData.asignadoA,
       worked_hours: formData.horasEstimadas,
       fechaProgramada: formData.fechaProgramada,
-      status: formData.estado,
-      cost_pen: formData.cost_pen,
-      cost_usd: formData.cost_usd,
+      status: formData.estado as any,
+      cost_pen: formData.cost_pen || 0,
+      cost_usd: formData.cost_usd || 0,
       tasks_checklist: formData.tasks_checklist,
       action_taken: formData.action_taken
     });
@@ -262,7 +303,7 @@ const Mantenimiento: React.FC = () => {
       tipo: record.type as 'PREVENTIVO' | 'CORRECTIVO',
       categoria: record.category || '',
       descripcion: record.description,
-      prioridad: record.priority || 'MEDIA',
+      prioridad: (record.priority as any) || 'MEDIA',
       estado: (record.status as any) || 'PENDIENTE',
       fechaProgramada: record.created_at ? record.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
       horasEstimadas: record.worked_hours || 4,
@@ -288,10 +329,10 @@ const Mantenimiento: React.FC = () => {
 
     const { error } = await useSupabaseStore.getState().updateMaintenanceLog(editModal.data.id, {
       mill_id: formData.molinoId,
-      type: formData.tipo,
+      type: formData.tipo as any,
       category: formData.categoria,
       description: formData.descripcion,
-      priority: formData.prioridad,
+      priority: formData.prioridad as any,
       status: formData.estado,
       worked_hours: formData.horasEstimadas,
       technician_name: formData.asignadoA,
@@ -352,7 +393,8 @@ const Mantenimiento: React.FC = () => {
       asignadoA: record.technician_name || '',
       cost_pen: (record as any).cost_pen || 0,
       cost_usd: (record as any).cost_usd || 0,
-      tasks_checklist: (record as any).tasks_checklist || []
+      tasks_checklist: (record as any).tasks_checklist || [],
+      action_taken: record.action_taken || ''
     });
     createModal.open();
     toast.info('Orden Duplicada', 'Se ha pre-cargado el formulario con los datos. Modifique lo necesario y guarde.');
@@ -492,7 +534,7 @@ const Mantenimiento: React.FC = () => {
     const lastLog = maintenanceLogs[0];
     const message = `*REPORTE DE MANTENIMIENTO*
 ----------------------------
-*Molino:* ${lastLog.name}
+*Molino:* ${(lastLog as any).name || 'Molino'}
 *Fecha:* ${fmtDate(lastLog.created_at)}
 *Tipo:* ${lastLog.type}
 *Descripción:* ${lastLog.description}
@@ -708,69 +750,111 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {mills.map((molino) => (
-            <div key={molino.id} className={`border rounded-xl p-4 hover:shadow-md transition-shadow ${
-              (molino.hours_to_oil_change || 0) <= 20 ? 'border-red-200 bg-red-50/30' :
-              (molino.hours_to_oil_change || 0) <= 50 ? 'border-amber-200 bg-amber-50/30' : ''
-            }`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${molino.status === 'libre' ? 'bg-green-100' :
-                    molino.status === 'mantenimiento' ? 'bg-yellow-100' :
-                      'bg-purple-100'
-                    }`}>
-                    <span className={`font-bold ${molino.status === 'libre' ? 'text-green-700' :
-                      molino.status === 'mantenimiento' ? 'text-yellow-700' :
-                        'text-purple-700'
-                      }`}>{molino.name?.substring(0, 2)}</span>
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-900">{molino.name}</div>
-                    <div className={`text-xs font-medium uppercase ${molino.status === 'libre' ? 'text-green-600' :
-                      molino.status === 'mantenimiento' ? 'text-yellow-600' :
-                        'text-purple-600'
-                      }`}>
-                      {molino.status}
+          {mills.map((molino) => {
+            const stat = millMaintenanceStats[molino.id] || { corrective: 0, preventive: 0, predictive: 0, emergency: 0, lastDate: null };
+            const isCritical = (molino.hours_to_oil_change || 0) <= 20;
+            const isWarning = (molino.hours_to_oil_change || 0) <= 50;
+
+            const statusLabel = molino.status === 'libre' ? 'Disponible' :
+              molino.status === 'mantenimiento' ? 'Mantenimiento' :
+                'Operando';
+
+            const statusColor = molino.status === 'libre' ? 'text-emerald-600' :
+              molino.status === 'mantenimiento' ? 'text-amber-600' :
+                'text-indigo-600';
+
+            const statusBg = molino.status === 'libre' ? 'bg-emerald-50' :
+              molino.status === 'mantenimiento' ? 'bg-amber-50' :
+                'bg-indigo-50';
+
+            return (
+              <div key={molino.id} className={`bg-white border rounded-2xl p-5 hover:shadow-lg transition-all duration-300 group flex flex-col h-full ${isCritical ? 'border-red-200' : isWarning ? 'border-amber-200' : 'border-slate-100 shadow-sm'
+                }`}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center border font-black text-lg transition-transform group-hover:scale-110 ${statusBg} ${statusColor} border-current/10`}>
+                      {molino.name?.split(' ')[1] || '01'}
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-900 leading-none">{molino.name}</h4>
+                      <div className={`mt-1.5 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest ${statusColor} px-2 py-0.5 rounded-full ${statusBg} w-fit border border-current/10`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${molino.status === 'libre' ? 'bg-emerald-500' : molino.status === 'mantenimiento' ? 'bg-amber-500' : 'bg-indigo-500'}`} />
+                        {statusLabel}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <button
-                  onClick={() => handleViewHistory(molino.id)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                >
-                  <History size={18} />
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Horas Cambio:</span>
-                  <span className={`font-medium ${
-                    (molino.hours_to_oil_change || 0) <= 20 ? 'text-red-600 font-bold' :
-                    (molino.hours_to_oil_change || 0) <= 50 ? 'text-amber-600 font-bold' : ''
-                  }`}>{Math.round(molino.hours_to_oil_change || 0)}h</span>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <div className="flex justify-between items-end mb-1">
-                  <span className="text-xs text-gray-500 font-bold">Vida Util Aceite</span>
                   <button
-                    onClick={() => handleResetOil(molino.id, molino.name)}
-                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded transition-colors uppercase tracking-widest"
+                    onClick={() => handleViewHistory(molino.id)}
+                    className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                    title="Ver Historial Clínico completo"
                   >
-                    Renovar
+                    <History size={20} strokeWidth={2.5} />
                   </button>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${molino.hours_to_oil_change! > 50 ? 'bg-emerald-500' : molino.hours_to_oil_change! > 20 ? 'bg-amber-400' : 'bg-red-500'}`}
-                    style={{ width: `${Math.min(100, (molino.hours_to_oil_change! / 500) * 100)}%` }}
-                  ></div>
+
+                {/* Health Section */}
+                <div className="space-y-4 flex-1">
+                  {/* Hours Operative */}
+                  <div className="bg-slate-50/50 rounded-xl p-3 border border-slate-100">
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vida Útil Aceite</span>
+                      <span className={`text-xs font-black ${isCritical ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-slate-700'}`}>
+                        {Math.round(molino.hours_to_oil_change || 0)}h
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-1000 ${molino.hours_to_oil_change! > 50 ? 'bg-emerald-500' : molino.hours_to_oil_change! > 20 ? 'bg-amber-500' : 'bg-red-500'}`}
+                        style={{ width: `${Math.min(100, (molino.hours_to_oil_change! / 500) * 100)}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                       <span className="text-[10px] font-bold text-slate-400">Total Op: {molino.horasTrabajadas || 0}h</span>
+                       <button
+                         onClick={() => handleResetOil(molino.id, molino.name)}
+                         className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border transition-all ${
+                             isCritical ? 'bg-red-600 text-white border-red-600' : 'bg-white text-indigo-600 border-indigo-100 hover:border-indigo-600'
+                         }`}
+                       >
+                         Renovar
+                       </button>
+                    </div>
+                  </div>
+
+                  {/* Clinical History Summary */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100 flex flex-col items-center">
+                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Preventivos</span>
+                        <span className="text-lg font-black text-indigo-700">{stat.preventive}</span>
+                    </div>
+                    <div className="bg-amber-50/50 p-2.5 rounded-xl border border-amber-100 flex flex-col items-center">
+                        <span className="text-[10px] font-black text-amber-400 uppercase tracking-tighter">Correctivos</span>
+                        <span className="text-lg font-black text-amber-700">{stat.corrective}</span>
+                    </div>
+                    <div className="bg-violet-50/50 p-2.5 rounded-xl border border-violet-100 flex flex-col items-center">
+                        <span className="text-[10px] font-black text-violet-400 uppercase tracking-tighter">Predictivos</span>
+                        <span className="text-lg font-black text-violet-700">{stat.predictive}</span>
+                    </div>
+                    <div className="bg-red-50/50 p-2.5 rounded-xl border border-red-100 flex flex-col items-center">
+                        <span className="text-[10px] font-black text-red-400 uppercase tracking-tighter">Emergencias</span>
+                        <span className="text-lg font-black text-red-700">{stat.emergency}</span>
+                    </div>
+                  </div>
+
+                  {/* Last Maintenance Date */}
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                        <Calendar size={12} className="text-slate-400" />
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">Último Manto:</span>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-600">
+                        {stat.lastDate ? fmtDate(stat.lastDate) : 'S/R'}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

@@ -10,7 +10,6 @@ import Usuarios from './pages/Usuarios';
 import Mantenimiento from './pages/Mantenimiento';
 import Clientes from './pages/Clientes';
 import Reportes from './pages/Reportes';
-import Analitica from './pages/Analitica';
 import { useAuthStore } from './store/authStore';
 import { ToastContainer } from './components/common/Toast';
 import { useSupabaseStore } from './store/supabaseStore';
@@ -67,7 +66,6 @@ function App() {
           <Route path="/mantenimiento" element={<Mantenimiento />} />
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/reportes" element={<Reportes />} />
-          <Route path="/analitica" element={<Analitica />} />
           <Route path="/usuarios" element={user?.role === 'ADMIN' ? <Usuarios /> : <Navigate to="/dashboard" />} />
         </Route>
 

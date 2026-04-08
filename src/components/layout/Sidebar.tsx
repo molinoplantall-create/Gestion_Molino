@@ -35,7 +35,6 @@ const Sidebar = () => {
 
   if (user?.role === 'ADMIN' || user?.role === 'GERENCIA') {
     menuItems.push({ path: '/reportes', icon: <FileText size={20} strokeWidth={1.5} />, label: 'Reportes' });
-    menuItems.push({ path: '/analitica', icon: <BarChart2 size={20} strokeWidth={1.5} />, label: 'Analítica' });
   }
 
   if (user?.role === 'ADMIN') {

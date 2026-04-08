@@ -83,6 +83,7 @@ const Stock: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [batchToDelete, setBatchToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Edit Batch Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -183,7 +184,10 @@ const Stock: React.FC = () => {
       return;
     }
 
+    if (isSubmitting) return;
+
     try {
+      setIsSubmitting(true);
       console.log('📡 Stock: Llamando a addClientStock...');
       const success = await addClientStock(
         nuevoIngreso.clienteId,
@@ -199,11 +203,15 @@ const Stock: React.FC = () => {
         setShowModal(false);
         toast.success('Ingreso Exitoso', `Se ha registrado el ingreso de ${nuevoIngreso.total} sacos para ${nuevoIngreso.clienteNombre}`);
       } else {
-        toast.error('Error', 'No se pudo registrar el ingreso de mineral. Intente de nuevo.');
+        // Obtenemos el error específico del store si existe
+        const storeError = useSupabaseStore.getState().error;
+        toast.error('Error de Registro', storeError || 'No se pudo registrar el ingreso de mineral. Intente de nuevo.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Stock: Error en guardarIngreso catch:', err);
-      toast.error('Error Crítico', 'Ocurrió un error inesperado al procesar el ingreso.');
+      toast.error('Error Crítico', err.message || 'Ocurrió un error inesperado al procesar el ingreso.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -779,8 +787,8 @@ const Stock: React.FC = () => {
         title="Registrar Ingreso de Mineral"
         icon={Truck}
         submitLabel="Confirmar Ingreso"
-        isLoading={loading}
-        isValid={!!nuevoIngreso.clienteId && nuevoIngreso.total > 0}
+        isLoading={loading || isSubmitting}
+        isValid={!!nuevoIngreso.clienteId && nuevoIngreso.total > 0 && !isSubmitting}
         size="lg"
       >
         <div className="space-y-6">

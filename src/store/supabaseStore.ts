@@ -1145,7 +1145,20 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         finalDate = `${receptionDate}T12:00:00Z`;
       }
 
-      // 1. (El lote de stock se crea en el paso 4 para evitar duplicados en DB)
+      // 1. Prevenir duplicados (doble clic)
+      const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+      const { data: recentBatches, error: checkError } = await supabase
+        .from('stock_batches')
+        .select('id')
+        .eq('client_id', clientId)
+        .eq('initial_quantity', cuarzo > 0 ? cuarzo : llampo)
+        .eq('sub_mineral', cuarzo > 0 ? 'CUARZO' : 'LLAMPO')
+        .gt('created_at', oneMinuteAgo);
+
+      if (recentBatches && recentBatches.length > 0) {
+        logger.warn('⚠️ addClientStock: Intento de duplicidad detectado. Abortando.');
+        throw new Error('Ya se registró un ingreso idéntico hace menos de un minuto. Por favor, espere o verifique el historial.');
+      }
 
       logger.log('📡 store: Fetching client current stock...');
       const { data: client, error: fetchError } = await supabase

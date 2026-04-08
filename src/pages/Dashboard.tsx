@@ -21,6 +21,7 @@ import RecentSessions from '@/components/dashboard/RecentSessions';
 import ActivityChart from '@/components/dashboard/ActivityChart';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useToast } from '@/hooks/useToast';
+import { usePageFocus } from '@/hooks/usePageFocus';
 
 const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 const MINERAL_COLORS: Record<string, string> = { 'Óxido': '#6366f1', 'Sulfuro': '#facc15' };
@@ -49,24 +50,23 @@ const Dashboard: React.FC = () => {
     recalcAllClientsStock
   } = useSupabaseStore();
 
-  const [activeTab, setActiveTab] = useState<'operaciones' | 'inteligencia'>('operaciones');
+  const [activeTab, setActiveTab] = useState<'operaciones' | 'inteligencia' | 'reportes'>('operaciones');
   const [showSinZonaModal, setShowSinZonaModal] = useState(false);
 
-  useEffect(() => {
+  usePageFocus(() => {
     fetchMills();
     fetchAllClients();
     fetchClients();
     fetchZones();
     fetchMillingLogs({ pageSize: 200 });
 
-    // Reparación silenciosa de datos al cargar (solo una vez por sesión de dashboard)
     const repairDone = sessionStorage.getItem('repair_done');
     if (!repairDone) {
       recalcAllClientsStock().then(() => {
         sessionStorage.setItem('repair_done', 'true');
       });
     }
-  }, [fetchMills, fetchAllClients, fetchClients, fetchZones, fetchMillingLogs, recalcAllClientsStock]);
+  });
 
   // ═══════════════════════════════════════════════
   // CÁLCULOS OPERATIVOS
@@ -181,12 +181,27 @@ const Dashboard: React.FC = () => {
       ? ((mills.filter(m => m.status && m.status.toUpperCase() !== 'LIBRE').length / mills.length) * 100).toFixed(0)
       : '0';
 
+    // 10. Cálculos para la pestaña de Reportes
+    const millStatsReport = mills.map(m => {
+      const prodTotal = millingLogs.reduce((sum, log) => {
+        if (!Array.isArray(log.mills_used)) return sum;
+        const millEntry = log.mills_used.find(mu => (mu.mill_id === m.id || mu.id === m.id));
+        return sum + (millEntry?.total || millEntry?.total_sacks || (Number(millEntry?.cuarzo || 0) + Number(millEntry?.llampo || 0)) || 0);
+      }, 0);
+      return { name: m.name, total: prodTotal, status: m.status };
+    }).sort((a, b) => b.total - a.total);
+
+    const totalSacosReporte = millingLogs.reduce((sum, log) => sum + (log.total_sacks || 0), 0);
+    const avgSacosReporte = millingLogs.length > 0 ? totalSacosReporte / millingLogs.length : 0;
+    const millDisponibilidad = `${((mills.filter(m => m.status === 'LIBRE').length / mills.length) * 100).toFixed(0)}%`;
+
     return {
       monthlyProd, pctCambio, tendenciaPositiva,
       millStats, mineralData,
       totalSacos, avgSacos, totalOperaciones,
       topClients, chartZoneData, clientesSinZona,
-      tasaOcupacion, sacosEsteMes, chartTypeData
+      tasaOcupacion, sacosEsteMes, chartTypeData,
+      millStatsReport, totalSacosReporte, avgSacosReporte, millDisponibilidad
     };
   }, [millingLogs, mills, allClients, now]);
 
@@ -311,18 +326,24 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
+        <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-inner">
           <button
             onClick={() => setActiveTab('operaciones')}
-            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'operaciones' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'operaciones' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
           >
             ⚙️ Operaciones
           </button>
           <button
             onClick={() => setActiveTab('inteligencia')}
-            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'inteligencia' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'inteligencia' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
           >
             📊 Inteligencia
+          </button>
+          <button
+            onClick={() => setActiveTab('reportes')}
+            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'reportes' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            📈 Reportes
           </button>
         </div>
       </div>
@@ -382,9 +403,158 @@ const Dashboard: React.FC = () => {
         </>
       ) : (
         <>
-          {/* ═══════════════════════════════════════════ */}
-          {/* TAB 2: INTELIGENCIA GERENCIAL              */}
-          {/* ═══════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════ */}
+      {/* TAB 3: REPORTES ANALÍTICOS                       */}
+      {/* ═══════════════════════════════════════════════ */}
+      {activeTab === 'reportes' && (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* Header & Exports */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+            <div>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">Consolidado Analítico</h3>
+              <p className="text-slate-500 text-sm font-medium">Historial y métricas de rendimiento industrial</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleExportExcel}
+                className="flex items-center px-5 py-2.5 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 border border-emerald-100 transition-all font-bold text-xs"
+              >
+                <Download size={16} className="mr-2" /> EXCEL
+              </button>
+              <button
+                onClick={handleGeneratePDF}
+                className="flex items-center px-5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-lg font-bold text-xs"
+              >
+                <FileText size={16} className="mr-2" /> PDF
+              </button>
+            </div>
+          </div>
+
+          {/* KPIs de Reportes */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {[
+              { label: 'PRODUCCIÓN TOTAL', value: intelligence.totalSacosReporte.toLocaleString(), icon: Box, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+              { label: 'OPERACIONES', value: millingLogs.length, icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+              { label: 'PROMEDIO DIARIO', value: intelligence.avgSacosReporte.toFixed(1), icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
+              { label: 'DISPONIBILIDAD', value: intelligence.millDisponibilidad, icon: Factory, color: 'text-rose-600', bg: 'bg-rose-50' },
+            ].map((kpi) => (
+              <div key={kpi.label} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                <div className={`w-10 h-10 ${kpi.bg} rounded-xl flex items-center justify-center mb-4`}>
+                  <kpi.icon className={kpi.color} size={20} />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>
+                <p className="text-2xl font-black text-slate-900 mt-1">{kpi.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Tendencia Mensual */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-8">Tendencia Mensual</h3>
+              <div className="h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={intelligence.monthlyProd}>
+                    <defs>
+                      <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1} />
+                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                    <Tooltip contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />
+                    <Area type="monotone" dataKey="sacos" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorProd)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Productividad por Molino */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-8">Productividad por Molino</h3>
+              <div className="h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={intelligence.millStatsReport} layout="vertical" margin={{ left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
+                    <Tooltip cursor={{ fill: '#f8fafc' }} />
+                    <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24}>
+                      {intelligence.millStatsReport.map((_, index) => (
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Pie Chart Mineral */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm lg:col-span-1">
+              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-8">Tipo de Mineral</h3>
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={intelligence.mineralData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={100}
+                      paddingAngle={8}
+                      dataKey="value"
+                    >
+                      {intelligence.mineralData.map((entry, index) => (
+                        <Cell key={index} fill={entry.name === 'Óxido' ? '#6366f1' : '#facc15'} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend verticalAlign="bottom" wrapperStyle={{ fontWeight: 700, fontSize: '11px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Top 5 Ranking Reportes */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm lg:col-span-2">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-black text-slate-900 tracking-tight">Ranking de Producción por Cliente</h3>
+                <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">Líderes</span>
+              </div>
+              <div className="space-y-4">
+                {intelligence.topClients.slice(0, 5).map((client, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-5 bg-slate-50/50 hover:bg-slate-50 rounded-2xl border border-transparent hover:border-slate-200 transition-all group">
+                    <div className="flex items-center gap-5">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg ${
+                        idx === 0 ? 'bg-amber-100 text-amber-600 shadow-sm' :
+                        idx === 1 ? 'bg-slate-200 text-slate-500' :
+                        idx === 2 ? 'bg-orange-100 text-orange-600' :
+                        'bg-white text-slate-400 border border-slate-100'
+                      }`}>
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <h4 className="font-black text-slate-900 tracking-tight">{client.name}</h4>
+                        <span className="text-xs font-bold text-slate-400">{client.tipo}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-black text-indigo-600 group-hover:scale-110 transition-transform">
+                        {client.total.toLocaleString()}
+                      </div>
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SACOS PROCESADOS</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
           {/* KPIs Avanzados con % de cambio */}
           <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-5">

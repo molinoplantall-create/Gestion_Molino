@@ -14,6 +14,8 @@ import { MaintenanceDetailModal } from '@/components/mantenimiento/MaintenanceDe
 import { MillHistoryTimeline } from '@/components/mantenimiento/MillHistoryTimeline';
 import { FailureRanking } from '@/components/mantenimiento/FailureRanking';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
+import { usePageFocus } from '@/hooks/usePageFocus';
 import { InputModal } from '@/components/ui/InputModal';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { maintenanceSchema } from '@/schemas/maintenanceSchema';
@@ -148,9 +150,9 @@ const Mantenimiento: React.FC = () => {
     schema: maintenanceSchema
   });
 
-  useEffect(() => {
+  usePageFocus(() => {
     fetchMills();
-  }, [fetchMills]);
+  });
 
   useEffect(() => {
     fetchMaintenanceLogs({

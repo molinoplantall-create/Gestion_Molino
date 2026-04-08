@@ -30,8 +30,8 @@ import {
 } from '../constants';
 import { useAuthStore } from '../store/authStore';
 import { useSupabaseStore } from '../store/supabaseStore';
-
 import { useToast } from '../hooks/useToast';
+import { usePageFocus } from '../hooks/usePageFocus';
 import { FormModal } from '../components/ui/FormModal';
 import { DeleteConfirmModal } from '../components/ui/DeleteConfirmModal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -97,7 +97,7 @@ const Stock: React.FC = () => {
   });
   const [isUpdatingBatch, setIsUpdatingBatch] = useState(false);
 
-  useEffect(() => {
+  usePageFocus(() => {
     fetchClients({
       search,
       pageSize: 100, // Aumentamos para mostrar más clientes en stock
@@ -105,7 +105,7 @@ const Stock: React.FC = () => {
       // Por defecto fetchClients ahora permite ver todos si status es 'all'
     });
     fetchZones();
-  }, [fetchClients, fetchZones, search]);
+  });
 
   // Estado para nuevo ingreso
   const [nuevoIngreso, setNuevoIngreso] = useState<NuevoIngresoForm>({

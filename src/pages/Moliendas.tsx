@@ -7,6 +7,7 @@ import { useModal } from '@/hooks/useModal';
 import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
 import { ReceiptModal } from '@/components/molienda/ReceiptModal';
 import { useAuthStore } from '@/store/authStore';
+import { usePageFocus } from '@/hooks/usePageFocus';
 
 const Moliendas: React.FC = () => {
   const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills, deleteMillingLog, loading, zones, fetchZones } = useSupabaseStore();
@@ -23,10 +24,10 @@ const Moliendas: React.FC = () => {
   const { user } = useAuthStore();
   const pageSize = 10;
 
-  useEffect(() => {
+  usePageFocus(() => {
     fetchMills();
     fetchZones();
-  }, [fetchMills, fetchZones]);
+  });
 
   useEffect(() => {
     fetchMillingLogs({

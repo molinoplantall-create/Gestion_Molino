@@ -3,6 +3,7 @@ import {
   Users, UserPlus, MessageSquare, CheckCircle, AlertTriangle, Layers
 } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
+import { usePageFocus } from '@/hooks/usePageFocus';
 import { supabase } from '@/lib/supabase';
 import { useModal } from '@/hooks/useModal';
 import { useToast } from '@/hooks/useToast';
@@ -74,9 +75,9 @@ const Clientes: React.FC = () => {
     });
   }, [fetchClients, currentPage, search, filterStatus, filterZone]);
 
-  useEffect(() => {
+  usePageFocus(() => {
     fetchZones();
-  }, [fetchZones]);
+  });
 
   // Reset page when filters change
   useEffect(() => {

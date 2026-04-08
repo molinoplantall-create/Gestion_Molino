@@ -50,7 +50,7 @@ const Dashboard: React.FC = () => {
     recalcAllClientsStock
   } = useSupabaseStore();
 
-  const [activeTab, setActiveTab] = useState<'operaciones' | 'inteligencia' | 'reportes'>('operaciones');
+  const [activeTab, setActiveTab] = useState<'operaciones' | 'reportes'>('operaciones');
   const [showSinZonaModal, setShowSinZonaModal] = useState(false);
 
   usePageFocus(() => {
@@ -220,37 +220,39 @@ const Dashboard: React.FC = () => {
     if (!millingLogs.length) return toast.warning('Sin Datos', 'No hay registros para exportar.');
     const data = millingLogs.map(log => ({
       Fecha: formatDateSafe(log.created_at),
-      Cliente: log.clients?.name || 'N/A',
-      Mineral: log.mineral_type,
-      'Total Sacos': log.total_sacks,
-      Cuarzo: log.total_cuarzo,
-      Llampo: log.total_llampo,
+      Cliente: log.clients?.name || '---',
+      Mineral: log.mineral_type || '---',
+      'Total Sacos': log.total_sacks || 0,
+      Cuarzo: log.total_cuarzo || 0,
+      Llampo: log.total_llampo || 0,
       Observaciones: log.observations || ''
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Producción");
-    XLSX.writeFile(wb, `Reporte_Molienda_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `Reporte_Produccion_${new Date().toISOString().split('T')[0]}.xlsx`);
     toast.success('Excel Generado', 'Reporte de molienda descargado.');
   };
 
   const handleExportIngresosExcel = () => {
     if (!allClients.length) return toast.warning('Sin Datos', 'No hay clientes para exportar.');
     const data = [...allClients]
-      .filter(c => (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0) > 0)
+      .filter(c => (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0) > 0 || (c.stock_cuarzo || 0) + (c.stock_llampo || 0) > 0)
       .map(c => ({
-        Cliente: c.name,
+        Cliente: c.name || '---',
         'Tipo': c.client_type || 'N/A',
-        'Cuarzo (Sacos)': c.cumulative_cuarzo || 0,
-        'Llampo (Sacos)': c.cumulative_llampo || 0,
-        'Total Histórico': (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0),
+        'Sacos en Stock (Cuarzo)': c.stock_cuarzo || 0,
+        'Sacos en Stock (Llampo)': c.stock_llampo || 0,
+        'TOTAL ACTUAL STOCK': (c.stock_cuarzo || 0) + (c.stock_llampo || 0),
+        'Histórico Cuarzo': c.cumulative_cuarzo || 0,
+        'Histórico Llampo': c.cumulative_llampo || 0,
         'Zona': c.zone || 'SIN ZONA'
       }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Ingresos");
-    XLSX.writeFile(wb, `Consolidado_Ingresos_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success('Excel Generado', 'Consolidado de ingresos descargado.');
+    XLSX.utils.book_append_sheet(wb, ws, "Inventario_Stock");
+    XLSX.writeFile(wb, `Stock_Almacen_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Excel Generado', 'Consolidado de stock actual descargado.');
   };
 
   const handleGeneratePDF = () => {
@@ -329,21 +331,15 @@ const Dashboard: React.FC = () => {
         <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-inner">
           <button
             onClick={() => setActiveTab('operaciones')}
-            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'operaciones' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'operaciones' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
           >
             ⚙️ Operaciones
           </button>
           <button
-            onClick={() => setActiveTab('inteligencia')}
-            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'inteligencia' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            📊 Inteligencia
-          </button>
-          <button
             onClick={() => setActiveTab('reportes')}
-            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'reportes' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'reportes' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            📈 Reportes
+            📊 Centro de Analítica
           </button>
         </div>
       </div>
@@ -403,262 +399,218 @@ const Dashboard: React.FC = () => {
         </>
       ) : (
         <>
-      {/* ═══════════════════════════════════════════════ */}
-      {/* TAB 3: REPORTES ANALÍTICOS                       */}
-      {/* ═══════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════ */}
+      {/* TAB 2: ANALÍTICA GERENCIAL (PREMIUM)       */}
+      {/* ═══════════════════════════════════════════ */}
       {activeTab === 'reportes' && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Header & Exports */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-            <div>
-              <h3 className="text-xl font-black text-slate-900 tracking-tight">Consolidado Analítico</h3>
-              <p className="text-slate-500 text-sm font-medium">Historial y métricas de rendimiento industrial</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleExportExcel}
-                className="flex items-center px-5 py-2.5 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 border border-emerald-100 transition-all font-bold text-xs"
-              >
-                <Download size={16} className="mr-2" /> EXCEL
-              </button>
-              <button
-                onClick={handleGeneratePDF}
-                className="flex items-center px-5 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-lg font-bold text-xs"
-              >
-                <FileText size={16} className="mr-2" /> PDF
-              </button>
-            </div>
-          </div>
-
-          {/* KPIs de Reportes */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[
-              { label: 'PRODUCCIÓN TOTAL', value: intelligence.totalSacosReporte.toLocaleString(), icon: Box, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-              { label: 'OPERACIONES', value: millingLogs.length, icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-              { label: 'PROMEDIO DIARIO', value: intelligence.avgSacosReporte.toFixed(1), icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
-              { label: 'DISPONIBILIDAD', value: intelligence.millDisponibilidad, icon: Factory, color: 'text-rose-600', bg: 'bg-rose-50' },
-            ].map((kpi) => (
-              <div key={kpi.label} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                <div className={`w-10 h-10 ${kpi.bg} rounded-xl flex items-center justify-center mb-4`}>
-                  <kpi.icon className={kpi.color} size={20} />
-                </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>
-                <p className="text-2xl font-black text-slate-900 mt-1">{kpi.value}</p>
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+          
+          {/* Dashboard Header Icons & Premium Exports */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+              <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform">
+                <BarChart3 size={250} strokeWidth={1.5} />
               </div>
-            ))}
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl">
+                    <Zap className="text-white fill-white" size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black tracking-tight">Performance Global</h2>
+                    <p className="text-indigo-100 text-sm font-medium">Control volumétrico y eficiencia de planta</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8">
+                   {[
+                      { label: 'Total Histórico', value: intelligence.totalSacos.toLocaleString(), icon: Box },
+                      { label: 'Este Mes', value: intelligence.sacosEsteMes.toLocaleString(), icon: Calendar },
+                      { label: 'Eficiencia', value: `${intelligence.tasaOcupacion}%`, icon: Activity },
+                      { label: 'Promedio', value: intelligence.avgSacos.toFixed(1), icon: Zap },
+                   ].map((item, i) => (
+                      <div key={i} className="bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
+                        <item.icon size={16} className="text-indigo-200 mb-2" />
+                        <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">{item.label}</p>
+                        <p className="text-xl font-black">{item.value}</p>
+                      </div>
+                   ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 mb-2">Exportaciones Maestras</h3>
+                <p className="text-xs text-slate-500 font-medium">Descarga la data procesada y balances de stock.</p>
+              </div>
+              <div className="space-y-3 mt-6">
+                <button onClick={handleExportExcel} className="w-full flex items-center justify-between px-6 py-4 bg-slate-50 rounded-2xl hover:bg-emerald-50 hover:text-emerald-700 border border-slate-100 hover:border-emerald-200 transition-all group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                      <Download size={18} className="text-emerald-500" />
+                    </div>
+                    <span className="font-bold text-sm">Producción Completa</span>
+                  </div>
+                  <ChevronRight size={16} className="text-slate-300 group-hover:text-emerald-400" />
+                </button>
+                <button onClick={handleExportIngresosExcel} className="w-full flex items-center justify-between px-6 py-4 bg-slate-50 rounded-2xl hover:bg-indigo-50 hover:text-indigo-700 border border-slate-100 hover:border-indigo-200 transition-all group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                      <ShoppingBag size={18} className="text-indigo-500" />
+                    </div>
+                    <span className="font-bold text-sm">Stock Actual (Almacén)</span>
+                  </div>
+                  <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-400" />
+                </button>
+                <button onClick={handleGeneratePDF} className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all shadow-lg font-bold text-sm">
+                  <FileText size={18} /> GENERAR REPORTE PDF
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Tendencia Mensual */}
+            {/* Gráfico de Tendencia con Gradiente Premium */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-8">Tendencia Mensual</h3>
-              <div className="h-[350px]">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Tendencia Evolutiva</h3>
+                  <p className="text-xs text-slate-500 font-medium">Volumen de molienda mensual ({now.getFullYear()})</p>
+                </div>
+                <div className="px-4 py-2 bg-emerald-50 rounded-xl">
+                  <span className={`text-xs font-black ${intelligence.tendenciaPositiva ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {intelligence.pctCambio}% vs mes anterior
+                  </span>
+                </div>
+              </div>
+              <div className="h-[350px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={intelligence.monthlyProd}>
                     <defs>
-                      <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1} />
-                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                      <linearGradient id="premiumGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
-                    <Tooltip contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />
-                    <Area type="monotone" dataKey="sacos" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorProd)" />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', fontWeight: 800 }}
+                      cursor={{ stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '5 5' }}
+                    />
+                    <Area type="monotone" dataKey="sacos" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#premiumGradient)" animationDuration={1500} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Productividad por Molino */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-8">Productividad por Molino</h3>
-              <div className="h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={intelligence.millStatsReport} layout="vertical" margin={{ left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
-                    <Tooltip cursor={{ fill: '#f8fafc' }} />
-                    <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24}>
-                      {intelligence.millStatsReport.map((_, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+            {/* Distribución por Zona - Horizontal Moderno */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Volumen por Zonas</h3>
+                  <p className="text-xs text-slate-500 font-medium">Geolocalización de la producción</p>
+                </div>
+                <Map size={20} className="text-slate-400" />
               </div>
+              
+              {intelligence.chartZoneData.length > 0 ? (
+                <div className="flex-1 space-y-6">
+                  {intelligence.chartZoneData.slice(0, 6).map((z, i) => (
+                    <div key={z.name} className="space-y-2">
+                      <div className="flex justify-between items-center text-xs font-black uppercase tracking-tighter">
+                        <span className={z.name === 'SIN ZONA' ? 'text-amber-600' : 'text-slate-600'}>{z.name}</span>
+                        <span className="text-slate-900">{z.value.toLocaleString()} sacos</span>
+                      </div>
+                      <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                        <div 
+                          className="h-full rounded-full transition-all duration-1000" 
+                          style={{ 
+                            width: `${(z.value / intelligence.totalSacos * 100).toFixed(0)}%`,
+                            backgroundColor: COLORS[i % COLORS.length]
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem]">
+                  <p className="text-slate-400 font-bold italic">Sin datos de zona disponibles</p>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Pie Chart Mineral */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm lg:col-span-1">
-              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-8">Tipo de Mineral</h3>
-              <div className="h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={intelligence.mineralData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={100}
-                      paddingAngle={8}
-                      dataKey="value"
-                    >
-                      {intelligence.mineralData.map((entry, index) => (
-                        <Cell key={index} fill={entry.name === 'Óxido' ? '#6366f1' : '#facc15'} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend verticalAlign="bottom" wrapperStyle={{ fontWeight: 700, fontSize: '11px' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+             {/* Distribución Mineral */}
+             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+                <h3 className="text-lg font-black text-slate-900 mb-8">Composición de Mineral</h3>
+                <div className="h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie 
+                        data={intelligence.mineralData} 
+                        cx="50%" cy="50%" 
+                        innerRadius={70} outerRadius={100} 
+                        paddingAngle={10} dataKey="value"
+                      >
+                        {intelligence.mineralData.map((entry, i) => (
+                          <Cell key={i} fill={entry.name === 'Óxido' ? '#6366f1' : '#facc15'} stroke="transparent" />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: '15px', border: 'none', fontWeight: 900 }} />
+                      <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ paddingTop: '20px', fontWeight: 700, fontSize: '11px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+             </div>
 
-            {/* Top 5 Ranking Reportes */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm lg:col-span-2">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-lg font-black text-slate-900 tracking-tight">Ranking de Producción por Cliente</h3>
-                <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">Líderes</span>
-              </div>
-              <div className="space-y-4">
-                {intelligence.topClients.slice(0, 5).map((client, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-5 bg-slate-50/50 hover:bg-slate-50 rounded-2xl border border-transparent hover:border-slate-200 transition-all group">
-                    <div className="flex items-center gap-5">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg ${
-                        idx === 0 ? 'bg-amber-100 text-amber-600 shadow-sm' :
-                        idx === 1 ? 'bg-slate-200 text-slate-500' :
-                        idx === 2 ? 'bg-orange-100 text-orange-600' :
-                        'bg-white text-slate-400 border border-slate-100'
-                      }`}>
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <h4 className="font-black text-slate-900 tracking-tight">{client.name}</h4>
-                        <span className="text-xs font-bold text-slate-400">{client.tipo}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-black text-indigo-600 group-hover:scale-110 transition-transform">
-                        {client.total.toLocaleString()}
-                      </div>
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SACOS PROCESADOS</div>
-                    </div>
+             {/* Ranking de Clientes con Stock Actual */}
+             <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-lg font-black text-slate-900">Ranking Top 5 y Balance Actual</h3>
+                  <div className="flex gap-2 text-[10px] font-black uppercase">
+                    <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">HISTÓRICO</span>
+                    <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">STOCK</span>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+                <div className="space-y-4">
+                  {intelligence.topClients.map((client, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-slate-50 rounded-2xl border border-transparent hover:border-slate-200 transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${
+                          idx === 0 ? 'bg-amber-100 text-amber-600 shadow-sm' :
+                          idx === 1 ? 'bg-slate-200 text-slate-400' :
+                          idx === 2 ? 'bg-orange-100 text-orange-600' :
+                          'bg-white text-slate-300 border border-slate-100'
+                        }`}>
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <h4 className="font-black text-slate-900 tracking-tight">{client.name}</h4>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{client.tipo}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-8 items-center">
+                        <div className="text-right">
+                          <p className="text-xs font-black text-slate-400 uppercase tracking-tighter">Procesado</p>
+                          <p className="text-lg font-black text-indigo-600">{client.total.toLocaleString()}</p>
+                        </div>
+                        <div className="text-right px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
+                          <p className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">En Almacén</p>
+                          <p className="text-lg font-black text-emerald-700">{client.stockActual.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+             </div>
           </div>
         </div>
       )}
-
-          {/* KPIs Avanzados con % de cambio */}
-          <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 sm:gap-5">
-            {[
-              { label: 'PRODUCCIÓN TOTAL', value: intelligence.totalSacos.toLocaleString(), unit: 'sacos', icon: Box, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100' },
-              { label: 'ESTE MES', value: intelligence.sacosEsteMes.toLocaleString(), unit: 'sacos', icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', badge: intelligence.pctCambio !== '---' ? `${intelligence.tendenciaPositiva ? '+' : ''}${intelligence.pctCambio}%` : null, badgePositive: intelligence.tendenciaPositiva },
-              { label: 'OPERACIONES', value: intelligence.totalOperaciones.toString(), unit: 'registros', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
-              { label: 'PROMEDIO/CARGA', value: intelligence.avgSacos.toFixed(1), unit: 'sacos/op', icon: BarChart3, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
-              { label: 'OCUPACIÓN PLANTA', value: `${intelligence.tasaOcupacion}%`, unit: 'equipo', icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100' },
-            ].map((kpi) => (
-              <div key={kpi.label} className="group bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-lg transition-all duration-300">
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`p-3 ${kpi.bg} ${kpi.border} border rounded-xl group-hover:scale-110 transition-transform`}>
-                    <kpi.icon className={kpi.color} size={22} strokeWidth={2.5} />
-                  </div>
-                  {(kpi as any).badge && (
-                    <span className={`hidden sm:flex text-[10px] font-black px-2 py-1 rounded-lg items-center gap-1 ${(kpi as any).badgePositive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                      {(kpi as any).badgePositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                      {(kpi as any).badge}
-                    </span>
-                  )}
-                </div>
-                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 truncate" title={kpi.label}>{kpi.label}</p>
-                <div className="flex items-baseline gap-1 sm:gap-1.5 truncate">
-                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
-                  <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 truncate">{kpi.unit}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Exportaciones rápidas */}
-          <div className="flex flex-wrap gap-3">
-            <button onClick={handleExportExcel} className="flex items-center px-5 py-3 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-emerald-500 hover:text-emerald-600 transition-all font-bold text-xs">
-              <Download size={16} className="mr-2 text-emerald-500" /> EXCEL MOLIENDA
-            </button>
-            <button onClick={handleExportIngresosExcel} className="flex items-center px-5 py-3 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl hover:border-indigo-500 hover:text-indigo-600 transition-all font-bold text-xs">
-              <Download size={16} className="mr-2 text-indigo-500" /> EXCEL INGRESOS
-            </button>
-            <button onClick={handleGeneratePDF} className="flex items-center px-5 py-3 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all shadow-lg font-bold text-xs">
-              <FileText size={16} className="mr-2" /> PDF GERENCIAL
-            </button>
-          </div>
-
-          {/* Gráficos principales en grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Tendencia Mensual */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Tendencia de Producción</h3>
-                  <p className="text-xs text-slate-500 font-medium">Sacos procesados por mes ({now.getFullYear()})</p>
-                </div>
-                <div className="p-3 bg-indigo-50 rounded-2xl border border-indigo-100">
-                  <BarChart3 className="text-indigo-600" size={20} />
-                </div>
-              </div>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={intelligence.monthlyProd}>
-                    <defs>
-                      <linearGradient id="colorSacos" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
-                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 700 }} />
-                    <Area type="monotone" dataKey="sacos" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorSacos)" animationDuration={1200} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Productividad por Molino */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Productividad por Molino</h3>
-                  <p className="text-xs text-slate-500 font-medium">Carga total asignada a cada unidad</p>
-                </div>
-                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
-                  <Factory className="text-emerald-600" size={20} />
-                </div>
-              </div>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={intelligence.millStats} layout="vertical" margin={{ left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
-                    <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} />
-                    <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24}>
-                      {intelligence.millStats.map((_, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
 
           {/* Sección inferior: Mineral + Zonas + Top Clientes */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

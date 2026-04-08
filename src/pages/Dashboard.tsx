@@ -387,10 +387,40 @@ const Dashboard: React.FC = () => {
 
           {/* Actividad y Logs */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            <div className="lg:col-span-3 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-              <h2 className="text-xl font-black text-slate-900 mb-6">Actividad Reciente</h2>
-              <div className="h-80 w-full"><ActivityChart /></div>
+            <div className="lg:col-span-3 space-y-8">
+              {/* Box 1: Actividad */}
+              <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+                <h2 className="text-xl font-black text-slate-900 mb-6">Actividad Reciente</h2>
+                <div className="h-80 w-full"><ActivityChart /></div>
+              </div>
+
+              {/* Box 2: Uso de Molinos (Filling the space) */}
+              <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Carga por Molino</h2>
+                    <p className="text-xs text-slate-500 font-medium">Distribución de sacos procesados</p>
+                  </div>
+                  <Factory className="text-indigo-600 opacity-20" size={32} />
+                </div>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={intelligence.millStats} layout="vertical" margin={{ left: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
+                      <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} />
+                      <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24}>
+                        {intelligence.millStats.map((_, index) => (
+                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
+
             <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
               <h2 className="text-xl font-black text-slate-900 mb-6">Últimas Moliendas</h2>
               <RecentSessions sessions={millingLogs.slice(0, 10)} mills={mills} />
@@ -506,41 +536,32 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Distribución por Zona - Horizontal Moderno */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col">
-              <div className="flex items-center justify-between mb-8">
+            {/* Productividad por Molino (RESTORED) */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Volumen por Zonas</h3>
-                  <p className="text-xs text-slate-500 font-medium">Geolocalización de la producción</p>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Rendimiento de Unidades</h3>
+                  <p className="text-xs text-slate-500 font-medium">Sacos totales por molino</p>
                 </div>
-                <Map size={20} className="text-slate-400" />
+                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
+                  <Factory className="text-emerald-600" size={20} />
+                </div>
               </div>
-              
-              {intelligence.chartZoneData.length > 0 ? (
-                <div className="flex-1 space-y-6">
-                  {intelligence.chartZoneData.slice(0, 6).map((z, i) => (
-                    <div key={z.name} className="space-y-2">
-                      <div className="flex justify-between items-center text-xs font-black uppercase tracking-tighter">
-                        <span className={z.name === 'SIN ZONA' ? 'text-amber-600' : 'text-slate-600'}>{z.name}</span>
-                        <span className="text-slate-900">{z.value.toLocaleString()} sacos</span>
-                      </div>
-                      <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                        <div 
-                          className="h-full rounded-full transition-all duration-1000" 
-                          style={{ 
-                            width: `${(z.value / intelligence.totalSacos * 100).toFixed(0)}%`,
-                            backgroundColor: COLORS[i % COLORS.length]
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem]">
-                  <p className="text-slate-400 font-bold italic">Sin datos de zona disponibles</p>
-                </div>
-              )}
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={intelligence.millStats} layout="vertical" margin={{ left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
+                    <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} />
+                    <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24}>
+                      {intelligence.millStats.map((_, index) => (
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 

@@ -65,7 +65,7 @@ function App() {
           <Route path="/stock" element={<Stock />} />
           <Route path="/mantenimiento" element={<Mantenimiento />} />
           <Route path="/clientes" element={<Clientes />} />
-          <Route path="/reportes" element={<Reportes />} />
+{/* <Route path="/reportes" element={<Reportes />} /> */}
           <Route path="/usuarios" element={user?.role === 'ADMIN' ? <Usuarios /> : <Navigate to="/dashboard" />} />
         </Route>
 

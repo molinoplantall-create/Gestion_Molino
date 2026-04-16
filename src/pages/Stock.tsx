@@ -759,6 +759,7 @@ const Stock: React.FC = () => {
                                       <span className="flex items-center text-xs font-bold text-slate-500 mt-1">
                                         <Truck size={14} className="mr-1 text-slate-400" />
                                         ZONA: {grp.zone || 'N/A'}
+                                      </span>
                                     </div>
                                     <div className="flex flex-col items-end">
                                       <div className="flex items-baseline gap-1">

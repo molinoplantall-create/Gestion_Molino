@@ -760,30 +760,37 @@ const Stock: React.FC = () => {
                                         <Truck size={14} className="mr-1 text-slate-400" />
                                         ZONA: {grp.zone || 'N/A'}
                                       </span>
-                                    </div>
                                     <div className="flex flex-col items-end">
-                                      <span className="text-2xl font-black text-slate-900">{totalInicial}</span>
-                                      <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">SACOS INGRESARON</span>
+                                      <div className="flex items-baseline gap-1">
+                                        <span className="text-2xl font-black text-slate-900">{totalInicial}</span>
+                                        <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">SACOS</span>
+                                      </div>
+                                      <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase mb-1">TOTAL INGRESÓ</span>
+                                      {totalRestante > 0 && (
+                                        <div className="bg-emerald-500 text-white px-2 py-1 rounded-md shadow-sm shadow-emerald-200 flex items-center font-black text-[10px] tracking-widest mt-0.5 animate-pulse">
+                                           {totalRestante} DISPONIBLES
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
 
                                   {/* Desglose de Minerales en el Grupo */}
-                                  <div className="space-y-4">
-                                    {grp.inputs.map((batch: any) => (
-                                      <div key={batch.id} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
+                                    {grp.inputs.map((batch: any, index: number) => (
+                                      <div key={batch.id} className={`relative ${index > 0 ? 'border-t border-slate-200 pt-3 mt-3' : ''}`}>
                                         <div className="flex justify-between items-center mb-2">
                                           <div className="flex items-center gap-2">
                                             <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${batch.sub_mineral === 'CUARZO'
-                                              ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                                              : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                              : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
                                               }`}>
                                               {batch.sub_mineral}
                                             </span>
                                             <button
                                               onClick={() => handleUpdateMineralType(batch.id, batch.mineral_type || 'OXIDO')}
-                                              className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border transition-all ${batch.mineral_type === 'SULFURO'
-                                                ? 'bg-rose-50 text-rose-600 border-rose-100'
-                                                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                              className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border transition-all shadow-sm ${batch.mineral_type === 'SULFURO'
+                                                ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                                                : 'bg-teal-50 text-teal-600 border-teal-200 hover:bg-teal-100'
                                                 }`}
                                               title="Cambiar Tipo (Óxido/Sulfuro)"
                                             >
@@ -795,7 +802,7 @@ const Stock: React.FC = () => {
                                             {user?.role === 'ADMIN' && (
                                               <button
                                                 onClick={() => handleEditClick(batch)}
-                                                className="p-1.5 text-slate-400 bg-white border border-slate-200 rounded-md hover:text-indigo-600 hover:border-indigo-300 transition-colors"
+                                                className="p-1.5 text-slate-400 bg-white border border-slate-200 rounded-md hover:text-indigo-600 hover:border-indigo-300 transition-colors shadow-sm"
                                                 title="Administrar cantidades (Admin)"
                                               >
                                                 <Edit size={12} />
@@ -803,7 +810,7 @@ const Stock: React.FC = () => {
                                             )}
                                             <button
                                               onClick={() => handleDeleteClick(batch)}
-                                              className="p-1.5 text-slate-400 bg-white border border-slate-200 rounded-md hover:text-rose-500 hover:border-rose-300 transition-colors"
+                                              className="p-1.5 text-slate-400 bg-white border border-slate-200 rounded-md hover:text-rose-500 hover:border-rose-300 transition-colors shadow-sm"
                                               title="Eliminar este ingreso (Revierte el saldo)"
                                             >
                                               <Trash2 size={12} />
@@ -811,15 +818,23 @@ const Stock: React.FC = () => {
                                           </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between mt-2">
-                                          <div className="w-full mr-4">
-                                            <div className="flex justify-between text-[9px] font-bold text-slate-400 mb-1 uppercase tracking-wider">
-                                              <span>Inicial: {batch.initial_quantity}</span>
-                                              <span>{batch.remaining_quantity} Disponibles</span>
+                                        <div className="flex items-center justify-between mt-3">
+                                          <div className="w-full">
+                                            <div className="flex justify-between items-end mb-1.5">
+                                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                                Inicial: <span className="text-slate-700">{batch.initial_quantity}</span>
+                                              </span>
+                                              <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                                                batch.remaining_quantity > 0 
+                                                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm'
+                                                  : 'bg-slate-100 text-slate-400'
+                                              }`}>
+                                                {batch.remaining_quantity} Disponibles
+                                              </span>
                                             </div>
-                                            <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden w-full">
+                                            <div className="h-2 bg-slate-200 rounded-full overflow-hidden w-full shadow-inner">
                                               <div
-                                                className={`h-full transition-all duration-500 ${batch.sub_mineral === 'CUARZO' ? 'bg-amber-500' : 'bg-indigo-500'}`}
+                                                className={`h-full transition-all duration-500 rounded-r-full ${batch.sub_mineral === 'CUARZO' ? 'bg-amber-400' : 'bg-indigo-500'}`}
                                                 style={{ width: `${Math.min(100, (batch.remaining_quantity / batch.initial_quantity) * 100)}%` }}
                                               ></div>
                                             </div>

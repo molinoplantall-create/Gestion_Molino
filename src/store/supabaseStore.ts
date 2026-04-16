@@ -188,7 +188,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   },
 
   fetchClients: async (options = {}) => {
-    const { page = 1, pageSize = 20, search, status, zone } = options;
+    const { page = 1, pageSize = 500, search, status, zone } = options;
     set({ clientsLoading: true, error: null });
     try {
       let query = supabase
@@ -731,7 +731,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   registerMaintenance: async (data: MaintenanceRegisterData) => {
     set({ loading: true, error: null });
     try {
-      // Intentar inserción estandarizada primero
+      // Intentar inserción estandarizada primero (solo columnas existentes en la BD)
       const insertData: any = {
         mill_id: data.mill_id,
         type: data.type,
@@ -739,10 +739,6 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         technician_name: data.technician_name,
         worked_hours: data.worked_hours,
         status: data.status || 'PENDIENTE',
-        cost_pen: data.cost_pen || 0,
-        cost_usd: data.cost_usd || 0,
-        tasks_checklist: data.tasks_checklist || [],
-        action_taken: data.action_taken || null,
         created_at: data.fechaProgramada ? `${data.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
       };
 

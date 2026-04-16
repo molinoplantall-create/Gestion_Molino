@@ -78,6 +78,50 @@ const Stock: React.FC = () => {
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [clientBatches, setClientBatches] = useState<any[]>([]);
   const [batchesLoading, setBatchesLoading] = useState(false);
+  const [monthFilter, setMonthFilter] = useState('all'); // 'all', 'current', 'prev'
+
+  // Agrupación y filtrado de lotes
+  const groupedBatches = React.useMemo(() => {
+    let filtered = clientBatches;
+    const now = new Date();
+    
+    // 1. Filtrar por rango
+    if (monthFilter === 'current') {
+      filtered = clientBatches.filter(b => {
+        const d = new Date(b.created_at);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+    } else if (monthFilter === 'prev') {
+      const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      filtered = clientBatches.filter(b => {
+        const d = new Date(b.created_at);
+        return d.getMonth() === prevMonth.getMonth() && d.getFullYear() === prevMonth.getFullYear();
+      });
+    }
+
+    // 2. Agrupar por fecha/hora para unificar Cuarzo y Llampo del mismo viaje
+    const groups: any[] = [];
+    filtered.forEach(batch => {
+      // Tomamos hasta los minutos para agrupar (HH:mm)
+      const dateStr = batch.created_at.substring(0, 16); 
+      let grp = groups.find(g => g.dateKey === dateStr && g.zone === batch.zone);
+      
+      if (!grp) {
+        grp = { 
+          id: batch.id, 
+          dateKey: dateStr, 
+          created_at: batch.created_at, 
+          zone: batch.zone, 
+          mineral_type: batch.mineral_type,
+          inputs: [] 
+        };
+        groups.push(grp);
+      }
+      grp.inputs.push(batch);
+    });
+    
+    return groups;
+  }, [clientBatches, monthFilter]);
 
   // Delete Modal State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -247,6 +291,8 @@ const Stock: React.FC = () => {
 
     setExpandedClient(clientId);
     setBatchesLoading(true);
+    // Resetear el filtro al cambiar de cliente
+    setMonthFilter('all');
     const batches = await fetchClientBatches(clientId);
     setClientBatches(batches);
     setBatchesLoading(false);
@@ -340,8 +386,8 @@ const Stock: React.FC = () => {
     }
   };
 
-  // Export batches to PDF
-  const exportPDF = (client: any, batches: any[]) => {
+  // Export batches to PDF for single client
+  const exportPDF = (client: any, groups: any[]) => {
     const doc = new jsPDF();
 
     // Header
@@ -350,7 +396,7 @@ const Stock: React.FC = () => {
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
-    doc.text('REPORTE DE INGRESOS DE MINERAL', 105, 20, { align: 'center' });
+    doc.text('REPORTE DE INGRESOS MENSUAL', 105, 20, { align: 'center' });
     doc.setFontSize(10);
     doc.text('SISTEMA DE GESTIÓN LOGÍSTICA - MINERA INMACULADA CONCEPCIÓN', 105, 30, { align: 'center' });
 
@@ -365,66 +411,69 @@ const Stock: React.FC = () => {
     const infoY = 65;
     doc.text(`Cliente: ${client.name}`, 14, infoY);
     doc.text(`Tipo: ${client.client_type || 'N/A'}`, 14, infoY + 7);
-    doc.text(`Zona Principal: ${client.zone || 'N/A'}`, 14, infoY + 14);
-    doc.text(`Fecha Reporte: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })}`, 120, infoY);
+    const filterText = monthFilter === 'all' ? 'Todo el histórico' : monthFilter === 'current' ? 'Mes Actual' : 'Mes Anterior';
+    doc.text(`Periodo Reportado: ${filterText}`, 14, infoY + 14);
+    doc.text(`Fecha Emisión: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })}`, 120, infoY);
 
-    // Summary table
+    // Filter calculations
+    let totalCuarzo = 0;
+    let totalLlampo = 0;
+    let totalIncome = 0;
+
+    groups.forEach(grp => {
+      grp.inputs.forEach((b: any) => {
+        if (b.sub_mineral === 'CUARZO') totalCuarzo += Number(b.initial_quantity);
+        if (b.sub_mineral === 'LLAMPO') totalLlampo += Number(b.initial_quantity);
+      });
+    });
+    totalIncome = totalCuarzo + totalLlampo;
+
+    // Summary table with only filtered totals!
     autoTable(doc, {
       startY: 90,
-      head: [['RESUMEN', 'CUARZO', 'LLAMPO', 'TOTAL BALANCE']],
+      head: [['RESUMEN DEL PERIODO (' + filterText + ')', 'CUARZO', 'LLAMPO', 'TOTAL CANTI.']],
       body: [
         [
-          'STOCK DISPONIBLE',
-          `${client.stock_cuarzo || 0} sacos`,
-          `${client.stock_llampo || 0} sacos`,
-          `${(client.stock_cuarzo || 0) + (client.stock_llampo || 0)} sacos`
-        ],
-        [
-          'TOTAL INGRESOS (HISTÓRICO)',
-          `${client.cumulative_cuarzo || 0} sacos`,
-          `${client.cumulative_llampo || 0} sacos`,
-          `${(client.cumulative_cuarzo || 0) + (client.cumulative_llampo || 0)} sacos`
+          'TOTAL INGRESOS',
+          `${totalCuarzo} sacos`,
+          `${totalLlampo} sacos`,
+          `${totalIncome} sacos`
         ]
       ],
       theme: 'grid',
       headStyles: { fillColor: [63, 81, 181], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 9 }
+      styles: { fontSize: 10 }
     });
 
-    // Detailed Batches table
+    // Detailed grouped table for the month
     doc.setFont('helvetica', 'bold');
-    doc.text('DETALLE DE LOTES (HISTORIAL DE INGRESOS)', 14, (doc as any).lastAutoTable.finalY + 15);
+    doc.text('DETALLE DE INGRESOS (POR VIAJE)', 14, (doc as any).lastAutoTable.finalY + 15);
 
-    const tableData = batches.map(b => [
-      formatDateSafe(b.created_at),
-      b.sub_mineral,
-      b.zone || 'N/A',
-      b.initial_quantity,
-      b.remaining_quantity,
-      b.remaining_quantity > 0 ? 'ACTIVO' : 'AGOTADO'
-    ]);
+    const tableData = groups.map(grp => {
+      const cz = grp.inputs.find((b:any) => b.sub_mineral === 'CUARZO');
+      const ll = grp.inputs.find((b:any) => b.sub_mineral === 'LLAMPO');
+      const combinedTotal = (cz?.initial_quantity || 0) + (ll?.initial_quantity || 0);
+      return [
+        formatDateSafe(grp.created_at),
+        grp.zone || 'N/A',
+        grp.mineral_type || 'N/A',
+        cz?.initial_quantity || 0,
+        ll?.initial_quantity || 0,
+        combinedTotal
+      ];
+    });
 
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 20,
-      head: [['FECHA', 'TIPO', 'ZONA', 'INICIAL', 'RESTANTE', 'ESTADO']],
+      head: [['FECHA LLEGADA', 'ZONA', 'TIPO MIN.', 'CUARZO', 'LLAMPO', 'TOTAL']],
       body: tableData,
       theme: 'striped',
-      headStyles: { fillColor: [51, 51, 51] },
-      didDrawCell: (data) => {
-        if (data.section === 'body' && data.column.index === 5) {
-          const status = data.cell.raw;
-          if (status === 'ACTIVO') {
-            doc.setTextColor(0, 150, 0); // Green
-          } else {
-            doc.setTextColor(200, 0, 0); // Red
-          }
-        }
-      }
+      headStyles: { fillColor: [51, 51, 51] }
     });
 
     // Save
     doc.save(`Reporte_Ingresos_${client.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`);
-    toast.success('PDF Generado', 'El reporte se ha descargado correctamente.');
+    toast.success('PDF Generado', 'El reporte limpio mensual se ha descargado correctamente.');
   };
 
   return (
@@ -657,104 +706,139 @@ const Stock: React.FC = () => {
                   {/* Expanded Batches View */}
                   {expandedClient === client.id && (
                     <tr className="bg-slate-50 border-x-4 border-l-indigo-500 border-r-transparent">
-                      <td colSpan={8} className="px-8 py-8">
-                        <div className="flex items-center justify-between mb-6">
+                      <td colSpan={8} className="px-5 sm:px-8 py-8">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
                           <div>
-                            <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Historial Detallado por Lotes</h4>
-                            <p className="text-xs text-slate-500 font-medium">Traceabilidad de ingresos y consumo FIFO para {client.name}</p>
+                            <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Historial de Ingresos Consolidados</h4>
+                            <p className="text-xs text-slate-500 font-medium">Traceabilidad agrupada por viaje/carga para {client.name}</p>
                           </div>
-                          <button
-                            onClick={() => exportPDF(client, clientBatches)}
-                            className="flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:text-indigo-600 hover:border-indigo-600 transition-all font-bold text-xs"
-                          >
-                            <Download size={16} className="mr-2" /> PDF PROFESIONAL
-                          </button>
+                          
+                          <div className="flex items-center gap-3 bg-white p-2 border border-slate-200 rounded-xl shadow-sm">
+                            <select 
+                              value={monthFilter}
+                              onChange={(e) => setMonthFilter(e.target.value)}
+                              className="bg-transparent text-sm font-bold text-slate-700 outline-none pr-4 cursor-pointer"
+                            >
+                              <option value="all">Todo Histórico</option>
+                              <option value="current">Mes Actual</option>
+                              <option value="prev">Mes Anterior</option>
+                            </select>
+                            <button
+                              onClick={() => exportPDF(client, groupedBatches)}
+                              className="flex items-center px-4 py-2 bg-indigo-600 border border-transparent text-white rounded-lg hover:bg-indigo-700 transition-all font-black text-[10px] tracking-widest shadow-md"
+                            >
+                              <Download size={14} className="mr-2" /> PDF REPORTE
+                            </button>
+                          </div>
                         </div>
 
                         {batchesLoading ? (
                           <div className="flex justify-center py-10">
-                            <LoadingSpinner text="Cargando historial de lotes..." />
+                            <LoadingSpinner text="Cargando historial unificado..." />
                           </div>
-                        ) : clientBatches.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {clientBatches.map((batch: any) => (
-                              <div
-                                key={batch.id}
-                                className={`p-5 rounded-2xl border transition-all ${batch.remaining_quantity > 0
-                                  ? 'bg-white border-slate-200 shadow-sm'
-                                  : 'bg-slate-100/50 border-slate-100 opacity-70'
-                                  }`}
-                              >
-                                <div className="flex justify-between items-start mb-3">
-                                  <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${batch.sub_mineral === 'CUARZO'
-                                    ? 'bg-amber-50 text-amber-600 border border-amber-100'
-                                    : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
-                                    }`}>
-                                    {batch.sub_mineral}
-                                  </span>
-                                  <div className="flex gap-1">
-                                    <button
-                                      onClick={() => handleUpdateMineralType(batch.id, batch.mineral_type || 'OXIDO')}
-                                      className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border transition-all ${batch.mineral_type === 'SULFURO'
-                                        ? 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100'
-                                        : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'
-                                        }`}
-                                      title="Cambiar Tipo (Óxido/Sulfuro)"
-                                    >
-                                      {batch.mineral_type || 'OXIDO'}
-                                    </button>
-                                    
-                                    {user?.role === 'ADMIN' && (
-                                      <button
-                                        onClick={() => handleEditClick(batch)}
-                                        className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
-                                        title="Administrar cantidades (Admin)"
-                                      >
-                                        <Edit size={12} />
-                                      </button>
-                                    )}
+                        ) : groupedBatches.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {groupedBatches.map((grp: any) => {
+                              const cuarzoBatch = grp.inputs.find((b:any) => b.sub_mineral === 'CUARZO');
+                              const llampoBatch = grp.inputs.find((b:any) => b.sub_mineral === 'LLAMPO');
+                              const totalInicial = (cuarzoBatch?.initial_quantity || 0) + (llampoBatch?.initial_quantity || 0);
+                              const totalRestante = (cuarzoBatch?.remaining_quantity || 0) + (llampoBatch?.remaining_quantity || 0);
+                              
+                              const isAllDepleted = totalRestante === 0;
 
-                                    <button
-                                      onClick={() => handleDeleteClick(batch)}
-                                      className="p-1 text-slate-400 hover:text-rose-500 transition-colors"
-                                      title="Eliminar este ingreso"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
+                              return (
+                                <div
+                                  key={grp.id}
+                                  className={`p-6 rounded-[1.5rem] border transition-all ${!isAllDepleted
+                                    ? 'bg-white border-slate-200 shadow-sm'
+                                    : 'bg-slate-100/50 border-slate-100 opacity-75'
+                                    }`}
+                                >
+                                  {/* Header del Grupo (Viaje) */}
+                                  <div className="flex justify-between items-start mb-4 border-b border-slate-100 pb-3">
+                                    <div className="flex flex-col">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{formatDateSafe(grp.created_at)}</span>
+                                      <span className="flex items-center text-xs font-bold text-slate-500 mt-1">
+                                        <Truck size={14} className="mr-1 text-slate-400" />
+                                        ZONA: {grp.zone || 'N/A'}
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                      <span className="text-2xl font-black text-slate-900">{totalInicial}</span>
+                                      <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">SACOS INGRESARON</span>
+                                    </div>
                                   </div>
-                                  <span className="text-[10px] font-black text-slate-400">
-                                    {formatDateSafe(batch.created_at)}
-                                  </span>
-                                </div>
 
-                                <div className="mb-4">
-                                  <div className="flex items-baseline justify-between mb-1">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saldo Restante</p>
-                                    <p className="text-xl font-black text-slate-900">{batch.remaining_quantity} <span className="text-xs font-bold text-slate-400">sacos</span></p>
-                                  </div>
-                                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full transition-all duration-500 ${batch.sub_mineral === 'CUARZO' ? 'bg-amber-500' : 'bg-indigo-500'}`}
-                                      style={{ width: `${Math.min(100, (batch.remaining_quantity / batch.initial_quantity) * 100)}%` }}
-                                    ></div>
-                                  </div>
-                                  <div className="flex justify-between mt-1.5 text-[9px] font-bold text-slate-400 uppercase">
-                                    <span>Inicial: {batch.initial_quantity}</span>
-                                    <span>{Math.round((batch.remaining_quantity / batch.initial_quantity) * 100)}% disponible</span>
-                                  </div>
-                                </div>
+                                  {/* Desglose de Minerales en el Grupo */}
+                                  <div className="space-y-4">
+                                    {grp.inputs.map((batch: any) => (
+                                      <div key={batch.id} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <div className="flex justify-between items-center mb-2">
+                                          <div className="flex items-center gap-2">
+                                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${batch.sub_mineral === 'CUARZO'
+                                              ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                                              : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                                              }`}>
+                                              {batch.sub_mineral}
+                                            </span>
+                                            <button
+                                              onClick={() => handleUpdateMineralType(batch.id, batch.mineral_type || 'OXIDO')}
+                                              className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border transition-all ${batch.mineral_type === 'SULFURO'
+                                                ? 'bg-rose-50 text-rose-600 border-rose-100'
+                                                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                }`}
+                                              title="Cambiar Tipo (Óxido/Sulfuro)"
+                                            >
+                                              {batch.mineral_type || 'OXIDO'}
+                                            </button>
+                                          </div>
+                                          
+                                          <div className="flex items-center gap-2">
+                                            {user?.role === 'ADMIN' && (
+                                              <button
+                                                onClick={() => handleEditClick(batch)}
+                                                className="p-1.5 text-slate-400 bg-white border border-slate-200 rounded-md hover:text-indigo-600 hover:border-indigo-300 transition-colors"
+                                                title="Administrar cantidades (Admin)"
+                                              >
+                                                <Edit size={12} />
+                                              </button>
+                                            )}
+                                            <button
+                                              onClick={() => handleDeleteClick(batch)}
+                                              className="p-1.5 text-slate-400 bg-white border border-slate-200 rounded-md hover:text-rose-500 hover:border-rose-300 transition-colors"
+                                              title="Eliminar este ingreso (Revierte el saldo)"
+                                            >
+                                              <Trash2 size={12} />
+                                            </button>
+                                          </div>
+                                        </div>
 
-                                <div className="flex items-center gap-2 pt-3 border-t border-slate-50">
-                                  <Truck size={12} className="text-slate-400" />
-                                  <span className="text-[10px] font-bold text-slate-600 uppercase">Zona: {batch.zone || 'N/A'}</span>
+                                        <div className="flex items-center justify-between mt-2">
+                                          <div className="w-full mr-4">
+                                            <div className="flex justify-between text-[9px] font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                                              <span>Inicial: {batch.initial_quantity}</span>
+                                              <span>{batch.remaining_quantity} Disponibles</span>
+                                            </div>
+                                            <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden w-full">
+                                              <div
+                                                className={`h-full transition-all duration-500 ${batch.sub_mineral === 'CUARZO' ? 'bg-amber-500' : 'bg-indigo-500'}`}
+                                                style={{ width: `${Math.min(100, (batch.remaining_quantity / batch.initial_quantity) * 100)}%` }}
+                                              ></div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
-                          <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-2xl">
-                            <Package className="mx-auto text-slate-300 mb-2" size={32} />
-                            <p className="text-slate-500 font-bold">No hay lotes registrados para este cliente</p>
+                          <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-2xl bg-white">
+                            <Package className="mx-auto text-slate-300 mb-3" size={40} />
+                            <p className="text-slate-600 font-bold">No hay registros de ingreso en este periodo</p>
+                            <p className="text-slate-400 text-xs mt-1">Intente cambiar el filtro de mes</p>
                           </div>
                         )}
                       </td>

@@ -450,15 +450,15 @@ const Stock: React.FC = () => {
     doc.text('DETALLE DE INGRESOS (POR VIAJE)', 14, (doc as any).lastAutoTable.finalY + 15);
 
     const tableData = groups.map(grp => {
-      const cz = grp.inputs.find((b:any) => b.sub_mineral === 'CUARZO');
-      const ll = grp.inputs.find((b:any) => b.sub_mineral === 'LLAMPO');
-      const combinedTotal = (cz?.initial_quantity || 0) + (ll?.initial_quantity || 0);
+      const czTotal = grp.inputs.filter((b:any) => b.sub_mineral === 'CUARZO').reduce((sum: number, b: any) => sum + Number(b.initial_quantity), 0);
+      const llTotal = grp.inputs.filter((b:any) => b.sub_mineral === 'LLAMPO').reduce((sum: number, b: any) => sum + Number(b.initial_quantity), 0);
+      const combinedTotal = czTotal + llTotal;
       return [
         formatDateSafe(grp.created_at),
         grp.zone || 'N/A',
         grp.mineral_type || 'N/A',
-        cz?.initial_quantity || 0,
-        ll?.initial_quantity || 0,
+        czTotal,
+        llTotal,
         combinedTotal
       ];
     });
@@ -739,10 +739,8 @@ const Stock: React.FC = () => {
                         ) : groupedBatches.length > 0 ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                             {groupedBatches.map((grp: any) => {
-                              const cuarzoBatch = grp.inputs.find((b:any) => b.sub_mineral === 'CUARZO');
-                              const llampoBatch = grp.inputs.find((b:any) => b.sub_mineral === 'LLAMPO');
-                              const totalInicial = (cuarzoBatch?.initial_quantity || 0) + (llampoBatch?.initial_quantity || 0);
-                              const totalRestante = (cuarzoBatch?.remaining_quantity || 0) + (llampoBatch?.remaining_quantity || 0);
+                              const totalInicial = grp.inputs.reduce((sum: number, b: any) => sum + Number(b.initial_quantity), 0);
+                              const totalRestante = grp.inputs.reduce((sum: number, b: any) => sum + Number(b.remaining_quantity), 0);
                               
                               const isAllDepleted = totalRestante === 0;
 

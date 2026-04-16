@@ -731,14 +731,20 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   registerMaintenance: async (data: MaintenanceRegisterData) => {
     set({ loading: true, error: null });
     try {
-      // Intentar inserción estandarizada primero (solo columnas existentes en la BD)
+      // Intentar inserción estandarizada primero
       const insertData: any = {
         mill_id: data.mill_id,
         type: data.type,
+        category: data.category || null,
+        priority: data.priority || 'MEDIA',
         description: data.description,
         technician_name: data.technician_name,
         worked_hours: data.worked_hours,
         status: data.status || 'PENDIENTE',
+        cost_pen: data.cost_pen || 0,
+        cost_usd: data.cost_usd || 0,
+        tasks_checklist: data.tasks_checklist || [],
+        action_taken: data.action_taken || null,
         created_at: data.fechaProgramada ? `${data.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
       };
 

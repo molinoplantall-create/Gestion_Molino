@@ -305,7 +305,7 @@ const ActivityChart: React.FC = () => {
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-amber-500" />
           <span className="text-slate-500">Promedio Prod:</span>
-          <span className="font-black text-slate-800">{avgSacos}/día</span>
+          <span className="font-black text-slate-800">{avgSacos}/{viewMode === 'anio' ? 'mes' : 'día'}</span>
         </div>
       </div>
 

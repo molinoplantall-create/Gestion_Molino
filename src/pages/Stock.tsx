@@ -519,19 +519,19 @@ const Stock: React.FC = () => {
           { label: 'CLIENTES ACTIVOS', value: clients.filter(c => (c.stock_cuarzo || 0) + (c.stock_llampo || 0) > 0).length, icon: User, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100', trend: 'Con Saldo', trendUp: true },
         ].map((kpi) => (
           <div key={kpi.label} className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm transition-all duration-300 flex flex-col justify-between">
-            <div className="flex items-start justify-between mb-2 sm:mb-4">
+            <div className="flex items-start justify-between mb-2">
               <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-7 sm:h-7`} strokeWidth={2.5} />
+                <kpi.icon className={`${kpi.color} w-4 h-4 sm:w-7 sm:h-7`} strokeWidth={2.5} />
               </div>
               <div className="hidden sm:flex items-center px-2 py-1 rounded-lg text-[10px] font-black text-slate-400 bg-slate-50">
                 {kpi.trend}
               </div>
             </div>
             <div>
-              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate" title={kpi.label}>{kpi.label}</p>
+              <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate" title={kpi.label}>{kpi.label}</p>
               <div className="flex items-baseline gap-1 sm:gap-2 truncate">
-                <h3 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
-                <span className="text-[10px] sm:text-xs font-bold text-slate-400">sacos</span>
+                <h3 className="text-lg sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                <span className="text-[8px] sm:text-xs font-bold text-slate-400">sacos</span>
               </div>
             </div>
           </div>
@@ -821,19 +821,19 @@ const Stock: React.FC = () => {
 
                                         <div className="flex items-center justify-between mt-3">
                                           <div className="w-full">
-                                            <div className="flex justify-between items-end mb-1.5">
-                                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end mb-2">
+                                              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 sm:mb-0">
                                                 Inicial: <span className="text-slate-700">{batch.initial_quantity}</span>
                                               </span>
-                                              <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                                              <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md inline-block w-fit ${
                                                 batch.remaining_quantity > 0 
                                                   ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm'
                                                   : 'bg-slate-100 text-slate-400'
                                               }`}>
-                                                {batch.remaining_quantity} Disponibles
+                                                {batch.remaining_quantity} DISP.
                                               </span>
                                             </div>
-                                            <div className="h-2 bg-slate-200 rounded-full overflow-hidden w-full shadow-inner">
+                                            <div className="h-1.5 sm:h-2 bg-slate-200 rounded-full overflow-hidden w-full shadow-inner">
                                               <div
                                                 className={`h-full transition-all duration-500 rounded-r-full ${batch.sub_mineral === 'CUARZO' ? 'bg-amber-400' : 'bg-indigo-500'}`}
                                                 style={{ width: `${Math.min(100, (batch.remaining_quantity / batch.initial_quantity) * 100)}%` }}

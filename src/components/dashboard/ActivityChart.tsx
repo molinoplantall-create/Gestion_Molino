@@ -117,6 +117,14 @@ const ActivityChart: React.FC = () => {
         if (day) day.sacos += (log.total_sacks || 0);
       });
 
+      // Si es el mes y año actual, solo mostrar hasta hoy
+      const now = new Date();
+      if (selectedYear === now.getFullYear() && selectedMonth === now.getMonth()) {
+        const todayStr = format(now, 'dd', { locale: es });
+        const todayInt = parseInt(todayStr);
+        return days.filter((_, i) => i < todayInt);
+      }
+
       return days;
     }
 
@@ -141,6 +149,13 @@ const ActivityChart: React.FC = () => {
           if (monthData) monthData.sacos += (log.total_sacks || 0);
         }
       });
+
+      // Si es el año actual, solo mostrar hasta el mes actual
+      const now = new Date();
+      if (selectedYear === now.getFullYear()) {
+        const currentMonth = now.getMonth();
+        return monthlyData.filter((_, i) => i <= currentMonth);
+      }
 
       return monthlyData;
     }
@@ -270,35 +285,9 @@ const ActivityChart: React.FC = () => {
       </div>
 
       {/* Gráfico */}
-      <div className={viewMode === 'anio' ? 'h-64' : 'h-56'}>
+      <div className={viewMode === 'semana' ? 'h-56' : 'h-64'}>
         <ResponsiveContainer width="100%" height="100%">
-          {viewMode === 'anio' ? (
-            <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis
-                dataKey="label"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-              />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: '12px',
-                  border: 'none',
-                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
-                }}
-                formatter={(value: number) => [`${value.toLocaleString()} sacos`, 'Producción']}
-              />
-              <Bar dataKey="sacos" name="Sacos" radius={[6, 6, 0, 0]} barSize={28}>
-                {chartData.map((entry) => (
-                  <Cell key={entry.label} fill={COLORS[chartData.indexOf(entry) % COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          ) : (
+          {viewMode === 'semana' ? (
             <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorSacos" x1="0" y1="0" x2="0" y2="1">
@@ -336,6 +325,32 @@ const ActivityChart: React.FC = () => {
                 animationDuration={1200}
               />
             </AreaChart>
+          ) : (
+            <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis
+                dataKey="label"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+              />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: '12px',
+                  border: 'none',
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}
+                formatter={(value: number) => [`${value.toLocaleString()} sacos`, 'Producción']}
+              />
+              <Bar dataKey="sacos" name="Sacos" radius={[6, 6, 0, 0]} barSize={viewMode === 'anio' ? 28 : (chartData.length > 20 ? 12 : 20)}>
+                {chartData.map((entry, index) => (
+                  <Cell key={entry.label} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
           )}
         </ResponsiveContainer>
       </div>

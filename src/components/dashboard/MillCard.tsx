@@ -202,10 +202,10 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
   }, [estadoReal, normalizedMill.horaFinEstimada, normalizedMill.horaInicio]);
 
   return (
-    <div className={`card-hover border rounded-xl p-5 ${config.color} h-full flex flex-col transition-all hover:shadow-sm group`}>
+    <div className={`card-hover border rounded-xl sm:rounded-2xl p-3 sm:p-5 ${config.color} h-full flex flex-col sm:flex-col transition-all hover:shadow-sm group relative overflow-hidden`}>
       {/* ProgressBar for process */}
       {estadoReal === 'ocupado' && percentProgress < 100 && (
-        <div className="absolute top-0 left-0 w-full h-1 bg-slate-200 overflow-hidden rounded-t-xl">
+        <div className="absolute top-0 left-0 w-full h-1 bg-slate-200 overflow-hidden">
           <div
             className="h-full bg-orange-500 transition-all duration-1000 ease-linear"
             style={{ width: `${percentProgress}%` }}
@@ -213,162 +213,109 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
         </div>
       )}
 
-      {/* HEADER: Nombre y Estado */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <div className={`p-2.5 rounded-lg ${config.badge} mr-3 group-hover:scale-110 transition-transform`}>
-            {React.cloneElement(config.icon as React.ReactElement, { strokeWidth: 1.5 })}
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-900 text-lg">{normalizedMill.nombre}</h3>
-            <div className="flex items-center mt-1">
-              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${config.badge}`}>
-                {config.label}
-              </span>
+      {/* RENDERIZADO RESPONSIVO: MOBILE (Horizontal) vs DESKTOP (Vertical) */}
+      <div className="flex flex-row sm:flex-col h-full gap-3 sm:gap-0">
+        
+        {/* LADO IZQUIERDO / SUPERIOR: Header e Icono */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between mb-0 sm:mb-4 w-1/3 sm:w-full">
+          <div className="flex flex-col sm:flex-row items-center">
+            <div className={`p-2 sm:p-2.5 rounded-lg ${config.badge} mb-2 sm:mb-0 sm:mr-3 group-hover:scale-110 transition-transform`}>
+              {React.cloneElement(config.icon as React.ReactElement, { size: 18, strokeWidth: 1.5 })}
             </div>
+            <div className="text-center sm:text-left">
+              <h3 className="font-black text-slate-900 text-xs sm:text-lg leading-tight">{normalizedMill.nombre}</h3>
+              <div className="flex items-center justify-center sm:justify-start mt-1">
+                <span className={`px-1.5 py-0.5 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest ${config.badge}`}>
+                  {config.label}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden sm:block text-right">
+            {estadoReal === 'ocupado' ? (
+              <>
+                <div className="text-xl font-black text-slate-900">{normalizedMill.sacosProcesando}</div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">sacos</div>
+              </>
+            ) : (
+              <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest pt-2 opacity-50">
+                INMACULADA
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Indicador o Logo Alternativo */}
-        <div className="text-right">
-          {estadoReal === 'ocupado' ? (
-            <>
-              <div className="text-xl font-black text-slate-900">{normalizedMill.sacosProcesando}</div>
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">sacos</div>
-            </>
-          ) : (
-            <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest pt-2 opacity-50">
-              INMACULADA
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* SECCIÓN 1: INFORMACIÓN OPERATIVA */}
-      <div className="space-y-3 mb-4 flex-1">
-        {/* Información de Ocupación Compacta */}
-        {estadoReal === 'ocupado' && (
-          <div className="space-y-2">
-            {/* Fila Cliente y Mineral */}
-            <div className="flex flex-col px-3 py-2 bg-white/60 rounded-lg border border-orange-100 shadow-sm gap-1">
-              <div className="flex items-center">
-                <User className="text-orange-400 mr-2 shrink-0" size={14} strokeWidth={2} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-bold text-slate-800 truncate" title={normalizedMill.clienteActual}>
-                    {normalizedMill.clienteActual || 'Cliente Anónimo'}
+        {/* LADO DERECHO / INFERIOR: Info Operativa + Mantenimiento */}
+        <div className="flex-1 flex flex-col justify-between min-w-0">
+          
+          {/* Info Operativa (Solo si está ocupado) */}
+          <div className="space-y-2 mb-2 sm:mb-4">
+            {estadoReal === 'ocupado' && (
+              <div className="space-y-1.5">
+                <div className="flex flex-col px-2 py-1.5 bg-white/60 rounded-lg border border-orange-100 shadow-sm">
+                  <div className="flex items-center">
+                    <User className="text-orange-400 mr-2 shrink-0" size={10} strokeWidth={2.5} />
+                    <div className="text-[9px] sm:text-[11px] font-bold text-slate-800 truncate">
+                      {normalizedMill.clienteActual || 'Cliente Anónimo'}
+                    </div>
+                  </div>
+                  <div className="text-[8px] sm:text-[9px] font-black text-orange-600/70 uppercase tracking-tighter pl-4">
+                     {timeRemaining || '--:--'} restantes
                   </div>
                 </div>
               </div>
-              {normalizedMill.mineralActual && (
-                <div className="flex items-center text-[10px] font-black text-orange-600/80 uppercase tracking-widest pl-5">
-                  • {normalizedMill.mineralActual}
+            )}
+
+            {/* Mensaje de mantenimiento compacto */}
+            {estadoReal === 'mantenimiento' && (
+              <div className="p-2 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2">
+                <Wrench size={12} className="text-red-500 shrink-0" />
+                <span className="text-[9px] text-red-700 font-bold">Mantenimiento Activo</span>
+              </div>
+            )}
+          </div>
+
+          {/* Sección de Horas y Aceite (Siempre visible, más compacta) */}
+          <div className="pt-2 border-t border-slate-200/50 space-y-2">
+             <div className="flex items-center justify-between text-[9px] sm:text-xs">
+                <div className="flex items-center text-slate-500">
+                  <Clock size={12} className="mr-1" />
+                  <span className="hidden sm:inline">Horas:</span>
                 </div>
-              )}
-            </div>
+                <span className="font-black text-slate-900">{normalizedMill.horasTrabajadas}h</span>
+             </div>
 
-            {/* Fila Tiempos */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="px-3 py-2 bg-indigo-50/50 rounded-lg border border-indigo-100/50 shadow-sm flex flex-col items-center">
-                <div className="text-[9px] text-indigo-400 font-black uppercase tracking-wider mb-0.5">Inicio</div>
-                <div className="text-sm font-black text-indigo-700">{formatTime(normalizedMill.horaInicio)}</div>
-              </div>
-              <div className="px-3 py-2 bg-emerald-50/50 rounded-lg border border-emerald-100/50 shadow-sm flex flex-col items-center">
-                <div className="text-[9px] text-emerald-500 font-black uppercase tracking-wider mb-0.5 flex items-center">
-                  <Clock size={10} className="mr-1" /> Hora fin
+             <div className="space-y-1">
+                <div className="flex items-center justify-between text-[9px] sm:text-xs">
+                  <span className="text-slate-500 hidden sm:inline">Aceite:</span>
+                  <span className={`font-black ${aceiteInfo.necesitaCambio ? 'text-red-600' : 'text-slate-700'}`}>
+                    {aceiteInfo.horasRestantes}h
+                  </span>
                 </div>
-                <div className="text-sm font-black text-emerald-700">{formatTime(normalizedMill.horaFinEstimada)}</div>
-              </div>
-            </div>
-
-            {/* Fila Contador */}
-            <div className="bg-orange-600/10 p-3 rounded-xl border border-orange-200/50 flex flex-col items-center">
-              <div className="text-[9px] text-orange-600 font-black uppercase tracking-widest mb-0.5 flex items-center">
-                <Clock size={10} className="mr-1" /> Tiempo Restante
-              </div>
-              <div className="text-2xl font-black text-orange-700 tracking-tighter leading-none">
-                {timeRemaining || '--:--'}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Mensaje especial para mantenimiento */}
-        {estadoReal === 'mantenimiento' && (
-          <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
-            <div className="flex items-center">
-              <Wrench size={16} strokeWidth={1.5} className="text-red-500 mr-2" />
-              <div className="text-sm text-red-700">
-                En proceso de mantenimiento preventivo/correctivo
-              </div>
-            </div>
-            <div className="text-xs text-red-600 mt-1">
-              Próximo disponible: {normalizedMill.proximoMantenimiento}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* SECCIÓN 2: MANTENIMIENTO Y HORAS (SIEMPRE visible) */}
-      <div className="pt-4 border-t border-slate-200/50 mt-auto">
-        {/* Horas trabajadas acumuladas */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center">
-            <Clock className="text-slate-400 mr-2" size={16} strokeWidth={1.5} />
-            <span className="text-sm text-slate-700">Horas totales:</span>
-          </div>
-          <div className="font-bold text-slate-900">{normalizedMill.horasTrabajadas}h</div>
-        </div>
-
-        {/* Progreso cambio de aceite */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <div className="flex items-center">
-              <Droplets className="text-blue-500 mr-2" size={14} strokeWidth={1.5} />
-              <span className="text-slate-700">Cambio de aceite:</span>
-            </div>
-            <span className={`font-semibold ${aceiteInfo.necesitaCambio ? 'text-red-600' : 'text-slate-700'}`}>
-              {aceiteInfo.horasRestantes}h
-            </span>
+                <div className="w-full bg-slate-200 rounded-full h-1">
+                  <div
+                    className={`h-1 rounded-full ${aceiteInfo.necesitaCambio ? 'bg-red-500' : 'bg-blue-500'}`}
+                    style={{ width: `${aceiteInfo.progreso}%` }}
+                  />
+                </div>
+             </div>
           </div>
 
-          {/* Barra de progreso */}
-          <div className="w-full bg-slate-200 rounded-full h-1.5">
-            <div
-              className={`h-1.5 rounded-full transition-all ${aceiteInfo.necesitaCambio ? 'bg-red-500' : 'bg-blue-500'
-                }`}
-              style={{ width: `${aceiteInfo.progreso}%` }}
-            ></div>
-          </div>
-
-          {aceiteInfo.necesitaCambio && (
-            <div className="flex items-center mt-2 text-xs">
-              <AlertTriangle className="text-red-500 mr-1" size={12} strokeWidth={1.5} />
-              <span className="text-red-600 font-medium">Próximo cambio requerido</span>
-            </div>
-          )}
-        </div>
-
-        {/* Último mantenimiento */}
-        <div className="text-xs text-slate-500 flex justify-between items-center pt-2 border-t border-slate-100">
-          <span>Último mantenimiento:</span>
-          <span className="font-medium text-slate-700">{normalizedMill.ultimoMantenimiento}</span>
-        </div>
-      </div>
-
-      {/* BADGE de estado operativo */}
-      <div className="mt-4 pt-3 border-t border-slate-200/50">
-        <div className="flex justify-between items-center">
-          <div className="text-xs text-slate-500">
-            Estado operativo:
-            <span className={`ml-1 font-medium ${normalizedMill.operativo ? 'text-emerald-600' : 'text-red-600'
-              }`}>
-              {normalizedMill.operativo ? 'Operativo' : 'No Operativo'}
-            </span>
-          </div>
-          <div className="text-xs text-slate-400">
-            ID: {normalizedMill.id.substring(0, 6)}...
+          {/* Footer: ID y Estado Operativo */}
+          <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[8px] sm:text-[10px]">
+             <div className="flex items-center gap-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${normalizedMill.operativo ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                <span className={`font-black ${normalizedMill.operativo ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {normalizedMill.operativo ? 'OPERATIVO' : 'FUERA'}
+                </span>
+             </div>
+             <div className="text-slate-400 font-mono">
+                #{normalizedMill.id.substring(0, 4)}
+             </div>
           </div>
         </div>
+
       </div>
     </div >
   );

@@ -176,9 +176,15 @@ const Dashboard: React.FC = () => {
     // 8. Clientes SIN ZONA
     const clientesSinZona = allClients.filter(c => !c.zone || c.zone.trim() === '');
 
-    // 9. Tasa de ocupación
-    const tasaOcupacion = mills.length > 0
-      ? ((mills.filter(m => m.status && m.status.toUpperCase() !== 'LIBRE').length / mills.length) * 100).toFixed(0)
+    // 9. Tasa de ocupación (Eficiencia Mensual)
+    // Calculamos la eficiencia como: Producción Real / Capacidad Teórica del mes a la fecha
+    // Capacidad teórica estimada: 4 molinos * 150 sacos * 1.5 turnos/día
+    const diasTranscurridos = now.getDate() || 1;
+    const capacidadTeóricaDiaria = mills.length * 150 * 1.5; 
+    const capacidadAcumulada = capacidadTeóricaDiaria * diasTranscurridos;
+    
+    const tasaOcupacion = capacidadAcumulada > 0
+      ? Math.min(((sacosEsteMes / capacidadAcumulada) * 100), 100).toFixed(0)
       : '0';
 
     // 10. Cálculos para la pestaña de Reportes

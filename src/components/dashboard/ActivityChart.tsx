@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, BarChart, Bar, Cell
+  Tooltip, ResponsiveContainer, BarChart, Bar, Cell,
+  Line, ComposedChart, Legend
 } from 'recharts';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { supabase } from '@/lib/supabase';
@@ -27,26 +28,35 @@ const ActivityChart: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  // Full milling logs (unfilterd, for charts)
+  // Full milling logs and intake logs (unfiltered, for charts)
   const [allLogs, setAllLogs] = useState<any[]>([]);
+  const [allInputs, setAllInputs] = useState<any[]>([]);
 
-  // Fetch all logs for full history
+  // Fetch all logs and inputs for full history
   useEffect(() => {
-    const fetchAll = async () => {
+    const fetchAllData = async () => {
       try {
-        const { data, error } = await supabase
+        // Fetch Milling Logs
+        const { data: logsData, error: logsError } = await supabase
           .from('milling_logs')
           .select('*, clients(name, zone)')
           .order('created_at', { ascending: false });
 
-        if (!error && data) {
-          setAllLogs(data);
-        }
+        if (!logsError && logsData) setAllLogs(logsData);
+
+        // Fetch Intake (stock_batches)
+        const { data: intakeData, error: intakeError } = await supabase
+          .from('stock_batches')
+          .select('*, clients(name, zone)')
+          .order('created_at', { ascending: false });
+
+        if (!intakeError && intakeData) setAllInputs(intakeData);
+
       } catch (e) {
-        console.error('Error fetching all milling logs for chart:', e);
+        console.error('Error fetching data for chart:', e);
       }
     };
-    fetchAll();
+    fetchAllData();
   }, [millingLogs.length]);
 
   // Get available years
@@ -59,48 +69,58 @@ const ActivityChart: React.FC = () => {
     return Array.from(years).sort((a, b) => b - a);
   }, [allLogs]);
 
-  // Apply filters
+  // Apply filters to both logs and inputs
   const filteredLogs = useMemo(() => {
     return allLogs.filter(log => {
-      // Filter by client
       if (selectedClient !== 'all' && log.client_id !== selectedClient) return false;
-
-      // Filter by zone (via client relationship)
       if (selectedZone !== 'all') {
         const clientZone = log.clients?.zone || '';
         if (clientZone !== selectedZone) return false;
       }
-
       return true;
     });
   }, [allLogs, selectedClient, selectedZone]);
 
-  // Chart data based on view mode
+  const filteredInputs = useMemo(() => {
+    return allInputs.filter(input => {
+      if (selectedClient !== 'all' && input.client_id !== selectedClient) return false;
+      if (selectedZone !== 'all') {
+        const clientZone = input.clients?.zone || '';
+        if (clientZone !== selectedZone) return false;
+      }
+      return true;
+    });
+  }, [allInputs, selectedClient, selectedZone]);
+
+  // Chart data based on view mode (Mixing Production and Intake)
   const chartData = useMemo(() => {
-    if (filteredLogs.length === 0) return [];
+    if (filteredLogs.length === 0 && filteredInputs.length === 0) return [];
 
     if (viewMode === 'semana') {
-      // Last 7 days
       const days = Array.from({ length: 7 }, (_, i) => {
         const date = subDays(new Date(), i);
         return {
           date: startOfDay(date),
           label: format(date, 'EEE dd', { locale: es }),
-          sacos: 0
+          sacos: 0,
+          ingresos: 0
         };
       }).reverse();
 
       filteredLogs.forEach(log => {
-        const logDate = startOfDay(parseISO(log.created_at));
-        const day = days.find(d => isSameDay(d.date, logDate));
+        const day = days.find(d => isSameDay(d.date, startOfDay(parseISO(log.created_at))));
         if (day) day.sacos += (log.total_sacks || 0);
+      });
+
+      filteredInputs.forEach(input => {
+        const day = days.find(d => isSameDay(d.date, startOfDay(parseISO(input.created_at))));
+        if (day) day.ingresos += (input.initial_quantity || 0);
       });
 
       return days;
     }
 
     if (viewMode === 'mes') {
-      // Days of selected month
       const monthStart = startOfMonth(new Date(selectedYear, selectedMonth));
       const monthEnd = endOfMonth(monthStart);
       const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -108,28 +128,29 @@ const ActivityChart: React.FC = () => {
       const days = daysInMonth.map(date => ({
         date: startOfDay(date),
         label: format(date, 'dd', { locale: es }),
-        sacos: 0
+        sacos: 0,
+        ingresos: 0
       }));
 
       filteredLogs.forEach(log => {
-        const logDate = startOfDay(parseISO(log.created_at));
-        const day = days.find(d => isSameDay(d.date, logDate));
+        const day = days.find(d => isSameDay(d.date, startOfDay(parseISO(log.created_at))));
         if (day) day.sacos += (log.total_sacks || 0);
       });
 
-      // Si es el mes y año actual, solo mostrar hasta hoy
+      filteredInputs.forEach(input => {
+        const day = days.find(d => isSameDay(d.date, startOfDay(parseISO(input.created_at))));
+        if (day) day.ingresos += (input.initial_quantity || 0);
+      });
+
       const now = new Date();
       if (selectedYear === now.getFullYear() && selectedMonth === now.getMonth()) {
-        const todayStr = format(now, 'dd', { locale: es });
-        const todayInt = parseInt(todayStr);
+        const todayInt = parseInt(format(now, 'dd'));
         return days.filter((_, i) => i < todayInt);
       }
-
       return days;
     }
 
     if (viewMode === 'anio') {
-      // Monthly aggregation for selected year
       const yearStart = startOfYear(new Date(selectedYear, 0));
       const yearEnd = endOfYear(yearStart);
       const months = eachMonthOfInterval({ start: yearStart, end: yearEnd });
@@ -137,31 +158,35 @@ const ActivityChart: React.FC = () => {
       const monthlyData = months.map(date => ({
         date,
         label: format(date, 'MMM', { locale: es }),
-        sacos: 0
+        sacos: 0,
+        ingresos: 0
       }));
 
       filteredLogs.forEach(log => {
         const logDate = parseISO(log.created_at);
-        const logYear = logDate.getFullYear();
-        const logMonth = logDate.getMonth();
-        if (logYear === selectedYear) {
-          const monthData = monthlyData[logMonth];
-          if (monthData) monthData.sacos += (log.total_sacks || 0);
+        if (logDate.getFullYear() === selectedYear) {
+          const mData = monthlyData[logDate.getMonth()];
+          if (mData) mData.sacos += (log.total_sacks || 0);
         }
       });
 
-      // Si es el año actual, solo mostrar hasta el mes actual
+      filteredInputs.forEach(input => {
+        const inputDate = parseISO(input.created_at);
+        if (inputDate.getFullYear() === selectedYear) {
+          const mData = monthlyData[inputDate.getMonth()];
+          if (mData) mData.ingresos += (input.initial_quantity || 0);
+        }
+      });
+
       const now = new Date();
       if (selectedYear === now.getFullYear()) {
-        const currentMonth = now.getMonth();
-        return monthlyData.filter((_, i) => i <= currentMonth);
+        return monthlyData.filter((_, i) => i <= now.getMonth());
       }
-
       return monthlyData;
     }
 
     return [];
-  }, [filteredLogs, viewMode, selectedMonth, selectedYear]);
+  }, [filteredLogs, filteredInputs, viewMode, selectedMonth, selectedYear]);
 
   // Stats summary
   const totalSacos = chartData.reduce((sum, d) => sum + d.sacos, 0);
@@ -274,12 +299,12 @@ const ActivityChart: React.FC = () => {
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-slate-500">Pico:</span>
-          <span className="font-black text-slate-800">{maxDay.sacos} ({maxDay.label})</span>
+          <span className="text-slate-500">Ingresos:</span>
+          <span className="font-black text-slate-800">{chartData.reduce((sum, d) => sum + d.ingresos, 0).toLocaleString()} sacos</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-amber-500" />
-          <span className="text-slate-500">Promedio:</span>
+          <span className="text-slate-500">Promedio Prod:</span>
           <span className="font-black text-slate-800">{avgSacos}/día</span>
         </div>
       </div>
@@ -294,63 +319,43 @@ const ActivityChart: React.FC = () => {
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
                   <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
+                <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis
-                dataKey="label"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                dy={10}
-              />
+              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
               <Tooltip
-                contentStyle={{
-                  borderRadius: '12px',
-                  border: 'none',
-                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
-                }}
-                formatter={(value: number) => [`${value.toLocaleString()} sacos`, 'Producción']}
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                formatter={(value: number, name: string) => [
+                  `${value.toLocaleString()} sacos`, 
+                  name === 'sacos' ? 'Producción' : 'Ingreso'
+                ]}
               />
-              <Area
-                type="monotone"
-                dataKey="sacos"
-                name="Sacos"
-                stroke="#6366f1"
-                strokeWidth={3}
-                fillOpacity={1}
-                fill="url(#colorSacos)"
-                animationDuration={1200}
-              />
+              <Area type="monotone" dataKey="sacos" name="sacos" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSacos)" animationDuration={1200} />
+              <Area type="monotone" dataKey="ingresos" name="ingresos" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIngresos)" animationDuration={1200} />
             </AreaChart>
           ) : (
-            <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis
-                dataKey="label"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-              />
+              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
               <Tooltip
-                contentStyle={{
-                  borderRadius: '12px',
-                  border: 'none',
-                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
-                }}
-                formatter={(value: number) => [`${value.toLocaleString()} sacos`, 'Producción']}
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                formatter={(value: number, name: string) => [
+                  `${value.toLocaleString()} sacos`, 
+                  name === 'sacos' ? 'Producción' : 'Ingreso'
+                ]}
               />
-              <Bar dataKey="sacos" name="Sacos" radius={[6, 6, 0, 0]} barSize={viewMode === 'anio' ? 28 : (chartData.length > 20 ? 12 : 20)}>
+              <Bar dataKey="sacos" name="sacos" radius={[6, 6, 0, 0]} barSize={viewMode === 'anio' ? 28 : (chartData.length > 20 ? 12 : 20)}>
                 {chartData.map((entry, index) => (
                   <Cell key={entry.label} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Bar>
-            </BarChart>
+              <Line type="monotone" dataKey="ingresos" name="ingresos" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+            </ComposedChart>
           )}
         </ResponsiveContainer>
       </div>

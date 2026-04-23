@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Users, UserPlus, Mail, Shield, Edit, Trash2, CheckCircle, XCircle, Search, Filter, Key, Eye, EyeOff, Loader2, LogOut } from 'lucide-react';
 import { UserRole, User } from '@/types';
+import { formatNumber } from '@/utils/formatters';
 import { USER_ROLES } from '@/constants';
 import { useUserStore } from '@/store/userStore';
 import { supabase } from '@/lib/supabase';
@@ -312,43 +313,42 @@ const Usuarios: React.FC = () => {
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="kpi-card p-5 group">
           <div className="flex items-center">
-            <div className="p-3 bg-indigo-50 rounded-xl mr-4 border border-indigo-100">
+            <div className="p-3 bg-indigo-50 rounded-xl mr-4 border border-indigo-100 group-hover:scale-110 transition-transform">
               <Users className="text-indigo-600" size={24} strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">Total Usuarios</p>
-              <p className="text-2xl font-bold text-slate-900">{users.length}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Usuarios</p>
+              <p className="text-2xl font-black text-slate-900 tracking-tight">{formatNumber(users.length)}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+        <div className="kpi-card p-5 group">
           <div className="flex items-center">
-            <div className="p-3 bg-emerald-50 rounded-xl mr-4 border border-emerald-100">
+            <div className="p-3 bg-emerald-50 rounded-xl mr-4 border border-emerald-100 group-hover:scale-110 transition-transform">
               <CheckCircle className="text-emerald-600" size={24} strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">Activos</p>
-              <p className="text-2xl font-bold text-slate-900">
-                {users.filter(u => u.is_active).length}
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Activos</p>
+              <p className="text-2xl font-black text-slate-900 tracking-tight">
+                {formatNumber(users.filter(u => u.is_active).length)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+        <div className="kpi-card p-5 group">
           <div className="flex items-center">
-            <div className="p-3 bg-violet-50 rounded-xl mr-4 border border-violet-100">
+            <div className="p-3 bg-violet-50 rounded-xl mr-4 border border-violet-100 group-hover:scale-110 transition-transform">
               <Shield className="text-violet-600" size={24} strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">Administradores</p>
-              <p className="text-2xl font-bold text-slate-900">
-                {users.filter(u => u.role === 'ADMIN').length}
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Administradores</p>
+              <p className="text-2xl font-black text-slate-900 tracking-tight">
+                {formatNumber(users.filter(u => u.role === 'ADMIN').length)}
               </p>
             </div>
           </div>

@@ -22,6 +22,7 @@ import ActivityChart from '@/components/dashboard/ActivityChart';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useToast } from '@/hooks/useToast';
 import { usePageFocus } from '@/hooks/usePageFocus';
+import { formatNumber } from '@/utils/formatters';
 
 const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 const MINERAL_COLORS: Record<string, string> = { 'Óxido': '#6366f1', 'Sulfuro': '#facc15' };
@@ -358,12 +359,12 @@ const Dashboard: React.FC = () => {
           {/* KPIs Operativos */}
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
             {[
-              { label: 'PRODUCCIÓN HOY', value: totalSacosHoy.toLocaleString(), unit: 'sacos', icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100' },
-              { label: 'STOCK EN ALMACÉN', value: totalStockSacos.toLocaleString(), unit: 'sacos', icon: ShoppingBag, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
+              { label: 'PRODUCCIÓN HOY', value: formatNumber(totalSacosHoy), unit: 'sacos', icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100' },
+              { label: 'STOCK EN ALMACÉN', value: formatNumber(totalStockSacos), unit: 'sacos', icon: ShoppingBag, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
               { label: 'MOLINOS OPERANDO', value: `${molinosOcupados}/${mills.length}`, unit: 'activos', icon: Factory, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
               { label: 'DISPONIBILIDAD', value: molinosLibres.toString(), unit: 'libres', icon: CheckCircle, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
             ].map((kpi) => (
-              <div key={kpi.label} className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
+              <div key={kpi.label} className="group kpi-card flex flex-col justify-between">
                 <div className="flex items-start justify-between mb-2 sm:mb-4">
                   <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} border rounded-xl sm:rounded-2xl group-hover:scale-110 transition-transform`}>
                     <kpi.icon className={`${kpi.color} w-4 h-4 sm:w-7 sm:h-7`} strokeWidth={2.5} />
@@ -462,10 +463,10 @@ const Dashboard: React.FC = () => {
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8">
                    {[
-                      { label: 'Total Histórico', value: intelligence.totalSacos.toLocaleString(), icon: Box },
-                      { label: 'Este Mes', value: intelligence.sacosEsteMes.toLocaleString(), icon: Calendar },
+                      { label: 'Total Histórico', value: formatNumber(intelligence.totalSacos), icon: Box },
+                      { label: 'Este Mes', value: formatNumber(intelligence.sacosEsteMes), icon: Calendar },
                       { label: 'Eficiencia', value: `${intelligence.tasaOcupacion}%`, icon: Activity },
-                      { label: 'Promedio', value: intelligence.avgSacos.toFixed(1), icon: Zap },
+                      { label: 'Promedio', value: formatNumber(intelligence.avgSacos, 1), icon: Zap },
                    ].map((item, i) => (
                       <div key={i} className="bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
                         <item.icon size={16} className="text-indigo-200 mb-2" />
@@ -630,7 +631,7 @@ const Dashboard: React.FC = () => {
                         </div>
                         <div className="text-right px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
                           <p className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">En Almacén</p>
-                          <p className="text-lg font-black text-emerald-700">{client.stockActual.toLocaleString()}</p>
+                          <p className="text-lg font-black text-emerald-700">{formatNumber(client.stockActual)}</p>
                         </div>
                       </div>
                     </div>
@@ -732,7 +733,7 @@ const Dashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-black text-indigo-600">{client.total.toLocaleString()}</span>
+                      <span className="text-sm font-black text-indigo-600">{formatNumber(client.total)}</span>
                       <span className="block text-[8px] font-black text-slate-400 uppercase">sacos</span>
                     </div>
                   </div>

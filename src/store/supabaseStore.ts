@@ -307,8 +307,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        // En Supabase/PostgREST, al usar !inner podemos filtrar por campos de la tabla relacionada en el OR
-        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%,clients.name.ilike.%${search}%,clients.contact_name.ilike.%${search}%,clients.phone.ilike.%${search}%,clients.zone.ilike.%${search}%`);
+        // Mejoramos la búsqueda para que sea más robusta en relaciones
+        // Nota: Buscamos también en el JSONB de mills_used convirtiéndolo a texto
+        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%,clients.name.ilike.%${search}%,clients.contact_name.ilike.%${search}%,mills_used::text.ilike.%${search}%`);
       }
 
       if (zone && zone !== 'all') {
@@ -390,6 +391,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
+        // Forzamos la búsqueda en descripción y en el nombre del molino relacionado
         query = query.or(`description.ilike.%${search}%,descripcion_falla.ilike.%${search}%,mills.name.ilike.%${search}%`);
       }
 

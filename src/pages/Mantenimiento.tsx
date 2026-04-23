@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  Wrench, CheckCircle, Clock, AlertTriangle, Plus, Download, History, Settings, Activity, FileText, MessageSquare, AlertOctagon, Calendar
+  Wrench, CheckCircle, Clock, AlertTriangle, Plus, Download, History, Settings, Activity, FileText, MessageSquare, AlertOctagon, Calendar, PenTool
 } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
+import { useAuthStore } from '@/store/authStore';
+import { formatNumber } from '@/utils/formatters';
 import { useModal } from '@/hooks/useModal';
 import { useToast } from '@/hooks/useToast';
 import { MaintenanceForm, MaintenanceFormData } from '@/components/mantenimiento/MaintenanceForm';

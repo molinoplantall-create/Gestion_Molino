@@ -89,8 +89,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <>
-      <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm w-full">
+      <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 shadow-lg w-full transition-all duration-500">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 w-full">
             {/* Left side - Menu toggle y título */}
@@ -98,7 +97,7 @@ const Header: React.FC = () => {
               {/* Botón menú SOLO móvil */}
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors md:hidden mr-3"
+                className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 transition-colors md:hidden mr-3"
                 title={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
               >
                 <Menu size={24} />
@@ -106,8 +105,8 @@ const Header: React.FC = () => {
 
               {/* Título - Siempre visible */}
               <div className="flex flex-col">
-                <h1 className="text-lg font-semibold text-gray-900">Gestión de Molino</h1>
-                <p className="text-xs text-gray-500">Sistema de molienda</p>
+                <h1 className="text-base sm:text-lg font-bold text-white tracking-tight leading-none">Molinera Inmaculada</h1>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black mt-1">Industrial Mill System</p>
               </div>
             </div>
 
@@ -115,17 +114,15 @@ const Header: React.FC = () => {
               {/* Buscador global eliminado a petición del usuario */}
             </div>
 
-            {/* Right side - Actions */}
-            <div className="flex items-center space-x-3">
               {/* Notifications */}
               <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 relative transition-colors"
+                  className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 relative transition-colors"
                 >
                   <Bell size={22} />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-slate-900">
                       {unreadNotifications}
                     </span>
                   )}
@@ -136,16 +133,16 @@ const Header: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-slate-800 transition-all duration-300"
                 >
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User size={18} className="text-blue-600" />
+                  <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <User size={18} className="text-white" />
                   </div>
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium text-gray-900">{user?.nombre}</p>
-                    <p className="text-xs text-gray-500 capitalize">{user?.role?.toLowerCase()}</p>
+                    <p className="text-sm font-bold text-white leading-none">{user?.nombre}</p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase mt-1 tracking-tighter">{user?.role}</p>
                   </div>
-                  <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={14} className={`text-slate-500 transition-transform duration-300 ${showUserMenu ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown Menu */}

@@ -6,6 +6,7 @@ import { useSupabaseStore } from '@/store/supabaseStore';
 import { usePageFocus } from '@/hooks/usePageFocus';
 import { supabase } from '@/lib/supabase';
 import { useModal } from '@/hooks/useModal';
+import { formatNumber } from '@/utils/formatters';
 import { useToast } from '@/hooks/useToast';
 import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
 import { ClientForm } from '@/components/clientes/ClientForm';
@@ -260,52 +261,51 @@ const Clientes: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white rounded-2xl p-3 sm:p-6 border shadow-sm flex flex-col justify-center transition-all hover:shadow-md">
+        <div className="kpi-card p-4 sm:p-6 flex flex-col justify-center">
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left">
-            <div className="p-2 sm:p-3 bg-blue-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-blue-100 flex-shrink-0">
+            <div className="p-2 sm:p-3 bg-blue-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-blue-100 flex-shrink-0 group-hover:scale-110 transition-transform">
               <Users className="text-blue-600 w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-wide sm:normal-case sm:tracking-normal">Total Clientes</p>
-              <p className="text-lg sm:text-2xl font-black text-gray-900">{totalClientes}</p>
+              <p className="text-[10px] sm:text-xs text-slate-400 font-black uppercase tracking-widest">Total Clientes</p>
+              <p className="text-lg sm:text-2xl font-black text-slate-900">{formatNumber(totalClientes)}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-3 sm:p-6 border shadow-sm flex flex-col justify-center transition-all hover:shadow-md">
+        <div className="kpi-card p-4 sm:p-6 flex flex-col justify-center">
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left">
-            <div className="p-2 sm:p-3 bg-emerald-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-emerald-100 flex-shrink-0">
+            <div className="p-2 sm:p-3 bg-emerald-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-emerald-100 flex-shrink-0 group-hover:scale-110 transition-transform">
               <CheckCircle className="text-emerald-600 w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-wide sm:normal-case sm:tracking-normal">Activos</p>
-              <p className="text-lg sm:text-2xl font-black text-gray-900">{clientesActivos}</p>
+              <p className="text-[10px] sm:text-xs text-slate-400 font-black uppercase tracking-widest">Activos</p>
+              <p className="text-lg sm:text-2xl font-black text-slate-900">{formatNumber(clientesActivos)}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-3 sm:p-6 border shadow-sm flex flex-col justify-center transition-all hover:shadow-md">
+        <div className="kpi-card p-4 sm:p-6 flex flex-col justify-center">
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left">
-            <div className="p-2 sm:p-3 bg-amber-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-amber-100 flex-shrink-0">
+            <div className="p-2 sm:p-3 bg-amber-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-amber-100 flex-shrink-0 group-hover:scale-110 transition-transform">
               <AlertTriangle className="text-amber-600 w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-wide sm:normal-case sm:tracking-normal">Stock Bajo</p>
-              <p className="text-lg sm:text-2xl font-black text-gray-900">{stockBajo}</p>
+              <p className="text-[10px] sm:text-xs text-slate-400 font-black uppercase tracking-widest">Stock Bajo</p>
+              <p className="text-lg sm:text-2xl font-black text-slate-900">{formatNumber(stockBajo)}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-3 sm:p-6 border shadow-sm flex flex-col justify-center transition-all hover:shadow-md">
+        <div className="kpi-card p-4 sm:p-6 flex flex-col justify-center">
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left">
-            <div className="p-2 sm:p-3 bg-purple-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-purple-100 flex-shrink-0">
-              <Layers className="text-purple-600 w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
+            <div className="p-2 sm:p-3 bg-indigo-50 rounded-xl sm:mr-4 mb-2 sm:mb-0 border border-indigo-100 flex-shrink-0 group-hover:scale-110 transition-transform">
+              <Layers className="text-indigo-600 w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-wide sm:normal-case sm:tracking-normal">Zonas</p>
-              <p className="text-2xl font-bold text-gray-900">{totalZonas}</p>
+              <p className="text-[10px] sm:text-xs text-slate-400 font-black uppercase tracking-widest">Zonas</p>
+              <p className="text-lg sm:text-2xl font-black text-slate-900">{formatNumber(totalZonas)}</p>
             </div>
           </div>
         </div>

@@ -22,7 +22,11 @@
   }
 
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-md hover:-translate-y-1;
+    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:bg-white hover:brightness-[1.02] border-white/50 active:scale-[0.99];
+  }
+
+  .kpi-card {
+    @apply bg-white rounded-2xl p-6 border border-slate-100 shadow-sm transition-all duration-300 card-hover;
   }
 
   .btn-primary {

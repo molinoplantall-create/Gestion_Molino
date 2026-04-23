@@ -39,7 +39,7 @@ const Header: React.FC = () => {
 
   // Search Logic
   const performSearch = async (query: string) => {
-    if (query.length < 2) {
+    if (query.trim().length < 2) {
       setSearchResults({ clients: [], mills: [], maintenance: [] });
       setIsSearching(false);
       return;
@@ -47,10 +47,13 @@ const Header: React.FC = () => {
 
     setIsSearching(true);
     try {
+      const searchTerms = query.trim().split(/\s+/);
+      const formattedQuery = `%${searchTerms.join('%')}%`;
+
       const [clientsRes, millsRes, maintRes] = await Promise.all([
-        supabase.from('clients').select('id, name').ilike('name', `%${query}%`).limit(5),
-        supabase.from('mills').select('id, name').ilike('name', `%${query}%`).limit(5),
-        supabase.from('maintenance_logs').select('id, description, mill_id, mills(name)').ilike('description', `%${query}%`).limit(5)
+        supabase.from('clients').select('id, name').ilike('name', formattedQuery).limit(5),
+        supabase.from('mills').select('id, name').ilike('name', formattedQuery).limit(5),
+        supabase.from('maintenance_logs').select('id, description, mill_id, technician_name, mills(name)').or(`description.ilike.${formattedQuery},action_taken.ilike.${formattedQuery},technician_name.ilike.${formattedQuery}`).limit(5)
       ]);
 
       setSearchResults({

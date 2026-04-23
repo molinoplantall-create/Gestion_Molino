@@ -42,11 +42,11 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
       .sort((a, b) => b.total - a.total)
       .slice(0, 6);
 
-    // Monthly distribution (last 6 months)
+    // Monthly distribution (last 12 months)
     const now = new Date();
     const byMonth: { label: string, preventivo: number, correctivo: number }[] = [];
     
-    for (let i = 5; i >= 0; i--) {
+    for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const year = d.getFullYear();
       const month = d.getMonth();
@@ -107,6 +107,16 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
             <Wrench size={10} /> Frecuencia por Activo
           </h4>
+          <div className="flex items-center gap-3 mb-2">
+             <div className="flex items-center gap-1.5">
+               <div className="w-2 h-2 rounded-full bg-red-500 shadow-sm" />
+               <span className="text-[9px] font-black text-slate-400 uppercase">Correctivo</span>
+             </div>
+             <div className="flex items-center gap-1.5">
+               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
+               <span className="text-[9px] font-black text-slate-400 uppercase">Preventivo</span>
+             </div>
+          </div>
           <div className="space-y-3">
             {rankings.byMill.map((mill, idx) => (
               <div key={mill.id} className="group cursor-default">

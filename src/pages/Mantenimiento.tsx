@@ -218,6 +218,7 @@ const Mantenimiento: React.FC = () => {
             failure_start_time: log.failure_start_time || null,
             completed_at: log.completed_at || null,
             worked_hours: log.worked_hours || log.horas_trabajadas || 0,
+            created_at: log.created_at || log.fecha_registro || new Date().toISOString()
           }));
           setAllMaintenanceLogs(normalized);
         }

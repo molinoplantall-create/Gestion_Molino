@@ -25,9 +25,12 @@ const BAR_COLORS = {
     mttr: '#f59e0b',  // amber
 };
 
-async function fetchMillingHoursPerMill(periodStart: Date): Promise<Record<string, number>> {
+async function fetchMillingHoursPerMill(periodStart: Date, query: string = ''): Promise<Record<string, number>> {
     const hoursMap: Record<string, number> = {};
     try {
+        const searchTerms = query.trim().split(/\s+/);
+        const formattedQuery = `%${searchTerms.join('%')}%`;
+
         const { data: millingLogs, error } = await supabase
             .from('milling_logs')
             .select('mills_used, mineral_type, total_sacks, created_at, status')
@@ -211,9 +214,27 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
                 </div>
             </div>
 
-            {/* Charts Section */}
+            {/* Metric Definitions */}
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mb-4 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">MTBF (h)</span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Tiempo Medio entre Fallas (Confiabilidad)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">MTTR (h)</span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Tiempo Medio de Reparación (Mantenibilidad)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-violet-600 bg-violet-50 px-2 py-0.5 rounded-md">Óptimo (h)</span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Horas Operativas de Trabajo Real</span>
+                </div>
+            </div>
+
             <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 border border-slate-200 shadow-sm">
-                <div className="mb-6"><h4 className="text-base font-black text-slate-900">Comparativa por Activo</h4><p className="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">Métricas de rendimiento por molino</p></div>
+                <div className="mb-6">
+                    <h4 className="text-base font-black text-slate-900">Comparativa por Activo</h4>
+                    <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">Métricas de rendimiento por molino</p>
+                </div>
                 {noFailures ? (
                     <div className="h-48 flex flex-col items-center justify-center text-slate-300"><CheckCircle size={48} className="mb-4 text-emerald-200" /><p className="font-bold">Sin fallas en periodo</p></div>
                 ) : (

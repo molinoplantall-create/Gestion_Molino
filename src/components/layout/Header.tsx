@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Menu, Search, User, LogOut, Settings, ChevronDown, Wrench, Package, Truck, X } from 'lucide-react';
+import { Bell, Menu, Search, User, LogOut, Settings, ChevronDown, Wrench, Package, Truck, X, Factory } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
 import { useSupabaseStore } from '@/store/supabaseStore';
@@ -14,6 +14,7 @@ const Header: React.FC = () => {
   const markNotificationAsRead = useAppStore(state => state.markNotificationAsRead);
   const sidebarOpen = useAppStore(state => state.sidebarOpen);
   const setSidebarOpen = useAppStore(state => state.setSidebarOpen);
+  const clearAllNotifications = useAppStore(state => state.clearAllNotifications);
   const navigate = useNavigate();
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -89,6 +90,7 @@ const Header: React.FC = () => {
   };
 
   return (
+    <>
       <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 shadow-lg w-full transition-all duration-500">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 w-full">
@@ -122,11 +124,72 @@ const Header: React.FC = () => {
                 >
                   <Bell size={22} />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-slate-900">
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-slate-900 animate-pulse">
                       {unreadNotifications}
                     </span>
                   )}
                 </button>
+
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Notificaciones</h3>
+                      <button 
+                        onClick={() => clearAllNotifications()}
+                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700"
+                      >
+                        Limpiar todo
+                      </button>
+                    </div>
+
+                    <div className="max-h-[400px] overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notif) => (
+                          <div 
+                            key={notif.id}
+                            onClick={() => {
+                              markNotificationAsRead(notif.id);
+                              setShowNotifications(false);
+                            }}
+                            className={`p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer relative ${!notif.leida ? 'bg-indigo-50/30' : ''}`}
+                          >
+                            {!notif.leida && <div className="absolute top-4 right-4 w-2 h-2 bg-indigo-500 rounded-full"></div>}
+                            <div className="flex gap-3">
+                              <div className={`p-2 rounded-xl shrink-0 ${
+                                notif.tipo === 'MANTENIMIENTO' ? 'bg-amber-100 text-amber-600' :
+                                notif.tipo === 'STOCK' ? 'bg-rose-100 text-rose-600' :
+                                'bg-indigo-100 text-indigo-600'
+                              }`}>
+                                {notif.tipo === 'MANTENIMIENTO' ? <Wrench size={16} /> : 
+                                 notif.tipo === 'STOCK' ? <Package size={16} /> : 
+                                 <Factory size={16} />}
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-slate-900 mb-0.5">{notif.titulo}</p>
+                                <p className="text-[11px] text-slate-500 leading-relaxed">{notif.mensaje}</p>
+                                <p className="text-[9px] text-slate-400 font-bold mt-1.5 uppercase tracking-tighter">
+                                  {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center">
+                          <Bell size={32} className="mx-auto text-slate-200 mb-2" />
+                          <p className="text-xs font-bold text-slate-400">No hay notificaciones</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-3 bg-slate-50 text-center border-t border-slate-100">
+                      <button className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-colors">
+                        Ver todo el historial
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* User menu */}

@@ -12,6 +12,7 @@ const Usuarios: React.FC = () => {
   const { users, loading, fetchUsers, updateUser, deleteUser } = useUserStore();
   const [search, setSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState<UserRole | 'all'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -38,7 +39,10 @@ const Usuarios: React.FC = () => {
     const matchesSearch = (user.nombre || '').toLowerCase().includes(search.toLowerCase()) ||
       user.email.toLowerCase().includes(search.toLowerCase());
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
-    return matchesSearch && matchesRole;
+    const matchesStatus = selectedStatus === 'all' || 
+      (selectedStatus === 'active' && user.is_active) || 
+      (selectedStatus === 'inactive' && !user.is_active);
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
   const getRoleBadge = (role: UserRole) => {
@@ -378,10 +382,14 @@ const Usuarios: React.FC = () => {
           </div>
 
           <div>
-            <select className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
-              <option>Todos los estados</option>
-              <option>Activo</option>
-              <option>Inactivo</option>
+            <select 
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value as any)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="active">Activo</option>
+              <option value="inactive">Inactivo</option>
             </select>
           </div>
         </div>

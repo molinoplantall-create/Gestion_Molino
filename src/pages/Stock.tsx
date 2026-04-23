@@ -142,14 +142,17 @@ const Stock: React.FC = () => {
   const [isUpdatingBatch, setIsUpdatingBatch] = useState(false);
 
   usePageFocus(() => {
-    fetchClients({
-      search,
-      pageSize: 100, // Aumentamos para mostrar más clientes en stock
-      status: 'all'  // Queremos ver todos los que tengan stock, incluso si están inactivos? 
-      // Por defecto fetchClients ahora permite ver todos si status es 'all'
-    });
+    fetchClients({ search, pageSize: 100, status: 'all' });
     fetchZones();
   });
+
+  // Fetch clients when search changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchClients({ search, pageSize: 100, status: 'all' });
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [search, fetchClients]);
 
   // Estado para nuevo ingreso
   const [nuevoIngreso, setNuevoIngreso] = useState<NuevoIngresoForm>({

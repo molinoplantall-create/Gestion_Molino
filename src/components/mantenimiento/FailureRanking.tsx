@@ -42,23 +42,25 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
       .sort((a, b) => b.total - a.total)
       .slice(0, 6);
 
-    // Monthly distribution (last 12 months)
+    // Monthly distribution (current year only)
     const now = new Date();
+    const currentYear = now.getFullYear();
     const byMonth: { label: string, preventivo: number, correctivo: number }[] = [];
     
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const year = d.getFullYear();
-      const month = d.getMonth();
+    // Mostramos desde Enero del año actual hasta el mes actual
+    const currentMonth = now.getMonth();
+    
+    for (let i = 0; i <= currentMonth; i++) {
+      const d = new Date(currentYear, i, 1);
       const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
       
       const monthLogs = maintenanceLogs.filter((log: any) => {
         const logDate = new Date(log.created_at);
-        return logDate.getFullYear() === year && logDate.getMonth() === month;
+        return logDate.getFullYear() === currentYear && logDate.getMonth() === i;
       });
 
       byMonth.push({
-        label: `${monthNames[month]} ${String(year).slice(2)}`,
+        label: `${monthNames[i]} ${String(currentYear).slice(2)}`,
         preventivo: monthLogs.filter((l: any) => l.type === 'PREVENTIVO').length,
         correctivo: monthLogs.filter((l: any) => l.type === 'CORRECTIVO').length,
       });

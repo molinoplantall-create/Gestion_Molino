@@ -292,11 +292,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       // Clean up historical logs before fetching
       await get().cleanupHistoricalLogs();
 
+      // For relationship filtering in OR clause, we use the specific PostgREST syntax for joined tables
       let query = supabase
         .from('milling_logs')
         .select(`
           *,
-          clients (
+          clients!inner (
             name, contact_name, phone, zone
           )
         `, { count: 'exact' });
@@ -306,8 +307,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        // En Supabase v2, para buscar en tablas relacionadas se usa el formato 'tabla.columna'
-        // Buscamos en observaciones, tipo de mineral o el nombre del cliente
+        // En Supabase/PostgREST, al usar !inner podemos filtrar por campos de la tabla relacionada en el OR
         query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%,clients.name.ilike.%${search}%,clients.contact_name.ilike.%${search}%,clients.phone.ilike.%${search}%,clients.zone.ilike.%${search}%`);
       }
 
@@ -372,13 +372,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .from('maintenance_logs')
         .select(`
           *,
-          mills (
+          mills!inner (
             *
           )
         `, { count: 'exact' });
 
       if (millId && millId !== 'all') {
-        // Soporte para mill_id o molino_id
         query = query.or(`mill_id.eq.${millId},molino_id.eq.${millId}`);
       }
 

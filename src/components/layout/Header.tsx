@@ -96,7 +96,6 @@ const Header: React.FC = () => {
           <div className="flex items-center justify-between h-16 w-full">
             {/* Left side - Menu toggle y título */}
             <div className="flex items-center flex-1">
-              {/* Botón menú SOLO móvil */}
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 transition-colors md:hidden mr-3"
@@ -105,17 +104,14 @@ const Header: React.FC = () => {
                 <Menu size={24} />
               </button>
 
-              {/* Título - Siempre visible */}
               <div className="flex flex-col">
                 <h1 className="text-base sm:text-lg font-bold text-white tracking-tight leading-none">Molinera Inmaculada</h1>
                 <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black mt-1">Industrial Mill System</p>
               </div>
             </div>
 
-            <div className="hidden md:flex flex-1 max-w-2xl mx-4 relative">
-              {/* Buscador global eliminado a petición del usuario */}
-            </div>
-
+            {/* Right side - Actions */}
+            <div className="flex items-center space-x-2 sm:space-x-4">
               {/* Notifications */}
               <div className="relative">
                 <button
@@ -130,7 +126,6 @@ const Header: React.FC = () => {
                   )}
                 </button>
 
-                {/* Notifications Dropdown */}
                 {showNotifications && (
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                     <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -224,7 +219,6 @@ const Header: React.FC = () => {
                         <User size={16} className="mr-2 text-gray-400" />
                         Mi Perfil
                       </button>
-
                     </div>
 
                     <div className="py-1 border-t border-gray-100">

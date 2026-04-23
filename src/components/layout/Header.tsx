@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { Bell, Menu, Search, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Bell, Menu, Search, User, LogOut, Settings, ChevronDown, Wrench, Package, Truck, X } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
+import { useSupabaseStore } from '@/store/supabaseStore';
+import { supabase } from '@/lib/supabase';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { LogOut as LogOutIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Header: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -11,16 +14,75 @@ const Header: React.FC = () => {
   const markNotificationAsRead = useAppStore(state => state.markNotificationAsRead);
   const sidebarOpen = useAppStore(state => state.sidebarOpen);
   const setSidebarOpen = useAppStore(state => state.setSidebarOpen);
+  const navigate = useNavigate();
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  
+  // Global Search State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<{
+    clients: any[],
+    mills: any[],
+    maintenance: any[]
+  }>({ clients: [], mills: [], maintenance: [] });
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   const unreadNotifications = notifications?.filter(n => !n.leida).length || 0;
 
   const handleLogout = () => {
     logout();
     setShowLogoutModal(false);
+  };
+
+  // Search Logic
+  const performSearch = async (query: string) => {
+    if (query.length < 2) {
+      setSearchResults({ clients: [], mills: [], maintenance: [] });
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const [clientsRes, millsRes, maintRes] = await Promise.all([
+        supabase.from('clients').select('id, name').ilike('name', `%${query}%`).limit(5),
+        supabase.from('mills').select('id, name').ilike('name', `%${query}%`).limit(5),
+        supabase.from('maintenance_logs').select('id, description, mill_id, mills(name)').ilike('description', `%${query}%`).limit(5)
+      ]);
+
+      setSearchResults({
+        clients: clientsRes.data || [],
+        mills: millsRes.data || [],
+        maintenance: maintRes.data || []
+      });
+    } catch (e) {
+      console.error('Search error:', e);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    if (val.length >= 2) {
+      setShowSearchResults(true);
+      performSearch(val);
+    } else {
+      setShowSearchResults(false);
+    }
+  };
+
+  const handleResultClick = (type: 'client' | 'mill' | 'maintenance', id: string) => {
+    setShowSearchResults(false);
+    setSearchQuery('');
+    
+    if (type === 'client') navigate(`/clientes?id=${id}`);
+    if (type === 'mill') navigate(`/dashboard?millId=${id}`);
+    if (type === 'maintenance') navigate(`/mantenimiento?id=${id}`);
   };
 
   return (
@@ -47,15 +109,105 @@ const Header: React.FC = () => {
             </div>
 
             {/* Center - Search (oculto en móvil) */}
-            <div className="hidden md:flex flex-1 max-w-2xl mx-4">
+            <div className="hidden md:flex flex-1 max-w-2xl mx-4 relative">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="search"
-                  placeholder="Buscar moliendas, clientes, reportes..."
-                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onFocus={() => searchQuery.length >= 2 && setShowSearchResults(true)}
+                  placeholder="Buscar clientes, molinos, órdenes..."
+                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />
+                {searchQuery && (
+                  <button 
+                    onClick={() => { setSearchQuery(''); setShowSearchResults(false); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
               </div>
+
+              {/* Search Results Dropdown */}
+              {showSearchResults && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="max-h-[400px] overflow-y-auto p-2">
+                    {isSearching ? (
+                      <div className="p-4 text-center text-gray-400 text-sm">Buscando...</div>
+                    ) : (
+                      <>
+                        {searchResults.clients.length === 0 && searchResults.mills.length === 0 && searchResults.maintenance.length === 0 ? (
+                          <div className="p-4 text-center text-gray-400 text-sm italic">No se encontraron resultados para "{searchQuery}"</div>
+                        ) : (
+                          <>
+                            {/* Clients Section */}
+                            {searchResults.clients.length > 0 && (
+                              <div className="mb-2">
+                                <p className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/50 rounded-lg">Clientes</p>
+                                {searchResults.clients.map(c => (
+                                  <button
+                                    key={c.id}
+                                    onClick={() => handleResultClick('client', c.id)}
+                                    className="w-full flex items-center gap-3 px-3 py-2 hover:bg-indigo-50 rounded-xl transition-colors text-left group"
+                                  >
+                                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                      <Truck size={16} />
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-700">{c.name}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Mills Section */}
+                            {searchResults.mills.length > 0 && (
+                              <div className="mb-2">
+                                <p className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/50 rounded-lg">Molinos</p>
+                                {searchResults.mills.map(m => (
+                                  <button
+                                    key={m.id}
+                                    onClick={() => handleResultClick('mill', m.id)}
+                                    className="w-full flex items-center gap-3 px-3 py-2 hover:bg-amber-50 rounded-xl transition-colors text-left group"
+                                  >
+                                    <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition-all">
+                                      <Package size={16} />
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-700">{m.name}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Maintenance Section */}
+                            {searchResults.maintenance.length > 0 && (
+                              <div className="mb-2">
+                                <p className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/50 rounded-lg">Órdenes de Mantenimiento</p>
+                                {searchResults.maintenance.map(m => (
+                                  <button
+                                    key={m.id}
+                                    onClick={() => handleResultClick('maintenance', m.id)}
+                                    className="w-full flex items-center gap-3 px-3 py-2 hover:bg-rose-50 rounded-xl transition-colors text-left group"
+                                  >
+                                    <div className="p-2 bg-rose-50 text-rose-600 rounded-lg group-hover:bg-rose-600 group-hover:text-white transition-all">
+                                      <Wrench size={16} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-bold text-gray-700 line-clamp-1">{m.description}</span>
+                                      <span className="text-[10px] text-gray-400 font-bold uppercase">{m.mills?.name || 'Molino'}</span>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right side - Actions */}

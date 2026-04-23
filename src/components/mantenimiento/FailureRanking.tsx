@@ -93,8 +93,8 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
           <BarChart3 size={20} />
         </div>
         <div>
-          <h3 className="text-base font-black text-slate-900 leading-none">Análisis de Fallas</h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Inteligencia de Mantenimiento</p>
+          <h3 className="text-base font-black text-slate-900 leading-none">Análisis Predictivo de Fallas</h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Inteligencia y Frecuencia de Activos</p>
         </div>
         <div className="ml-auto bg-slate-100 px-3 py-1 rounded-full">
            <span className="text-[10px] font-black text-slate-500 uppercase">{maintenanceLogs.length} Entradas</span>
@@ -133,7 +133,7 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
         {/* Column 2: Monthly Distribution */}
         <div className="space-y-4">
           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
-            <TrendingUp size={10} /> Tendencia de Carga
+            <TrendingUp size={10} /> Frecuencia Mensual
           </h4>
           <div className="flex items-end gap-3 h-36 pt-4">
             {rankings.byMonth.map((month, idx) => {

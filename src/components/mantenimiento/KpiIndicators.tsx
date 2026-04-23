@@ -3,7 +3,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Legend
 } from 'recharts';
-import { Activity, Clock, CheckCircle, TrendingUp, Calendar, Gauge, Timer, DollarSign } from 'lucide-react';
+import { Activity, Clock, CheckCircle, TrendingUp, Calendar, Gauge, Timer, DollarSign, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface KpiIndicatorsProps {
@@ -93,8 +93,8 @@ function calculateKPIs(logs: any[], mills: any[], periodDays: number, millingHou
     return {
         mills: millKPIs,
         global: {
-            mtbf: millsWithFailures.length > 0 ? millKPIs.reduce((sum, m) => sum + (m.mtbf || 0), 0) / millsWithFailures.length : null,
-            mttr: millsWithFailures.length > 0 ? millKPIs.reduce((sum, m) => sum + (m.mttr || 0), 0) / millsWithFailures.length : null,
+            mtbf: millsWithFailures.length > 0 ? Math.round(millKPIs.reduce((sum, m) => sum + (m.mtbf || 0), 0) / millsWithFailures.length) : null,
+            mttr: millsWithFailures.length > 0 ? Math.round(millKPIs.reduce((sum, m) => sum + (m.mttr || 0), 0) / millsWithFailures.length) : null,
             availability: Math.round(globalAvailability * 10) / 10,
             totalFailures: correctiveLogs.length,
             totalPreventive: allPeriodLogs.filter(l => (l.type || l.tipo || '').toUpperCase() === 'PREVENTIVO').length,
@@ -158,7 +158,15 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
                         <div className="p-3 bg-indigo-100/50 rounded-xl mr-3"><TrendingUp className="text-indigo-600" size={20} /></div>
                         <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">MTBF</p><p className="text-[10px] text-slate-400 mt-1">T. Medio Fallas</p></div>
                     </div>
-                    <p className="text-2xl font-black text-slate-900">{kpis.global.mtbf || '∞'}<span className="text-xs ml-1">h</span></p>
+                    <div className="flex items-center gap-1">
+                        <p className="text-2xl font-black text-slate-900">{kpis.global.mtbf || '∞'}<span className="text-xs ml-1">h</span></p>
+                        <div className="group relative">
+                            <Info size={12} className="text-slate-300 cursor-help" />
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                                <strong>MTBF (Confiabilidad):</strong> Tiempo promedio que el equipo opera sin fallas. Cuanto más alto, mejor.
+                            </div>
+                        </div>
+                    </div>
                     <p className="text-[10px] text-indigo-500 font-bold uppercase mt-1">{kpis.global.totalFailures} incidentes</p>
                 </div>
 
@@ -168,7 +176,15 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
                         <div className="p-3 bg-amber-100/50 rounded-xl mr-3"><Clock className="text-amber-600" size={20} /></div>
                         <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">MTTR</p><p className="text-[10px] text-slate-400 mt-1">T. Reparación</p></div>
                     </div>
-                    <p className="text-2xl font-black text-slate-900">{kpis.global.mttr || '0'}<span className="text-xs ml-1">h</span></p>
+                    <div className="flex items-center gap-1">
+                        <p className="text-2xl font-black text-slate-900">{kpis.global.mttr || '0'}<span className="text-xs ml-1">h</span></p>
+                        <div className="group relative">
+                            <Info size={12} className="text-slate-300 cursor-help" />
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                                <strong>MTTR (Mantenibilidad):</strong> Tiempo promedio de reparación. Cuanto más bajo, más rápido se recupera el equipo.
+                            </div>
+                        </div>
+                    </div>
                     <p className="text-[10px] text-amber-500 font-bold uppercase mt-1">{kpis.global.totalRepairHours}h downtime</p>
                 </div>
 
@@ -202,7 +218,25 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
                     <div className="h-48 flex flex-col items-center justify-center text-slate-300"><CheckCircle size={48} className="mb-4 text-emerald-200" /><p className="font-bold">Sin fallas en periodo</p></div>
                 ) : (
                     <div className="h-80 w-full">
-                        <ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30 }}><CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" /><XAxis type="number" hide /><YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} /><Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' }} /><Legend /><Bar dataKey="MTBF" fill={BAR_COLORS.mtbf} radius={[0, 4, 4, 0]} name="MTBF (h)" barSize={10} /><Bar dataKey="MTTR" fill={BAR_COLORS.mttr} radius={[0, 4, 4, 0]} name="MTTR (h)" barSize={10} /><Bar dataKey="Hrs Operativas" fill="#8b5cf6" radius={[0, 4, 4, 0]} name="Óptimo (h)" barSize={10} /></BarChart></ResponsiveContainer>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                <Tooltip 
+                                    cursor={{ fill: '#f8fafc' }} 
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' }} 
+                                    formatter={(value: any, name: string) => {
+                                        if (name === 'Óptimo (h)') return [value, 'Horas Operativas Totales'];
+                                        return [value, name];
+                                    }}
+                                />
+                                <Legend />
+                                <Bar dataKey="MTBF" fill={BAR_COLORS.mtbf} radius={[0, 4, 4, 0]} name="MTBF (h)" barSize={10} />
+                                <Bar dataKey="MTTR" fill={BAR_COLORS.mttr} radius={[0, 4, 4, 0]} name="MTTR (h)" barSize={10} />
+                                <Bar dataKey="Hrs Operativas" fill="#8b5cf6" radius={[0, 4, 4, 0]} name="Óptimo (h)" barSize={10} />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
                 )}
                 

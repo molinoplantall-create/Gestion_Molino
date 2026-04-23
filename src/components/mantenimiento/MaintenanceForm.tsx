@@ -258,6 +258,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                             {isIncidentMode ? 'Procedimiento / Repuestos Cambiados' : 'Procedimiento / Checklist'}
                         </h4>
+                        <span className="text-[10px] text-indigo-500 font-medium italic">
+                            (Ej: Cambio de rodamientos, Engrase, Inspección de motor...)
+                        </span>
                         <button
                             type="button"
                             onClick={handleAddTask}

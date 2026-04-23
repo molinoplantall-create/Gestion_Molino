@@ -12,7 +12,7 @@ import {
   startOfYear, endOfYear, subMonths
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, Users, Map, Filter, BarChart3 } from 'lucide-react';
+import { Calendar, Users, Map, Filter, BarChart3, Info } from 'lucide-react';
 
 type ViewMode = 'semana' | 'mes' | 'anio';
 
@@ -302,10 +302,14 @@ const ActivityChart: React.FC = () => {
           <span className="text-slate-500">Ingresos:</span>
           <span className="font-black text-slate-800">{chartData.reduce((sum, d) => sum + d.ingresos, 0).toLocaleString()} sacos</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-amber-500" />
-          <span className="text-slate-500">Promedio Prod:</span>
-          <span className="font-black text-slate-800">{avgSacos}/{viewMode === 'anio' ? 'mes' : 'día'}</span>
+        <div className="flex items-center gap-1.5 group relative">
+          <Info size={14} className="text-indigo-400 cursor-help" />
+          <span className="text-slate-400 italic">Nota sobre Stock</span>
+          <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl border border-slate-700">
+            <p className="font-bold mb-1 text-indigo-300">¿Por qué los totales no coinciden con el Stock?</p>
+            Este gráfico muestra el <strong>flujo del periodo</strong> (lo que entró y salió en este mes). 
+            El <strong>Stock Total</strong> en la sección de inventario incluye el saldo acumulado de meses anteriores.
+          </div>
         </div>
       </div>
 

@@ -190,21 +190,28 @@ const Moliendas: React.FC = () => {
       key: 'status',
       label: 'Estado',
       className: 'text-right',
-      render: (session: MillingLog) => (
-        <div className="flex justify-end">
-          {session.status === 'IN_PROGRESS' ? (
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100 flex items-center gap-1.5 shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-              En Proceso
-            </span>
-          ) : (
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-1.5 shadow-sm">
-              <CheckCircle size={10} strokeWidth={3} />
-              Finalizado
-            </span>
-          )}
-        </div>
-      )
+      render: (session: MillingLog) => {
+        const start = new Date(session.created_at);
+        const durationHours = session.mineral_type === 'SULFURO' ? 2.25 : 1.67;
+        const end = new Date(start.getTime() + durationHours * 60 * 60 * 1000);
+        const isPast = end < new Date();
+        const displayStatus = isPast ? 'FINALIZADO' : session.status;
+        return (
+          <div className="flex justify-end">
+            {displayStatus === 'IN_PROGRESS' || displayStatus === 'EN_PROCESO' ? (
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100 flex items-center gap-1.5 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                En Proceso
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-1.5 shadow-sm">
+                <CheckCircle size={10} strokeWidth={3} />
+                Finalizado
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: 'actions',
@@ -224,7 +231,7 @@ const Moliendas: React.FC = () => {
                 },
                 fechaInicio: new Date(session.created_at).toLocaleDateString(),
                 horaInicio: new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-                horaFin: null,
+                horaFin: new Date(new Date(session.created_at).getTime() + (session.mineral_type === 'SULFURO' ? 2.25 : 1.67) * 60 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
                 stockTotal: 0,
                 totalSacos: session.total_sacks,
                 totalCuarzo: session.total_cuarzo,

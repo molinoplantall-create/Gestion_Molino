@@ -8,7 +8,7 @@ import { ClientSelector } from '@/components/molienda/ClientSelector';
 import { MineralTypeSelector } from '@/components/molienda/MineralTypeSelector';
 import { MillSelector } from '@/components/molienda/MillSelector';
 import { ProcessSummary } from '@/components/molienda/ProcessSummary';
-import { ReceiptModal } from '@/components/molienda/ReceiptModal';
+import { printReceipt } from '@/utils/printReceipt';
 import { TIPO_CLIENTE, MINERAL_TYPES_STOCK } from '../constants';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { millingProcessSchema } from '@/schemas/millingSchema';
@@ -68,7 +68,6 @@ const RegistroMolienda: React.FC = () => {
   const { user } = useAuthStore();
   const { mills, clients, fetchMills, fetchClients, registerMilling } = useSupabaseStore();
   const toast = useToast();
-  const receiptModal = useModal();
 
   // Estado principal
   const [molienda, setMolienda] = useState<MoliendaData>({
@@ -548,7 +547,7 @@ const RegistroMolienda: React.FC = () => {
           `La molienda ha sido guardada correctamente.\n\nFecha: ${fechaFormateada}\nHora inicio: ${horaInicio}\nHora fin estimada: ${horaFinCalculada}\n\nDETALLE:\n${detalleMolinos}`
         );
 
-        resetFormulario();
+        setMolienda(prev => ({ ...prev, procesoIniciado: true }));
       } else {
         toast.error('Error', 'Hubo un error al registrar la molienda. Inténtelo de nuevo.');
       }
@@ -674,17 +673,6 @@ const RegistroMolienda: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => receiptModal.open()}
-            disabled={totalCalculado.totalSacos === 0}
-            className={`flex items-center px-6 py-3.5 rounded-2xl font-bold text-sm transition-all shadow-lg ${totalCalculado.totalSacos > 0
-              ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'
-              : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
-              }`}
-          >
-            <Printer size={18} className="mr-3" />
-            VISTA PREVIA TICKET
-          </button>
         </div>
       </div>
 
@@ -824,44 +812,62 @@ const RegistroMolienda: React.FC = () => {
       />
 
       {/* Final Action */}
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-4 mt-8">
+        <button
+          onClick={() => printReceipt(molienda as any, user?.nombre || user?.email || 'Operador')}
+          disabled={!molienda.procesoIniciado}
+          className={`flex items-center px-6 py-3 rounded-xl transition-all shadow-lg font-bold text-sm tracking-tight ${molienda.procesoIniciado
+            ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'
+            : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
+            }`}
+        >
+          <Printer size={18} className="mr-2" />
+          VISTA PREVIA TICKET
+        </button>
+
         <button
           onClick={generarReporteWhatsApp}
-          className="flex items-center px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 font-bold text-sm tracking-tight mr-4"
+          disabled={!molienda.procesoIniciado}
+          className={`flex items-center px-6 py-3 rounded-xl transition-all shadow-lg font-bold text-sm tracking-tight ${molienda.procesoIniciado
+            ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100'
+            : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
+            }`}
         >
           <MessageSquare size={18} className="mr-2" />
           NOTIFICAR WHATSAPP
         </button>
 
-        <button
-          onClick={registrarMolienda}
-          className={`flex items-center px-6 py-3 rounded-xl transition-all shadow-lg font-bold text-sm tracking-tight ${isRegistering
-            ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
-            : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
-            }`}
-          disabled={isRegistering || molienda.procesoIniciado}
-        >
-          {isRegistering ? (
-            <>
-              <RefreshCw size={18} className="mr-2 animate-spin" />
-              REGISTRANDO...
-            </>
-          ) : (
-            <>
-              <Save size={18} className="mr-2" />
-              REGISTRAR MOLIENDA
-            </>
-          )}
-        </button>
+        {molienda.procesoIniciado ? (
+          <button
+            onClick={resetFormulario}
+            className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 font-bold text-sm tracking-tight"
+          >
+            <RefreshCw size={18} className="mr-2" />
+            NUEVA MOLIENDA
+          </button>
+        ) : (
+          <button
+            onClick={registrarMolienda}
+            className={`flex items-center px-6 py-3 rounded-xl transition-all shadow-lg font-bold text-sm tracking-tight ${isRegistering
+              ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
+              }`}
+            disabled={isRegistering}
+          >
+            {isRegistering ? (
+              <>
+                <RefreshCw size={18} className="mr-2 animate-spin" />
+                REGISTRANDO...
+              </>
+            ) : (
+              <>
+                <Save size={18} className="mr-2" />
+                REGISTRAR MOLIENDA
+              </>
+            )}
+          </button>
+        )}
       </div>
-
-      {/* Modal */}
-      <ReceiptModal
-        isOpen={receiptModal.isOpen}
-        onClose={receiptModal.close}
-        moliendaData={molienda as any}
-        userEmail={user?.email}
-      />
     </div>
   );
 };

@@ -105,8 +105,8 @@ const Header: React.FC = () => {
               </button>
 
               <div className="flex flex-col">
-                <h1 className="text-base sm:text-lg font-bold text-white tracking-tight leading-none">Molinera Inmaculada</h1>
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black mt-1">Industrial Mill System</p>
+                <h1 className="text-base sm:text-lg font-bold text-white tracking-tight leading-none">Molino Planta Saramarca II</h1>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black mt-1">Sistema de Molienda</p>
               </div>
             </div>
 
@@ -146,6 +146,9 @@ const Header: React.FC = () => {
                             onClick={() => {
                               markNotificationAsRead(notif.id);
                               setShowNotifications(false);
+                              if (notif.tipo === 'MANTENIMIENTO' || notif.titulo?.includes('Mantenimiento') || notif.mensaje?.includes('requiere')) {
+                                navigate('/mantenimiento');
+                              }
                             }}
                             className={`p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer relative ${!notif.leida ? 'bg-indigo-50/30' : ''}`}
                           >

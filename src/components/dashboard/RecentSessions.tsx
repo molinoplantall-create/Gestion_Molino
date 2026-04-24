@@ -47,10 +47,10 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions, mills = [] })
         return (
           <div
             key={session.id}
-            className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100 group"
+            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100 group gap-3 sm:gap-0"
           >
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center mr-4 text-indigo-600 border border-indigo-100 shadow-sm group-hover:scale-110 transition-transform">
+            <div className="flex items-start sm:items-center w-full sm:w-auto">
+              <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center mr-4 text-indigo-600 border border-indigo-100 shadow-sm group-hover:scale-110 transition-transform shrink-0">
                 <Clock size={20} strokeWidth={1.5} />
               </div>
               <div>
@@ -63,7 +63,7 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions, mills = [] })
                     {translateStatus(session.status)}
                   </span>
                 </div>
-                <div className="flex items-center text-[11px] text-slate-500 mt-1 font-medium">
+                <div className="flex flex-wrap items-center text-[11px] text-slate-500 mt-1 font-medium gap-y-1">
                   <span className="mr-3 text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded leading-none font-bold">
                     {session.total_sacks} SACOS
                   </span>
@@ -76,9 +76,9 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions, mills = [] })
               </div>
             </div>
 
-            <div className="text-right">
+            <div className="text-left sm:text-right mt-2 sm:mt-0 bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-lg sm:rounded-none">
               <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Molinos</div>
-              <div className="font-bold text-slate-700 text-xs truncate max-w-[80px]" title={millInfo}>
+              <div className="font-bold text-slate-700 text-xs truncate w-full sm:max-w-[80px]" title={millInfo}>
                 {millInfo}
               </div>
             </div>

@@ -280,8 +280,8 @@ const Dashboard: React.FC = () => {
       startY: 48,
       head: [['INDICADOR', 'VALOR']],
       body: [
-        ['Producción Total Histórica', `${intelligence.totalSacos.toLocaleString()} sacos`],
-        ['Producción Este Mes', `${intelligence.sacosEsteMes.toLocaleString()} sacos`],
+        ['Producción Total Histórica', `${formatNumber(intelligence.totalSacos)} sacos`],
+        ['Producción Este Mes', `${formatNumber(intelligence.sacosEsteMes)} sacos`],
         ['Variación vs Mes Anterior', `${intelligence.pctCambio}%`],
         ['Total Operaciones', `${intelligence.totalOperaciones}`],
         ['Promedio por Carga', `${intelligence.avgSacos.toFixed(1)} sacos`],
@@ -292,7 +292,7 @@ const Dashboard: React.FC = () => {
     });
 
     // Top Clientes
-    const body = intelligence.topClients.map((c, i) => [i + 1, c.name, c.total.toLocaleString(), c.tipo]);
+    const body = intelligence.topClients.map((c, i) => [i + 1, c.name, formatNumber(c.total), c.tipo]);
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 12,
       head: [['#', 'CLIENTE TOP 5', 'TOTAL SACOS', 'TIPO']],
@@ -328,7 +328,7 @@ const Dashboard: React.FC = () => {
             <div className="w-2 h-8 bg-indigo-600 rounded-full"></div>
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600">CENTRO DE CONTROL E INTELIGENCIA</span>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Molinera Inmaculada</h1>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Molino Planta Saramarca II</h1>
           <p className="text-slate-500 font-medium flex items-center mt-1">
             <Activity size={16} className="mr-2 text-indigo-500" />
             Dashboard operativo e inteligencia gerencial unificados
@@ -384,7 +384,7 @@ const Dashboard: React.FC = () => {
           {/* Estado de Planta */}
           <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-8 border border-slate-100 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Estado de Planta</h2>
+              <h2 className="text-base sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight text-center sm:text-left">Estado de Planta</h2>
               <button onClick={() => navigate('/registro-molienda')} className="flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
                 <Plus size={16} className="mr-2" /> NUEVA MOLIENDA
               </button>
@@ -399,7 +399,7 @@ const Dashboard: React.FC = () => {
             <div className="lg:col-span-3 space-y-8">
               {/* Box 1: Actividad */}
               <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-                <h2 className="text-xl font-black text-slate-900 mb-6">Actividad Reciente</h2>
+                <h2 className="text-base sm:text-xl font-black text-slate-900 mb-6 text-center sm:text-left">Actividad Reciente</h2>
                 <div className="h-80 w-full"><ActivityChart /></div>
               </div>
 
@@ -407,8 +407,8 @@ const Dashboard: React.FC = () => {
               <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Carga por Molino</h2>
-                    <p className="text-xs text-slate-500 font-medium">Distribución de sacos procesados</p>
+                    <h2 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Carga por Molino</h2>
+                    <p className="text-xs text-slate-500 font-medium text-center sm:text-left">Distribución de sacos procesados</p>
                   </div>
                   <Factory className="text-indigo-600 opacity-20" size={32} />
                 </div>
@@ -419,7 +419,7 @@ const Dashboard: React.FC = () => {
                       <XAxis type="number" hide />
                       <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
                       <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} />
-                      <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24}>
+                      <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24} animationDuration={1500} className="hover:opacity-80 transition-opacity cursor-pointer">
                         {intelligence.millStats.map((_, index) => (
                           <Cell key={index} fill={COLORS[index % COLORS.length]} />
                         ))}
@@ -431,7 +431,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-              <h2 className="text-xl font-black text-slate-900 mb-6">Últimas Moliendas</h2>
+              <h2 className="text-base sm:text-xl font-black text-slate-900 mb-6 text-center lg:text-left">Últimas Moliendas</h2>
               <RecentSessions sessions={millingLogs.slice(0, 10)} mills={mills} />
             </div>
           </div>
@@ -446,18 +446,18 @@ const Dashboard: React.FC = () => {
           
           {/* Dashboard Header Icons & Premium Exports */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
-              <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform">
-                <BarChart3 size={250} strokeWidth={1.5} />
+            <div className="md:col-span-2 bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+              <div className="absolute -right-10 -bottom-10 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
+                <BarChart3 size={250} strokeWidth={1.5} className="text-indigo-600" />
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl">
-                    <Zap className="text-white fill-white" size={24} />
+                  <div className="p-3 bg-indigo-50 rounded-2xl transition-colors duration-300 group-hover:bg-indigo-100">
+                    <Zap className="text-indigo-600 fill-indigo-600" size={24} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black tracking-tight">Performance Global</h2>
-                    <p className="text-indigo-100 text-sm font-medium">Control volumétrico y eficiencia de planta</p>
+                    <h2 className="text-2xl font-black tracking-tight text-slate-900">Performance Global</h2>
+                    <p className="text-slate-500 text-sm font-medium">Control volumétrico y eficiencia de planta</p>
                   </div>
                 </div>
                 
@@ -468,17 +468,17 @@ const Dashboard: React.FC = () => {
                       { label: 'Eficiencia', value: `${intelligence.tasaOcupacion}%`, icon: Activity },
                       { label: 'Promedio', value: formatNumber(intelligence.avgSacos, 1), icon: Zap },
                    ].map((item, i) => (
-                      <div key={i} className="bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
-                        <item.icon size={16} className="text-indigo-200 mb-2" />
-                        <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">{item.label}</p>
-                        <p className="text-xl font-black">{item.value}</p>
+                      <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:scale-105 hover:shadow-md transition-all duration-300">
+                        <item.icon size={16} className="text-indigo-500 mb-2" />
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
+                        <p className="text-xl font-black text-slate-900">{item.value}</p>
                       </div>
                    ))}
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col justify-between">
+            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-lg transition-all duration-300">
               <div>
                 <h3 className="text-lg font-black text-slate-900 mb-2">Exportaciones Maestras</h3>
                 <p className="text-xs text-slate-500 font-medium">Descarga la data procesada y balances de stock.</p>
@@ -514,8 +514,8 @@ const Dashboard: React.FC = () => {
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Tendencia Evolutiva</h3>
-                  <p className="text-xs text-slate-500 font-medium">Volumen de molienda mensual ({now.getFullYear()})</p>
+                  <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Tendencia Evolutiva</h3>
+                  <p className="text-xs text-slate-500 font-medium text-center sm:text-left">Volumen de molienda mensual ({now.getFullYear()})</p>
                 </div>
                 <div className="px-4 py-2 bg-emerald-50 rounded-xl">
                   <span className={`text-xs font-black ${intelligence.tendenciaPositiva ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -549,8 +549,8 @@ const Dashboard: React.FC = () => {
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Rendimiento de Unidades</h3>
-                  <p className="text-xs text-slate-500 font-medium">Sacos totales por molino</p>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight text-center sm:text-left">Carga por Molino</h3>
+                  <p className="text-xs text-slate-500 font-medium text-center sm:text-left">Sacos totales por molino</p>
                 </div>
                 <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
                   <Factory className="text-emerald-600" size={20} />
@@ -563,7 +563,7 @@ const Dashboard: React.FC = () => {
                     <XAxis type="number" hide />
                     <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
                     <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} />
-                    <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24}>
+                    <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24} animationDuration={1500} className="hover:opacity-80 transition-opacity cursor-pointer">
                       {intelligence.millStats.map((_, index) => (
                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
                       ))}
@@ -577,7 +577,7 @@ const Dashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
              {/* Distribución Mineral */}
              <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-                <h3 className="text-lg font-black text-slate-900 mb-8">Composición de Mineral</h3>
+                <h3 className="text-base sm:text-xl font-black text-slate-900 mb-8 text-center sm:text-left">Composición de Mineral</h3>
                 <div className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -600,9 +600,9 @@ const Dashboard: React.FC = () => {
 
              {/* Ranking de Clientes con Stock Actual */}
              <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-lg font-black text-slate-900">Ranking Top 5 y Balance Actual</h3>
-                  <div className="flex gap-2 text-[10px] font-black uppercase">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-8">
+                  <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Ranking Top 5 y Balance Actual</h3>
+                  <div className="flex justify-center sm:justify-start gap-2 text-[10px] font-black uppercase">
                     <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">HISTÓRICO</span>
                     <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">STOCK</span>
                   </div>
@@ -627,7 +627,7 @@ const Dashboard: React.FC = () => {
                       <div className="flex gap-8 items-center">
                         <div className="text-right">
                           <p className="text-xs font-black text-slate-400 uppercase tracking-tighter">Procesado</p>
-                          <p className="text-lg font-black text-indigo-600">{client.total.toLocaleString()}</p>
+                          <p className="text-lg font-black text-indigo-600">{formatNumber(client.total)}</p>
                         </div>
                         <div className="text-right px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
                           <p className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">En Almacén</p>
@@ -646,7 +646,7 @@ const Dashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Distribución por Tipo de Cliente - NUEVO */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-6">Tipo de Clientes</h3>
+              <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight mb-6 text-center sm:text-left">Tipo de Clientes</h3>
               <div className="h-[260px] relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -670,8 +670,8 @@ const Dashboard: React.FC = () => {
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Volumen por Zona</h3>
-                  <p className="text-xs text-slate-500 font-medium">Procedencia del mineral</p>
+                  <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Volumen por Zona</h3>
+                  <p className="text-xs text-slate-500 font-medium text-center sm:text-left">Procedencia del mineral</p>
                 </div>
                 <div className="p-3 bg-indigo-50 rounded-2xl border border-indigo-100">
                   <Map className="text-indigo-600" size={20} />
@@ -703,7 +703,7 @@ const Dashboard: React.FC = () => {
                         {z.name}
                       </span>
                     </div>
-                    <span className="text-sm font-black text-slate-900">{z.value.toLocaleString()}</span>
+                    <span className="text-sm font-black text-slate-900">{formatNumber(z.value)}</span>
                   </div>
                 ))}
               </div>
@@ -711,9 +711,9 @@ const Dashboard: React.FC = () => {
 
             {/* Top 5 Clientes */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-black text-slate-900 tracking-tight">Top 5 Clientes</h3>
-                <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">PRODUCCIÓN</span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6">
+                <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Top 5 Clientes</h3>
+                <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full self-center sm:self-auto">PRODUCCIÓN</span>
               </div>
               <div className="space-y-3">
                 {intelligence.topClients.map((client, idx) => (
@@ -762,7 +762,7 @@ const Dashboard: React.FC = () => {
                 <X size={18} className="text-slate-400" />
               </button>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[60vh] space-y-2">
+            <div className="p-6 overflow-y-auto max-h-[60vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {intelligence.clientesSinZona.length === 0 ? (
                 <p className="text-center text-slate-500 py-8">✅ Todos los clientes tienen zona asignada</p>
               ) : (
@@ -781,9 +781,9 @@ const Dashboard: React.FC = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-black text-slate-700">Stock: {stockActual}</p>
+                        <p className="text-xs font-black text-slate-700">Stock: {formatNumber(stockActual)}</p>
                         {totalHistorico > 0 && (
-                          <p className="text-[10px] font-bold text-slate-400">Hist: {totalHistorico.toLocaleString()}</p>
+                          <p className="text-[10px] font-bold text-slate-400">Hist: {formatNumber(totalHistorico)}</p>
                         )}
                       </div>
                     </div>

@@ -5,10 +5,10 @@ import { useSupabaseStore } from '@/store/supabaseStore';
 import { Table } from '@/components/common/Table';
 import { useModal } from '@/hooks/useModal';
 import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
-import { ReceiptModal } from '@/components/molienda/ReceiptModal';
 import { useAuthStore } from '@/store/authStore';
 import { usePageFocus } from '@/hooks/usePageFocus';
 import { formatNumber } from '@/utils/formatters';
+import { printReceipt } from '@/utils/printReceipt';
 
 const Moliendas: React.FC = () => {
   const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills, deleteMillingLog, loading, zones, fetchZones } = useSupabaseStore();
@@ -21,7 +21,6 @@ const Moliendas: React.FC = () => {
   const [endDate, setEndDate] = useState<string>('');
   const [selectedZone, setSelectedZone] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const receiptModal = useModal<any>();
   const { user } = useAuthStore();
   const pageSize = 10;
 
@@ -184,7 +183,7 @@ const Moliendas: React.FC = () => {
       label: 'Operador',
       className: 'text-center',
       render: (session: any) => (
-        <div className="text-xs font-bold text-slate-600">{session.operator_name || '—'}</div>
+        <div className="text-xs font-bold text-slate-600">{session.operator_name || user?.nombre || '—'}</div>
       )
     },
     {
@@ -246,7 +245,7 @@ const Moliendas: React.FC = () => {
                 procesoId: session.id.substring(0, 8),
                 estado: session.status
               };
-              receiptModal.open(mappedData);
+              printReceipt(mappedData as any, user?.nombre || user?.email || 'Operador');
             }}
             className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
             title="Vista Previa Ticket"
@@ -319,7 +318,7 @@ const Moliendas: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
         {[
           { label: 'TOTAL PROCESADO', value: formatNumber(stats.totalSacos), icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', suffix: 'Sacos' },
           { label: 'MOLIENDAS ÉXITO', value: formatNumber(stats.finalizadas), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', suffix: 'Logs' },
@@ -467,13 +466,6 @@ const Moliendas: React.FC = () => {
           emptyMessage="No se encontraron registros."
         />
       </div>
-
-      <ReceiptModal
-        isOpen={receiptModal.isOpen}
-        onClose={receiptModal.close}
-        moliendaData={receiptModal.data}
-        userEmail={user?.email}
-      />
 
       <DeleteConfirmModal
         isOpen={deleteModal.isOpen}

@@ -1,0 +1,337 @@
+export interface MolinoProceso {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  cuarzo: number;
+  llampo: number;
+  total: number;
+  tiempoEstimado: number;
+  horaFin: string | null;
+}
+
+export interface TiemposProceso {
+  oxido: {
+    hora40: boolean;
+    hora00: boolean;
+  };
+  sulfuro: {
+    hora00: boolean;
+    hora30: boolean;
+  };
+}
+
+export interface MoliendaData {
+  clienteNombre: string;
+  tipoCliente: string;
+  mineral: 'OXIDO' | 'SULFURO';
+  tiempos: TiemposProceso;
+  fechaInicio: string | null;
+  horaInicio: string | null;
+  horaFin: string | null;
+  stockTotal: number;
+  totalSacos: number;
+  totalCuarzo: number;
+  totalLlampo: number;
+  stockRestanteTotal: number;
+  tiempoPorMolino: number;
+  molinos: MolinoProceso[];
+  observaciones: string;
+  procesoId: string | null;
+  estado: string;
+}
+
+export const printReceipt = (moliendaData: MoliendaData, operatorName: string) => {
+  const formatTiempo = (totalMinutos: number): string => {
+    const horas = Math.floor(totalMinutos / 60);
+    const minutos = totalMinutos % 60;
+    if (horas > 0) {
+      return `${horas}h ${minutos}min`;
+    }
+    return `${minutos}min`;
+  };
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  const molinosActivos = moliendaData.molinos.filter(m => m.activo);
+  const tiemposText = moliendaData.mineral === 'OXIDO'
+    ? `Óxido: ${moliendaData.tiempos.oxido.hora40 ? '☑ 1:40' : '☐ 1:40'} | ${moliendaData.tiempos.oxido.hora00 ? '☑ 1:00' : '☐ 1:00'}`
+    : `Sulfuro: ${moliendaData.tiempos.sulfuro.hora00 ? '☑ 2:00' : '☐ 2:00'} | ${moliendaData.tiempos.sulfuro.hora30 ? '☑ 2:30' : '☐ 2:30'}`;
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Comprobante de Molienda ${moliendaData.procesoId}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 20px;
+            background: white;
+            color: #1e293b;
+          }
+          .comprobante {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+          }
+          .header {
+            background: #f8fafc;
+            color: #1e293b;
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 4px solid #4f46e5;
+          }
+          .header h1 { 
+            font-size: 20px; 
+            margin-bottom: 4px; 
+            letter-spacing: 1px;
+            color: #4f46e5;
+          }
+          .header h2 { 
+            font-size: 28px; 
+            font-weight: 800; 
+            color: #0f172a;
+            text-transform: uppercase;
+          }
+          .header .numero { 
+            margin-top: 15px; 
+            padding: 6px 14px; 
+            background: #4f46e5; 
+            color: white;
+            border-radius: 6px; 
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+          }
+          .content { padding: 40px; }
+          .section {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .section:last-child { border-bottom: none; }
+          .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+          .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-radius: 6px;
+          }
+          .info-label { color: #64748b; font-size: 13px; }
+          .info-value { font-weight: 600; color: #1e293b; font-size: 13px; }
+          .molino-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+          }
+          .molino-header {
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            font-size: 14px;
+          }
+          .molino-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 12px;
+          }
+          .firmas {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e2e8f0;
+          }
+          .firma {
+            text-align: center;
+          }
+          .firma-title {
+            font-weight: 700;
+            color: #64748b;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+          }
+          .firma-line {
+            border-top: 2px solid #1e293b;
+            margin: 0 20px 8px;
+          }
+          .firma-name {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: bold;
+          }
+          .footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 11px;
+            line-height: 1.6;
+          }
+          @media print {
+            body { padding: 0; }
+            .comprobante { border: none; border-radius: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="comprobante">
+          <div class="header">
+            <h1>PLANTA DE PROCESAMIENTO DE MINERALES</h1>
+            <h2>Comprobante de Molienda</h2>
+            <div class="numero">N° ${moliendaData.procesoId || 'PENDIENTE'}</div>
+          </div>
+
+          <div class="content">
+            <!-- Cliente -->
+            <div class="section">
+              <div class="section-title">Información del Cliente</div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-label">Cliente:</span>
+                  <span class="info-value">${moliendaData.clienteNombre}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Tipo:</span>
+                  <span class="info-value">${moliendaData.tipoCliente}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Mineral:</span>
+                  <span class="info-value">${moliendaData.mineral}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Fecha:</span>
+                  <span class="info-value">${moliendaData.fechaInicio || new Date().toLocaleDateString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tiempo -->
+            <div class="section">
+              <div class="section-title">Tiempo de Proceso</div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-label">Configuración:</span>
+                  <span class="info-value">${tiemposText}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Tiempo/Molino:</span>
+                  <span class="info-value">${formatTiempo(moliendaData.tiempoPorMolino)}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Hora inicio:</span>
+                  <span class="info-value">${moliendaData.horaInicio || '--:--'}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Hora fin:</span>
+                  <span class="info-value">${moliendaData.horaFin || '--:--'}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Molinos -->
+            <div class="section">
+              <div class="section-title">Detalle por Molino</div>
+              ${molinosActivos.map((molino, index) => `
+                <div class="molino-card">
+                  <div class="molino-header">${index + 1}. ${molino.nombre}</div>
+                  <div class="molino-details">
+                    <div><span class="info-label">Total:</span> ${molino.total} sacos</div>
+                    <div><span class="info-label">Tiempo:</span> ${formatTiempo(molino.tiempoEstimado)}</div>
+                    <div><span class="info-label">Cuarzo:</span> ${molino.cuarzo} sacos</div>
+                    <div><span class="info-label">Hora fin:</span> ${molino.horaFin || '--:--'}</div>
+                    <div><span class="info-label">Llampo:</span> ${molino.llampo} sacos</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- Resumen -->
+            <div class="section">
+              <div class="section-title">Resumen General</div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-label">Total sacos:</span>
+                  <span class="info-value">${moliendaData.totalSacos}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Molinos activos:</span>
+                  <span class="info-value">${molinosActivos.length}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Cuarzo:</span>
+                  <span class="info-value">${moliendaData.totalCuarzo} sacos</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Stock restante:</span>
+                  <span class="info-value">${moliendaData.stockRestanteTotal} sacos</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Llampo:</span>
+                  <span class="info-value">${moliendaData.totalLlampo} sacos</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Observaciones -->
+            ${moliendaData.observaciones ? `
+              <div class="section">
+                <div class="section-title">Observaciones</div>
+                <p style="padding: 12px; background: #f8fafc; border-radius: 6px; font-size: 13px; line-height: 1.6;">
+                  ${moliendaData.observaciones}
+                </p>
+              </div>
+            ` : ''}
+
+            <!-- Firmas -->
+            <div class="firmas">
+              <div class="firma">
+                <div class="firma-title">Operador</div>
+                <div class="firma-line"></div>
+                <div class="firma-name">${operatorName}</div>
+              </div>
+              <div class="firma">
+                <div class="firma-title">Cliente</div>
+                <div class="firma-line"></div>
+                <div class="firma-name">${moliendaData.clienteNombre}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>Fecha de emisión: ${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()}</p>
+            <p>Este documento certifica el inicio del proceso de molienda.</p>
+            <p>Todos los molinos activos terminan a la misma hora.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.print();
+};

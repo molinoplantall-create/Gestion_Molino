@@ -418,7 +418,7 @@ const Dashboard: React.FC = () => {
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                       <XAxis type="number" hide />
                       <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
-                      <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} />
+                      <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} formatter={(value) => formatNumber(value as number)} />
                       <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24} animationDuration={1500} className="hover:opacity-80 transition-opacity cursor-pointer">
                         {intelligence.millStats.map((_, index) => (
                           <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -562,7 +562,7 @@ const Dashboard: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                     <XAxis type="number" hide />
                     <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
-                    <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} />
+                    <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} formatter={(value) => formatNumber(value as number)} />
                     <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24} animationDuration={1500} className="hover:opacity-80 transition-opacity cursor-pointer">
                       {intelligence.millStats.map((_, index) => (
                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -601,7 +601,7 @@ const Dashboard: React.FC = () => {
              {/* Ranking de Clientes con Stock Actual */}
              <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-8">
-                  <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Ranking Top 5 y Balance Actual</h3>
+                  <h3 className="text-sm sm:text-base md:text-lg font-black text-slate-900 tracking-tight text-center sm:text-left">Ranking Top 5 y Balance Actual</h3>
                   <div className="flex justify-center sm:justify-start gap-2 text-[10px] font-black uppercase">
                     <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">HISTÓRICO</span>
                     <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">STOCK</span>
@@ -712,7 +712,7 @@ const Dashboard: React.FC = () => {
             {/* Top 5 Clientes */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6">
-                <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Top 5 Clientes</h3>
+                <h3 className="text-sm sm:text-base md:text-lg font-black text-slate-900 tracking-tight text-center sm:text-left">Top 5 Clientes</h3>
                 <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full self-center sm:self-auto">PRODUCCIÓN</span>
               </div>
               <div className="space-y-3">

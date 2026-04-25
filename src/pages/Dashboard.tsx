@@ -51,7 +51,6 @@ const Dashboard: React.FC = () => {
     recalcAllClientsStock
   } = useSupabaseStore();
 
-  const [activeTab, setActiveTab] = useState<'operaciones' | 'reportes'>('operaciones');
   const [showSinZonaModal, setShowSinZonaModal] = useState(false);
 
   usePageFocus(() => {
@@ -335,415 +334,249 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-inner">
-          <button
-            onClick={() => setActiveTab('operaciones')}
-            className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'operaciones' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            ⚙️ Operaciones
+        <div className="flex gap-2">
+          <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all shadow-sm">
+            <Download size={16} className="text-emerald-500" /> 
+            <span className="hidden sm:inline">PRODUCCIÓN</span>
           </button>
-          <button
-            onClick={() => setActiveTab('reportes')}
-            className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'reportes' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            📊 Centro de Analítica
+          <button onClick={handleExportIngresosExcel} className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all shadow-sm">
+            <ShoppingBag size={16} className="text-indigo-500" />
+            <span className="hidden sm:inline">STOCK</span>
+          </button>
+          <button onClick={handleGeneratePDF} className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 font-bold text-xs transition-all shadow-md">
+            <FileText size={16} />
+            <span className="hidden sm:inline">REPORTE PDF</span>
           </button>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════ */}
-      {/* TAB 1: OPERACIONES                         */}
+      {/* UNIFIED DASHBOARD LAYOUT                    */}
       {/* ═══════════════════════════════════════════ */}
-      {activeTab === 'operaciones' ? (
-        <>
-          {/* KPIs Operativos */}
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
-            {[
-              { label: 'PRODUCCIÓN HOY', value: formatNumber(totalSacosHoy), unit: 'sacos', icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100' },
-              { label: 'STOCK EN ALMACÉN', value: formatNumber(totalStockSacos), unit: 'sacos', icon: ShoppingBag, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
-              { label: 'MOLINOS OPERANDO', value: `${molinosOcupados}/${mills.length}`, unit: 'activos', icon: Factory, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-              { label: 'DISPONIBILIDAD', value: molinosLibres.toString(), unit: 'libres', icon: CheckCircle, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
-            ].map((kpi) => (
-              <div key={kpi.label} className="group kpi-card flex flex-col justify-between">
-                <div className="flex items-start justify-between mb-2 sm:mb-4">
-                  <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} border rounded-xl sm:rounded-2xl group-hover:scale-110 transition-transform`}>
-                    <kpi.icon className={`${kpi.color} w-4 h-4 sm:w-7 sm:h-7`} strokeWidth={2.5} />
-                  </div>
-                </div>
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+        
+        {/* ROW 1: KPIs Unificados */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+          {[
+            { 
+              label: 'Producción Acumulada', 
+              value: formatNumber(intelligence.totalSacos), 
+              unit: 'sacos', 
+              subtext: 'Total Histórico',
+              icon: TrendingUp, 
+              color: 'text-blue-600', 
+              bg: 'bg-blue-50', 
+              border: 'border-blue-100' 
+            },
+            { 
+              label: 'Producción de Hoy', 
+              value: formatNumber(totalSacosHoy), 
+              unit: 'sacos', 
+              subtext: 'Procesado en el día',
+              icon: Zap, 
+              color: 'text-amber-500', 
+              bg: 'bg-amber-50', 
+              border: 'border-amber-100' 
+            },
+            { 
+              label: 'Molinos Operativos', 
+              value: `${molinosOcupados}/${mills.length}`, 
+              unit: 'activos', 
+              subtext: 'En tiempo real',
+              icon: Factory, 
+              color: 'text-emerald-600', 
+              bg: 'bg-emerald-50', 
+              border: 'border-emerald-100' 
+            },
+            { 
+              label: 'Rendimiento Global', 
+              value: `${intelligence.tasaOcupacion}%`, 
+              unit: 'eficiencia', 
+              subtext: `Promedio: ${formatNumber(intelligence.avgSacos, 1)} sacos`,
+              icon: Activity, 
+              color: 'text-violet-600', 
+              bg: 'bg-violet-50', 
+              border: 'border-violet-100' 
+            },
+          ].map((kpi, idx) => (
+            <div key={idx} className="bg-white p-4 sm:p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group">
+              <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate">{kpi.label}</p>
-                  <div className="flex items-baseline gap-1 sm:gap-2 truncate">
-                    <h3 className="text-lg sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
-                    <span className="text-[8px] sm:text-xs font-bold text-slate-400">{kpi.unit}</span>
-                  </div>
+                   <p className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest mb-1 truncate">{kpi.label}</p>
+                   <div className="flex items-baseline gap-2 truncate">
+                     <h3 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                     <span className="text-[10px] sm:text-xs font-bold text-slate-400">{kpi.unit}</span>
+                   </div>
+                </div>
+                <div className={`p-3 ${kpi.bg} ${kpi.border} border rounded-2xl group-hover:scale-110 transition-transform`}>
+                  <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-6 sm:h-6`} strokeWidth={2.5} />
                 </div>
               </div>
-            ))}
+              <div>
+                <span className={`text-[10px] sm:text-xs font-black ${kpi.subtextColor || 'text-slate-500'}`}>
+                  {kpi.subtext}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ROW 2: Charts (Actividad + Tendencia) */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* Actividad Reciente */}
+          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+            <h2 className="text-base sm:text-xl font-black text-slate-900 mb-2 text-center sm:text-left">Actividad Reciente</h2>
+            <p className="text-xs text-slate-500 font-medium text-center sm:text-left mb-6">Comparativa de ingresos y producción</p>
+            <div className="h-80 w-full"><ActivityChart /></div>
           </div>
 
-          {/* Estado de Planta */}
-          <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-8 border border-slate-100 shadow-sm">
+          {/* Tendencia Evolutiva */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+            <h3 className="text-base sm:text-xl font-black text-slate-900 mb-2 tracking-tight text-center sm:text-left">Tendencia Evolutiva</h3>
+            <p className="text-xs text-slate-500 font-medium text-center sm:text-left mb-6">Crecimiento mensual acumulado ({now.getFullYear()})</p>
+            <div className="h-80 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={intelligence.monthlyProd}>
+                  <defs>
+                    <linearGradient id="premiumGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', fontWeight: 800 }}
+                    cursor={{ stroke: '#8b5cf6', strokeWidth: 2, strokeDasharray: '5 5' }}
+                  />
+                  <Area type="monotone" dataKey="sacos" stroke="#8b5cf6" strokeWidth={4} fillOpacity={1} fill="url(#premiumGradient)" animationDuration={1500} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* ROW 3: Estado de Planta */}
+        <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute -right-10 -top-10 opacity-[0.02] group-hover:scale-110 transition-transform duration-500 pointer-events-none">
+             <Factory size={250} strokeWidth={1.5} className="text-indigo-600" />
+          </div>
+          <div className="relative z-10">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
               <h2 className="text-base sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight text-center sm:text-left">Estado de Planta</h2>
-              <button onClick={() => navigate('/registro-molienda')} className="flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
-                <Plus size={16} className="mr-2" /> NUEVA MOLIENDA
+              <button onClick={() => navigate('/registro-molienda')} className="flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
+                <Plus size={16} className="mr-2" /> Nueva Molienda
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {mills.map((mill) => <MillCard key={mill.id} mill={mill} />)}
             </div>
           </div>
+        </div>
 
-          {/* Actividad y Logs */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            <div className="lg:col-span-3 space-y-8">
-              {/* Box 1: Actividad */}
-              <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-                <h2 className="text-base sm:text-xl font-black text-slate-900 mb-6 text-center sm:text-left">Actividad Reciente</h2>
-                <div className="h-80 w-full"><ActivityChart /></div>
-              </div>
-
-              {/* Box 2: Uso de Molinos (Filling the space) */}
-              <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Carga por Molino</h2>
-                    <p className="text-xs text-slate-500 font-medium text-center sm:text-left">Distribución de sacos procesados</p>
-                  </div>
-                  <Factory className="text-indigo-600 opacity-20" size={32} />
-                </div>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={intelligence.millStats} layout="vertical" margin={{ left: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                      <XAxis type="number" hide />
-                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
-                      <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} formatter={(value) => formatNumber(value as number)} />
-                      <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24} animationDuration={1500} className="hover:opacity-80 transition-opacity cursor-pointer">
-                        {intelligence.millStats.map((_, index) => (
-                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-              <h2 className="text-base sm:text-xl font-black text-slate-900 mb-6 text-center lg:text-left">Últimas Moliendas</h2>
-              <RecentSessions sessions={millingLogs.slice(0, 10)} mills={mills} />
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-      {/* ═══════════════════════════════════════════ */}
-      {/* TAB 2: ANALÍTICA GERENCIAL (PREMIUM)       */}
-      {/* ═══════════════════════════════════════════ */}
-      {activeTab === 'reportes' && (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
-          
-          {/* Dashboard Header Icons & Premium Exports */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-              <div className="absolute -right-10 -bottom-10 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
-                <BarChart3 size={250} strokeWidth={1.5} className="text-indigo-600" />
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-indigo-50 rounded-2xl transition-colors duration-300 group-hover:bg-indigo-100">
-                    <Zap className="text-indigo-600 fill-indigo-600" size={24} />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-black tracking-tight text-slate-900">Performance Global</h2>
-                    <p className="text-slate-500 text-sm font-medium">Control volumétrico y eficiencia de planta</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8">
-                   {[
-                      { label: 'Total Histórico', value: formatNumber(intelligence.totalSacos), icon: Box },
-                      { label: 'Este Mes', value: formatNumber(intelligence.sacosEsteMes), icon: Calendar },
-                      { label: 'Eficiencia', value: `${intelligence.tasaOcupacion}%`, icon: Activity },
-                      { label: 'Promedio', value: formatNumber(intelligence.avgSacos, 1), icon: Zap },
-                   ].map((item, i) => (
-                      <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:scale-105 hover:shadow-md transition-all duration-300">
-                        <item.icon size={16} className="text-indigo-500 mb-2" />
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
-                        <p className="text-xl font-black text-slate-900">{item.value}</p>
-                      </div>
-                   ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-lg transition-all duration-300">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 mb-2">Exportaciones Maestras</h3>
-                <p className="text-xs text-slate-500 font-medium">Descarga la data procesada y balances de stock.</p>
-              </div>
-              <div className="space-y-3 mt-6">
-                <button onClick={handleExportExcel} className="w-full flex items-center justify-between px-6 py-4 bg-slate-50 rounded-2xl hover:bg-emerald-50 hover:text-emerald-700 border border-slate-100 hover:border-emerald-200 transition-all group">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                      <Download size={18} className="text-emerald-500" />
-                    </div>
-                    <span className="font-bold text-sm">Producción Completa</span>
-                  </div>
-                  <ChevronRight size={16} className="text-slate-300 group-hover:text-emerald-400" />
-                </button>
-                <button onClick={handleExportIngresosExcel} className="w-full flex items-center justify-between px-6 py-4 bg-slate-50 rounded-2xl hover:bg-indigo-50 hover:text-indigo-700 border border-slate-100 hover:border-indigo-200 transition-all group">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                      <ShoppingBag size={18} className="text-indigo-500" />
-                    </div>
-                    <span className="font-bold text-sm">Stock Actual (Almacén)</span>
-                  </div>
-                  <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-400" />
-                </button>
-                <button onClick={handleGeneratePDF} className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all shadow-lg font-bold text-sm">
-                  <FileText size={18} /> GENERAR REPORTE PDF
-                </button>
-              </div>
+        {/* ROW 4: Carga, Composición, Top Clientes */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Carga por Molino */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2 text-center sm:text-left">Carga por Molino</h3>
+            <p className="text-xs text-slate-500 font-medium mb-6 text-center sm:text-left">Distribución de producción</p>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={intelligence.millStats} margin={{ top: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} />
+                  <YAxis hide />
+                  <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} formatter={(value) => formatNumber(value as number)} />
+                  <Bar dataKey="total" radius={[6, 6, 0, 0]} barSize={40} animationDuration={1500} className="hover:opacity-80 transition-opacity cursor-pointer">
+                    {intelligence.millStats.map((_, index) => (
+                      <Cell key={index} fill="#3b82f6" />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Gráfico de Tendencia con Gradiente Premium */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Tendencia Evolutiva</h3>
-                  <p className="text-xs text-slate-500 font-medium text-center sm:text-left">Volumen de molienda mensual ({now.getFullYear()})</p>
-                </div>
-                <div className="px-4 py-2 bg-emerald-50 rounded-xl">
-                  <span className={`text-xs font-black ${intelligence.tendenciaPositiva ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {intelligence.pctCambio}% vs mes anterior
-                  </span>
-                </div>
-              </div>
-              <div className="h-[350px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={intelligence.monthlyProd}>
-                    <defs>
-                      <linearGradient id="premiumGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', fontWeight: 800 }}
-                      cursor={{ stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '5 5' }}
-                    />
-                    <Area type="monotone" dataKey="sacos" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#premiumGradient)" animationDuration={1500} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Productividad por Molino (RESTORED) */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight text-center sm:text-left">Carga por Molino</h3>
-                  <p className="text-xs text-slate-500 font-medium text-center sm:text-left">Sacos totales por molino</p>
-                </div>
-                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
-                  <Factory className="text-emerald-600" size={20} />
-                </div>
-              </div>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={intelligence.millStats} layout="vertical" margin={{ left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} width={80} />
-                    <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} formatter={(value) => formatNumber(value as number)} />
-                    <Bar dataKey="total" radius={[0, 10, 10, 0]} barSize={24} animationDuration={1500} className="hover:opacity-80 transition-opacity cursor-pointer">
-                      {intelligence.millStats.map((_, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+          {/* Composición Mineral */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2 text-center sm:text-left">Composición de Mineral</h3>
+            <p className="text-xs text-slate-500 font-medium mb-6 text-center sm:text-left">Distribución por tipo</p>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie 
+                    data={intelligence.mineralData} 
+                    cx="50%" cy="50%" 
+                    innerRadius={60} outerRadius={90} 
+                    paddingAngle={5} dataKey="value"
+                  >
+                    {intelligence.mineralData.map((entry, i) => (
+                      <Cell key={i} fill={entry.name === 'Óxido' ? '#f59e0b' : '#3b82f6'} stroke="transparent" />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: '15px', border: 'none', fontWeight: 900 }} />
+                  <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ paddingTop: '20px', fontWeight: 700, fontSize: '11px' }} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-             {/* Distribución Mineral */}
-             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-                <h3 className="text-base sm:text-xl font-black text-slate-900 mb-8 text-center sm:text-left">Composición de Mineral</h3>
-                <div className="h-[280px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie 
-                        data={intelligence.mineralData} 
-                        cx="50%" cy="50%" 
-                        innerRadius={70} outerRadius={100} 
-                        paddingAngle={10} dataKey="value"
-                      >
-                        {intelligence.mineralData.map((entry, i) => (
-                          <Cell key={i} fill={entry.name === 'Óxido' ? '#6366f1' : '#facc15'} stroke="transparent" />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '15px', border: 'none', fontWeight: 900 }} />
-                      <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ paddingTop: '20px', fontWeight: 700, fontSize: '11px' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-             </div>
-
-             {/* Ranking de Clientes con Stock Actual */}
-             <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-8">
-                  <h3 className="text-sm sm:text-base md:text-lg font-black text-slate-900 tracking-tight text-center sm:text-left">Ranking Top 5 y Balance Actual</h3>
-                  <div className="flex justify-center sm:justify-start gap-2 text-[10px] font-black uppercase">
-                    <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">HISTÓRICO</span>
-                    <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">STOCK</span>
+          {/* Top Clientes */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2 text-center sm:text-left">Top 3 Clientes</h3>
+            <p className="text-xs text-slate-500 font-medium mb-6 text-center sm:text-left">Ranking por balance actual</p>
+            <div className="space-y-4">
+              {intelligence.topClients.slice(0, 3).map((client, idx) => (
+                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-black shadow-sm">
+                      {idx + 1}
+                    </div>
+                    <span className="text-sm font-black text-slate-900">{client.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-sm font-black text-slate-900">{formatNumber(client.total)}</span>
+                    <span className="block text-[10px] font-bold text-emerald-600">+{formatNumber(client.stockActual)}</span>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  {intelligence.topClients.map((client, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-slate-50 rounded-2xl border border-transparent hover:border-slate-200 transition-all group">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${
-                          idx === 0 ? 'bg-amber-100 text-amber-600 shadow-sm' :
-                          idx === 1 ? 'bg-slate-200 text-slate-400' :
-                          idx === 2 ? 'bg-orange-100 text-orange-600' :
-                          'bg-white text-slate-300 border border-slate-100'
-                        }`}>
-                          {idx + 1}
-                        </div>
-                        <div>
-                          <h4 className="font-black text-slate-900 tracking-tight">{client.name}</h4>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{client.tipo}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-8 items-center">
-                        <div className="text-right">
-                          <p className="text-xs font-black text-slate-400 uppercase tracking-tighter">Procesado</p>
-                          <p className="text-lg font-black text-indigo-600">{formatNumber(client.total)}</p>
-                        </div>
-                        <div className="text-right px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
-                          <p className="text-[9px] font-black text-emerald-600 uppercase tracking-tighter">En Almacén</p>
-                          <p className="text-lg font-black text-emerald-700">{formatNumber(client.stockActual)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-             </div>
+              ))}
+            </div>
           </div>
         </div>
-      )}
 
-          {/* Sección inferior: Mineral + Zonas + Top Clientes */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Distribución por Tipo de Cliente - NUEVO */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight mb-6 text-center sm:text-left">Tipo de Clientes</h3>
-              <div className="h-[260px] relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={intelligence.chartTypeData} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value" animationDuration={1200}>
-                      {intelligence.chartTypeData.map((entry, i) => (
-                        <Cell key={i} fill={COLORS[(i + 2) % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', fontWeight: 700 }} />
-                    <Legend verticalAlign="bottom" wrapperStyle={{ fontWeight: 700, fontSize: '11px' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-10 text-center pointer-events-none">
-                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Mix</span>
-                  <span className="text-xl font-black text-slate-900">Perfiles</span>
-                </div>
-              </div>
+        {/* ROW 5: Últimas Moliendas, Volumen por Zona */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
+            <h2 className="text-base sm:text-xl font-black text-slate-900 mb-6 text-center lg:text-left">Últimas Moliendas</h2>
+            <RecentSessions sessions={millingLogs.slice(0, 4)} mills={mills} />
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Volumen por Zona</h3>
+              <MapPin className="text-slate-400" size={20} />
             </div>
+            <p className="text-xs text-slate-500 font-medium text-center sm:text-left mb-6">Rendimiento por ubicación</p>
 
-            {/* Volumen por Zona + SIN ZONA Diagnóstico */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Volumen por Zona</h3>
-                  <p className="text-xs text-slate-500 font-medium text-center sm:text-left">Procedencia del mineral</p>
+            <div className="space-y-4">
+              {intelligence.chartZoneData.slice(0, 6).map((z, i) => (
+                <div key={z.name} className="flex items-center gap-4">
+                  <div className="w-24 flex-shrink-0 text-xs font-bold text-slate-700 truncate">{z.name}</div>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-600 rounded-full" 
+                      style={{ width: `${Math.max(10, (z.value / intelligence.chartZoneData[0].value) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="w-12 text-right text-xs font-black text-slate-900">{formatNumber(z.value)}</div>
                 </div>
-                <div className="p-3 bg-indigo-50 rounded-2xl border border-indigo-100">
-                  <Map className="text-indigo-600" size={20} />
-                </div>
-              </div>
-
-              {/* Alerta SIN ZONA */}
-              {intelligence.clientesSinZona.length > 0 && (
-                <button
-                  onClick={() => setShowSinZonaModal(true)}
-                  className="w-full mb-4 flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-all group"
-                >
-                  <div className="flex items-center gap-2 text-left">
-                    <AlertCircle size={16} className="text-amber-600 flex-shrink-0" />
-                    <span className="text-xs font-bold text-amber-700">
-                      {intelligence.clientesSinZona.length} cliente(s) SIN ZONA
-                    </span>
-                  </div>
-                  <Eye size={14} className="text-amber-500 group-hover:text-amber-700" />
-                </button>
-              )}
-
-              <div className="space-y-2 max-h-[240px] overflow-y-auto custom-scrollbar">
-                {intelligence.chartZoneData.slice(0, 10).map((z, i) => (
-                  <div key={z.name} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
-                      <span className={`text-xs font-bold truncate ${z.name === 'SIN ZONA' ? 'text-amber-600 italic' : 'text-slate-700'}`}>
-                        {z.name}
-                      </span>
-                    </div>
-                    <span className="text-sm font-black text-slate-900">{formatNumber(z.value)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Top 5 Clientes */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6">
-                <h3 className="text-sm sm:text-base md:text-lg font-black text-slate-900 tracking-tight text-center sm:text-left">Top 5 Clientes</h3>
-                <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full self-center sm:self-auto">PRODUCCIÓN</span>
-              </div>
-              <div className="space-y-3">
-                {intelligence.topClients.map((client, idx) => (
-                  <div key={client.name} className="flex items-center justify-between p-3 bg-slate-50/50 rounded-xl hover:bg-slate-50 transition-all group">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${
-                        idx === 0 ? 'bg-amber-100 text-amber-600' :
-                        idx === 1 ? 'bg-slate-200 text-slate-500' :
-                        idx === 2 ? 'bg-orange-100 text-orange-600' :
-                        'bg-white text-slate-400 border border-slate-100'
-                      }`}>
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-slate-900 tracking-tight">{client.name}</h4>
-                        <span className="text-[10px] font-bold text-slate-400">{client.tipo}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm font-black text-indigo-600">{formatNumber(client.total)}</span>
-                      <span className="block text-[8px] font-black text-slate-400 uppercase">sacos</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
-        </>
-      )}
-
+        </div>
+      </div>
+      
       {/* ═══ MODAL SIN ZONA ═══ */}
       {showSinZonaModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowSinZonaModal(false)}>

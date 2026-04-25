@@ -521,7 +521,6 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
             mills_used: data.mills,
             status: isHistorical ? 'FINALIZADO' : 'IN_PROGRESS',
             observations: data.observations || '',
-            operator_name: data.operatorName || null,
             created_at: data.fecha || new Date().toISOString()
           })
           .select()

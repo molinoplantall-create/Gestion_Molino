@@ -68,7 +68,7 @@ export const printReceipt = (moliendaData: MoliendaData, operatorName: string) =
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            padding: 20px;
+            padding: 10px;
             background: white;
             color: #1e293b;
           }
@@ -82,87 +82,86 @@ export const printReceipt = (moliendaData: MoliendaData, operatorName: string) =
           .header {
             background: #f8fafc;
             color: #1e293b;
-            padding: 40px 30px;
+            padding: 20px;
             text-align: center;
             border-bottom: 4px solid #4f46e5;
           }
           .header h1 { 
-            font-size: 20px; 
+            font-size: 18px; 
             margin-bottom: 4px; 
             letter-spacing: 1px;
             color: #4f46e5;
           }
           .header h2 { 
-            font-size: 28px; 
+            font-size: 24px; 
             font-weight: 800; 
             color: #0f172a;
             text-transform: uppercase;
           }
           .header .numero { 
-            margin-top: 15px; 
-            padding: 6px 14px; 
+            margin-top: 10px; 
+            padding: 4px 10px; 
             background: #4f46e5; 
             color: white;
             border-radius: 6px; 
             display: inline-block;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 800;
-            letter-spacing: 0.5px;
           }
-          .content { padding: 40px; }
+          .content { padding: 20px; }
           .section {
-            margin-bottom: 24px;
-            padding-bottom: 24px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
             border-bottom: 1px solid #e2e8f0;
           }
           .section:last-child { border-bottom: none; }
           .section-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #64748b;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
           }
           .info-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: 8px;
           }
           .info-item {
             display: flex;
             justify-content: space-between;
-            padding: 8px 12px;
+            padding: 6px 10px;
             background: #f8fafc;
             border-radius: 6px;
           }
-          .info-label { color: #64748b; font-size: 13px; }
-          .info-value { font-weight: 600; color: #1e293b; font-size: 13px; }
+          .info-label { color: #64748b; font-size: 12px; }
+          .info-value { font-weight: 600; color: #1e293b; font-size: 12px; }
           .molino-card {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 12px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
           }
           .molino-header {
             font-weight: 700;
             color: #1e293b;
-            margin-bottom: 8px;
-            font-size: 14px;
+            margin-bottom: 6px;
+            font-size: 13px;
           }
           .molino-details {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            font-size: 12px;
+            gap: 6px;
+            font-size: 11px;
           }
           .firmas {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 40px;
-            margin-top: 40px;
-            padding-top: 30px;
+            margin-top: 25px;
+            padding-top: 20px;
             border-top: 2px solid #e2e8f0;
           }
           .firma {
@@ -173,28 +172,31 @@ export const printReceipt = (moliendaData: MoliendaData, operatorName: string) =
             color: #64748b;
             font-size: 12px;
             text-transform: uppercase;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
           }
           .firma-line {
             border-top: 2px solid #1e293b;
-            margin: 0 20px 8px;
+            margin: 0 20px 6px;
           }
           .firma-name {
-            font-size: 13px;
+            font-size: 12px;
             color: #64748b;
             font-weight: bold;
           }
           .footer {
             text-align: center;
-            padding: 20px;
+            padding: 15px;
             background: #f8fafc;
             color: #64748b;
-            font-size: 11px;
-            line-height: 1.6;
+            font-size: 10px;
+            line-height: 1.4;
           }
           @media print {
-            body { padding: 0; }
-            .comprobante { border: none; border-radius: 0; }
+            @page { margin: 1cm; size: A4 portrait; }
+            body { padding: 0; background: white; }
+            .comprobante { border: none; border-radius: 0; box-shadow: none; }
+            .molino-card { break-inside: avoid; }
+            .firmas { break-inside: avoid; }
           }
         </style>
       </head>
@@ -263,7 +265,7 @@ export const printReceipt = (moliendaData: MoliendaData, operatorName: string) =
                     <div><span class="info-label">Total:</span> ${molino.total} sacos</div>
                     <div><span class="info-label">Tiempo:</span> ${formatTiempo(molino.tiempoEstimado)}</div>
                     <div><span class="info-label">Cuarzo:</span> ${molino.cuarzo} sacos</div>
-                    <div><span class="info-label">Hora fin:</span> ${molino.horaFin || '--:--'}</div>
+                    <div><span class="info-label">Hora fin:</span> ${molino.horaFin || moliendaData.horaFin || '--:--'}</div>
                     <div><span class="info-label">Llampo:</span> ${molino.llampo} sacos</div>
                   </div>
                 </div>

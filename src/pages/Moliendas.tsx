@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { usePageFocus } from '@/hooks/usePageFocus';
 import { formatNumber } from '@/utils/formatters';
 import { printReceipt } from '@/utils/printReceipt';
+import { printGlobalReport } from '@/utils/printGlobalReport';
 
 const Moliendas: React.FC = () => {
   const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills, deleteMillingLog, loading, zones, fetchZones } = useSupabaseStore();
@@ -294,6 +295,51 @@ const Moliendas: React.FC = () => {
     }
   };
 
+  const handleExportCSV = () => {
+    if (millingLogs.length === 0) {
+      alert('No hay datos para exportar con los filtros actuales.');
+      return;
+    }
+
+    const headers = ['Fecha', 'Hora', 'Cliente', 'Mineral', 'Total Sacos', 'Cuarzo', 'Llampo', 'Molinos Usados', 'Estado', 'Operador'];
+    const rows = millingLogs.map(log => {
+      const date = new Date(log.created_at);
+      const fecha = date.toLocaleDateString('es-PE');
+      const hora = date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const cliente = log.clients?.name || 'Cliente';
+      const mineral = log.mineral_type;
+      const totalSacos = log.total_sacks || 0;
+      const cuarzo = log.total_cuarzo || 0;
+      const llampo = log.total_llampo || 0;
+      const molinos = (log.mills_used || []).map((m: any) => m.name || m.id).join(', ');
+      const estado = log.status;
+      const operador = log.operator_name || 'Desconocido';
+
+      return [
+        fecha,
+        hora,
+        `"${cliente}"`,
+        mineral,
+        totalSacos,
+        cuarzo,
+        llampo,
+        `"${molinos}"`,
+        estado,
+        `"${operador}"`
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Reporte_Moliendas_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-4 pb-10 max-w-[1600px] mx-auto px-4 md:px-6">
       {/* HEADER INDUSTRIAL COMPACTO */}
@@ -316,7 +362,17 @@ const Moliendas: React.FC = () => {
             WHATSAPP
           </button>
           <button
-            onClick={() => alert('Exportando historial...')}
+            onClick={() => {
+              const operatorName = user?.nombre || user?.email || 'Desconocido';
+              printGlobalReport(millingLogs, operatorName);
+            }}
+            className="flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 font-bold text-xs"
+          >
+            <Printer size={16} className="mr-2" />
+            IMPRIMIR INFORME
+          </button>
+          <button
+            onClick={handleExportCSV}
             className="flex items-center px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 font-bold text-xs"
           >
             <Download size={16} className="mr-2" />

@@ -399,21 +399,21 @@ const Dashboard: React.FC = () => {
               border: 'border-violet-100' 
             },
           ].map((kpi, idx) => (
-            <div key={idx} className="bg-white p-4 sm:p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                   <p className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest mb-1 truncate">{kpi.label}</p>
-                   <div className="flex items-baseline gap-2 truncate">
+            <div key={idx} className="bg-white p-3 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group overflow-hidden">
+              <div className="flex items-start justify-between mb-2 sm:mb-4 gap-2">
+                <div className="min-w-0 flex-1">
+                   <p className="text-[9px] sm:text-xs font-black text-slate-400 uppercase tracking-widest mb-1 truncate">{kpi.label}</p>
+                   <div className="flex items-baseline gap-1 sm:gap-2 truncate">
                      <h3 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
-                     <span className="text-[10px] sm:text-xs font-bold text-slate-400">{kpi.unit}</span>
+                     <span className="text-[9px] sm:text-xs font-bold text-slate-400 flex-shrink-0">{kpi.unit}</span>
                    </div>
                 </div>
-                <div className={`p-3 ${kpi.bg} ${kpi.border} border rounded-2xl group-hover:scale-110 transition-transform`}>
-                  <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-6 sm:h-6`} strokeWidth={2.5} />
+                <div className={`p-2.5 sm:p-3 ${kpi.bg} ${kpi.border} border rounded-xl sm:rounded-2xl flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                  <kpi.icon className={`${kpi.color} w-4 h-4 sm:w-6 sm:h-6`} strokeWidth={2.5} />
                 </div>
               </div>
-              <div>
-                <span className={`text-[10px] sm:text-xs font-black ${kpi.subtextColor || 'text-slate-500'}`}>
+              <div className="min-w-0">
+                <span className={`text-[9px] sm:text-xs font-black block truncate ${kpi.subtextColor || 'text-slate-500'}`}>
                   {kpi.subtext}
                 </span>
               </div>

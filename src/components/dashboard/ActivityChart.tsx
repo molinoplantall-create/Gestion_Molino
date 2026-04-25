@@ -209,7 +209,7 @@ const ActivityChart: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Filtros */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex flex-wrap gap-2 items-center mb-2">
         {/* Vista: Semana / Mes / Año */}
         <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
           {([
@@ -291,24 +291,23 @@ const ActivityChart: React.FC = () => {
       </div>
 
       {/* Mini Stats */}
-      <div className="flex gap-4 text-xs">
+      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs items-center bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100">
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-indigo-500" />
           <span className="text-slate-500">Total:</span>
-          <span className="font-black text-slate-800">{totalSacos.toLocaleString()} sacos</span>
+          <span className="font-black text-slate-800">{totalSacos.toLocaleString()} <span className="hidden sm:inline">sacos</span></span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
           <span className="text-slate-500">Ingresos:</span>
-          <span className="font-black text-slate-800">{chartData.reduce((sum, d) => sum + d.ingresos, 0).toLocaleString()} sacos</span>
+          <span className="font-black text-slate-800">{chartData.reduce((sum, d) => sum + d.ingresos, 0).toLocaleString()} <span className="hidden sm:inline">sacos</span></span>
         </div>
-        <div className="flex items-center gap-1.5 group relative">
+        <div className="flex items-center gap-1.5 group relative ml-auto">
           <Info size={14} className="text-indigo-400 cursor-help" />
-          <span className="text-slate-400 italic">Nota sobre Stock</span>
-          <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl border border-slate-700">
+          <span className="text-[10px] sm:text-xs text-slate-400 italic">Nota</span>
+          <div className="absolute bottom-full right-0 sm:left-auto sm:right-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl border border-slate-700">
             <p className="font-bold mb-1 text-indigo-300">¿Por qué los totales no coinciden con el Stock?</p>
-            Este gráfico muestra el <strong>flujo del periodo</strong> (lo que entró y salió en este mes). 
-            El <strong>Stock Total</strong> en la sección de inventario incluye el saldo acumulado de meses anteriores.
+            Este gráfico muestra el <strong>flujo del periodo</strong>. El <strong>Stock Total</strong> incluye el saldo acumulado anterior.
           </div>
         </div>
       </div>

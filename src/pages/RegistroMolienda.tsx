@@ -535,7 +535,8 @@ const RegistroMolienda: React.FC = () => {
         observations: molienda.observaciones,
         fecha: horaInicioISO, // Persistimos el inicio real como created_at
         horaInicioISO: horaInicioISO,
-        horaFinISO: horaFinISO
+        horaFinISO: horaFinISO,
+        operatorName: user?.nombre || user?.email || 'Desconocido'
       });
 
       if (success) {

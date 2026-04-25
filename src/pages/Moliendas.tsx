@@ -183,7 +183,7 @@ const Moliendas: React.FC = () => {
       label: 'Operador',
       className: 'text-center',
       render: (session: any) => (
-        <div className="text-xs font-bold text-slate-600">{session.operator_name || user?.nombre || '—'}</div>
+        <div className="text-xs font-bold text-slate-600">{session.operator_name || '—'}</div>
       )
     },
     {
@@ -349,18 +349,18 @@ const Moliendas: React.FC = () => {
       </div>
 
       {/* FILTRADO AVANZADO - ESTILO INDUSTRIAL COMPACTO */}
-      <div className="bg-slate-50 rounded-[1.5rem] p-4 lg:p-5 border border-white shadow-lg shadow-slate-200/50 space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="bg-slate-50 rounded-[1.5rem] p-4 lg:p-5 border border-white shadow-lg shadow-slate-200/50">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-4 items-end">
           <div className="space-y-1">
             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Búsqueda Técnica</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500" size={16} />
               <input
                 type="text"
-                placeholder="Cliente, observaciones..."
+                placeholder="Cliente..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all shadow-sm text-sm"
+                className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all shadow-sm text-xs"
               />
             </div>
           </div>
@@ -370,9 +370,9 @@ const Moliendas: React.FC = () => {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm text-sm"
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm text-xs"
             >
-              <option value="all">Todos los estados</option>
+              <option value="all">Todos</option>
               <option value="IN_PROGRESS">En Proceso</option>
               <option value="FINALIZADO">Finalizado</option>
             </select>
@@ -383,9 +383,9 @@ const Moliendas: React.FC = () => {
             <select
               value={selectedMill}
               onChange={(e) => setSelectedMill(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm text-sm"
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm text-xs"
             >
-              <option value="all">Todos los molinos</option>
+              <option value="all">Todos</option>
               {mills.map(m => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
@@ -397,47 +397,48 @@ const Moliendas: React.FC = () => {
             <select
               value={selectedZone}
               onChange={(e) => setSelectedZone(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm text-sm"
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none appearance-none cursor-pointer shadow-sm text-xs"
             >
-              <option value="all">Todas las zonas</option>
+              <option value="all">Todas</option>
               {zones.map(z => (
                 <option key={z.id} value={z.name}>{z.name}</option>
               ))}
             </select>
           </div>
-        </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 border-t border-slate-200 pt-4">
           <div className="space-y-1">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango Inicial</label>
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Inicio</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none shadow-sm text-xs"
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none shadow-sm text-xs"
             />
           </div>
+          
           <div className="space-y-1">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango Final</label>
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Fin</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none shadow-sm text-xs"
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none shadow-sm text-xs"
             />
           </div>
+          
           <div className="space-y-1">
             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Mineral</label>
             <select
               value={selectedMineral}
               onChange={(e) => setSelectedMineral(e.target.value)}
-              className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none shadow-sm appearance-none cursor-pointer text-xs"
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none shadow-sm appearance-none cursor-pointer text-xs"
             >
-              <option value="all">Todos los minerales</option>
+              <option value="all">Todos</option>
               <option value="OXIDO">Oxido</option>
               <option value="SULFURO">Sulfuro</option>
             </select>
           </div>
+          
           <div className="flex items-end">
             <button
               onClick={() => {
@@ -449,9 +450,9 @@ const Moliendas: React.FC = () => {
                 setStartDate('');
                 setEndDate('');
               }}
-              className="w-full h-[38px] text-[9px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-widest"
+              className="w-full py-2 px-2 text-[9px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-widest h-[34px] flex items-center justify-center"
             >
-              RESET FILTROS
+              RESET
             </button>
           </div>
         </div>

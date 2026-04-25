@@ -710,8 +710,9 @@ const Stock: React.FC = () => {
                   {/* Expanded Batches View */}
                   {expandedClient === client.id && (
                     <tr className="bg-slate-50 border-x-4 border-l-indigo-500 border-r-transparent">
-                      <td colSpan={8} className="px-5 sm:px-8 py-8">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                      <td colSpan={8} className="p-0">
+                        <div className="px-4 sm:px-8 py-8 sticky left-0 w-[calc(100vw-32px)] lg:w-full lg:static box-border">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                           <div>
                             <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Historial de Ingresos Consolidados</h4>
                             <p className="text-xs text-slate-500 font-medium">Traceabilidad agrupada por viaje/carga para {client.name}</p>
@@ -729,9 +730,9 @@ const Stock: React.FC = () => {
                             </select>
                             <button
                               onClick={() => exportPDF(client, groupedBatches)}
-                              className="flex items-center px-4 py-2 bg-indigo-600 border border-transparent text-white rounded-lg hover:bg-indigo-700 transition-all font-black text-[10px] tracking-widest shadow-md"
+                              className="flex items-center px-4 py-2 bg-indigo-600 border border-transparent text-white rounded-lg hover:bg-indigo-700 transition-all font-black text-[10px] tracking-widest shadow-md flex-shrink-0"
                             >
-                              <Download size={14} className="mr-2" /> PDF REPORTE
+                              <Download size={14} className="mr-2" /> PDF
                             </button>
                           </div>
                         </div>
@@ -758,17 +759,17 @@ const Stock: React.FC = () => {
                                 >
                                   {/* Header del Grupo (Viaje) */}
                                   <div className="flex justify-between items-start mb-4 border-b border-slate-100 pb-3">
-                                    <div className="flex flex-col">
-                                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{formatDateSafe(grp.created_at)}</span>
-                                      <span className="flex items-center text-xs font-bold text-slate-500 mt-1">
-                                        <Truck size={14} className="mr-1 text-slate-400" />
-                                        ZONA: {grp.zone || 'N/A'}
+                                    <div className="flex flex-col min-w-0 pr-2">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{formatDateSafe(grp.created_at)}</span>
+                                      <span className="flex items-center text-[11px] sm:text-xs font-bold text-slate-500 mt-1 truncate">
+                                        <Truck size={12} className="mr-1 text-slate-400 flex-shrink-0" />
+                                        <span className="truncate">Z: {grp.zone || 'N/A'}</span>
                                       </span>
                                     </div>
-                                    <div className="flex flex-col items-end">
+                                    <div className="flex flex-col items-end flex-shrink-0">
                                       <div className="flex items-baseline gap-1">
-                                        <span className="text-2xl font-black text-slate-900">{totalInicial}</span>
-                                        <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">SACOS</span>
+                                        <span className="text-xl sm:text-2xl font-black text-slate-900">{totalInicial}</span>
+                                        <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 tracking-widest uppercase">SACOS</span>
                                       </div>
                                       <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase mb-1">TOTAL INGRESÓ</span>
                                       {totalRestante > 0 && (
@@ -859,6 +860,7 @@ const Stock: React.FC = () => {
                             <p className="text-slate-400 text-xs mt-1">Intente cambiar el filtro de mes</p>
                           </div>
                         )}
+                        </div>
                       </td>
                     </tr>
                   )}

@@ -19,22 +19,22 @@ export const printGlobalReport = (logs: any[], operatorName: string) => {
     const date = new Date(log.created_at);
     const fecha = date.toLocaleDateString('es-PE');
     const hora = date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const molinos = (log.mills_used || []).map((m: any) => m.name || \`M-\${m.id.substring(0,4)}\`).join(', ');
+    const molinos = (log.mills_used || []).map((m: any) => m.name || `M-${m.id.substring(0,4)}`).join(', ');
 
-    return \`
+    return `
       <tr>
-        <td>\${index + 1}</td>
-        <td>\${fecha} \${hora}</td>
-        <td>\${log.mineral_type || '-'}</td>
-        <td>\${molinos || '-'}</td>
-        <td class="text-right">\${log.total_cuarzo || 0}</td>
-        <td class="text-right">\${log.total_llampo || 0}</td>
-        <td class="text-right font-bold">\${log.total_sacks || 0}</td>
+        <td>${index + 1}</td>
+        <td>${fecha} ${hora}</td>
+        <td>${log.mineral_type || '-'}</td>
+        <td>${molinos || '-'}</td>
+        <td class="text-right">${log.total_cuarzo || 0}</td>
+        <td class="text-right">${log.total_llampo || 0}</td>
+        <td class="text-right font-bold">${log.total_sacks || 0}</td>
       </tr>
-    \`;
+    `;
   }).join('');
 
-  printWindow.document.write(\`
+  printWindow.document.write(`
     <!DOCTYPE html>
     <html>
       <head>
@@ -171,7 +171,7 @@ export const printGlobalReport = (logs: any[], operatorName: string) => {
             <h1>PLANTA DE PROCESAMIENTO DE MINERALES</h1>
             <h2>INFORME GLOBAL DE MOLIENDA</h2>
             <div style="margin-top:10px; font-weight:600; color:#64748b;">
-              Cliente: <strong style="color:#0f172a; font-size:16px;">\${clienteNombre}</strong>
+              Cliente: <strong style="color:#0f172a; font-size:16px;">${clienteNombre}</strong>
             </div>
           </div>
 
@@ -179,19 +179,19 @@ export const printGlobalReport = (logs: any[], operatorName: string) => {
             <div class="resumen-grid">
               <div class="resumen-item">
                 <div class="resumen-label">Total Registros</div>
-                <div class="resumen-valor" style="color:#3b82f6;">\${logs.length}</div>
+                <div class="resumen-valor" style="color:#3b82f6;">${logs.length}</div>
               </div>
               <div class="resumen-item">
                 <div class="resumen-label">Total Cuarzo</div>
-                <div class="resumen-valor">\${totalCuarzo}</div>
+                <div class="resumen-valor">${totalCuarzo}</div>
               </div>
               <div class="resumen-item">
                 <div class="resumen-label">Total Llampo</div>
-                <div class="resumen-valor">\${totalLlampo}</div>
+                <div class="resumen-valor">${totalLlampo}</div>
               </div>
               <div class="resumen-item" style="background:#e0e7ff; border-color:#c7d2fe;">
                 <div class="resumen-label" style="color:#4f46e5;">TOTAL SACOS</div>
-                <div class="resumen-valor" style="color:#4f46e5; font-size:24px;">\${totalSacos}</div>
+                <div class="resumen-valor" style="color:#4f46e5; font-size:24px;">${totalSacos}</div>
               </div>
             </div>
 
@@ -208,7 +208,7 @@ export const printGlobalReport = (logs: any[], operatorName: string) => {
                 </tr>
               </thead>
               <tbody>
-                \${rowsHtml}
+                ${rowsHtml}
               </tbody>
             </table>
 
@@ -216,24 +216,24 @@ export const printGlobalReport = (logs: any[], operatorName: string) => {
               <div class="firma">
                 <div class="firma-title">Responsable Planta</div>
                 <div class="firma-line"></div>
-                <div class="firma-name">\${operatorName}</div>
+                <div class="firma-name">${operatorName}</div>
               </div>
               <div class="firma">
                 <div class="firma-title">Conformidad Cliente</div>
                 <div class="firma-line"></div>
-                <div class="firma-name">\${clienteNombre === 'VARIOS CLIENTES' ? '' : clienteNombre}</div>
+                <div class="firma-name">${clienteNombre === 'VARIOS CLIENTES' ? '' : clienteNombre}</div>
               </div>
             </div>
           </div>
 
           <div class="footer">
-            <p>Fecha de emisión del informe: \${new Date().toLocaleDateString()} - \${new Date().toLocaleTimeString()}</p>
+            <p>Fecha de emisión del informe: ${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()}</p>
             <p>Este documento consolida las operaciones realizadas en el periodo o filtros seleccionados.</p>
           </div>
         </div>
       </body>
     </html>
-  \`);
+  `);
 
   printWindow.document.close();
   // Small delay to ensure styles are loaded

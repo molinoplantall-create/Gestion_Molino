@@ -1526,44 +1526,46 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   fetchMillMaintenanceHistory: async (millId: string) => {
     try {
-      let { data, error } = await supabase
+      // First attempt with standard query
+      const { data, error } = await supabase
         .from('maintenance_logs')
         .select('*')
         .or(`mill_id.eq.${millId},molino_id.eq.${millId}`)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(100);
 
-      // Fallback 404
-      if (error && ((error as any).status === 404 || error.code === 'PGRST116' || error.code === '42P01')) {
-        const { data: retryData, error: retryError } = await supabase
-          .from('Maintenance' as any)
+      if (error) {
+        // Fallback to mill_id only if OR fails (some Postgres versions/configs have issues with OR on mixed types)
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('maintenance_logs')
           .select('*')
-          .eq('Mill_id' as any, millId)
-          .order('Created_at' as any, { ascending: false })
-          .limit(50);
-        data = retryData;
-        error = retryError;
+          .eq('mill_id', millId)
+          .order('created_at', { ascending: false })
+          .limit(100);
+          
+        if (fallbackError) throw fallbackError;
+        return (fallbackData || []).map((log: any) => get().normalizeMaintenanceLog(log));
       }
 
-      if (error) throw error;
-
-      return (data || []).map((log: any) => ({
-        ...log,
-        id: log.id,
-        mill_id: log.mill_id || log.molino_id,
-        type: (log.type || log.tipo || 'PREVENTIVO').toUpperCase(),
-        status: (log.status || log.estado || 'PENDIENTE').toUpperCase(),
-        description: log.description || log.descripcion_falla || '',
-        technician_name: log.technician_name || log.asignado_a || '',
-        worked_hours: log.worked_hours || log.horas_trabajadas || 0,
-        action_taken: log.action_taken || log.accion_tomada || '',
-        created_at: log.created_at || log.fecha_registro || new Date().toISOString()
-      }));
+      return (data || []).map((log: any) => get().normalizeMaintenanceLog(log));
     } catch (error) {
       logger.error('❌ Error fetchMillMaintenanceHistory:', error);
       return [];
     }
   },
+
+  normalizeMaintenanceLog: (log: any) => ({
+    ...log,
+    id: log.id,
+    mill_id: log.mill_id || log.molino_id,
+    type: (log.type || log.tipo || 'PREVENTIVO').toUpperCase(),
+    status: (log.status || log.estado || 'PENDIENTE').toUpperCase(),
+    description: log.description || log.descripcion_falla || '',
+    technician_name: log.technician_name || log.asignado_a || '',
+    worked_hours: log.worked_hours || log.horas_trabajadas || 0,
+    action_taken: log.action_taken || log.accion_tomada || '',
+    created_at: log.created_at || log.fecha_registro || new Date().toISOString()
+  }),
 
   updateBatchMineralType: async (batchId: string, mineralType: 'OXIDO' | 'SULFURO') => {
     try {

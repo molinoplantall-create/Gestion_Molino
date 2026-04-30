@@ -144,7 +144,7 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
                 {/* Costo */}
                 <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-emerald-100 shadow-sm hover:shadow-lg transition-all duration-300">
                     <div className="flex items-center mb-4">

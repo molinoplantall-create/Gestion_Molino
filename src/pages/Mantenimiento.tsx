@@ -729,12 +729,12 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                 >
                   <div className="flex flex-col gap-1">
                     <span className={`text-[10px] font-black uppercase tracking-tighter ${isCritical ? 'text-red-600' : 'text-amber-700'}`}>
-                      {mill.name}
+                      Uso Aceite {mill.name}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <div className={`w-2 h-2 rounded-full ${isCritical ? 'bg-red-500 animate-ping' : 'bg-amber-500'}`} />
                       <span className={`text-lg font-black tracking-tight ${isCritical ? 'text-red-700' : 'text-amber-800'}`}>
-                        {Math.round(mill.hours_to_oil_change || 0)}h
+                        {150 - Math.round(mill.hours_to_oil_change || 0)}h / 150h
                       </span>
                     </div>
                   </div>
@@ -767,7 +767,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {mills.map((molino) => {
             const stat = millMaintenanceStats[molino.id] || { corrective: 0, preventive: 0, predictive: 0, emergency: 0, lastDate: null };
             const isCritical = (molino.hours_to_oil_change || 0) <= 20;
@@ -814,21 +814,21 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                 <div className="space-y-4 flex-1">
                   {/* Hours Management (Dual Meter) */}
                   <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 space-y-4">
-                    {/* Meter 1: Oil Cycle (The 150h cycle) */}
+                    {/* Meter 1: Oil Cycle (Usage Progress) */}
                     <div>
                       <div className="flex justify-between items-end mb-1.5">
                         <div className="flex items-center gap-1.5">
                           <Droplets size={12} className={isCritical ? 'text-red-500' : 'text-indigo-500'} />
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vida Útil Aceite</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Uso de Aceite</span>
                         </div>
                         <span className={`text-[10px] font-black ${isCritical ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-slate-700'}`}>
-                          {Math.round(molino.hours_to_oil_change || 0)}h restantes
+                          {Math.max(0, 150 - Math.round(molino.hours_to_oil_change || 0))}h / 150h
                         </span>
                       </div>
                       <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                         <div
                           className={`h-full transition-all duration-1000 ${molino.hours_to_oil_change! > 50 ? 'bg-emerald-500' : molino.hours_to_oil_change! > 20 ? 'bg-amber-500' : 'bg-red-500'}`}
-                          style={{ width: `${Math.max(0, Math.min(100, (molino.hours_to_oil_change! / 150) * 100))}%` }}
+                          style={{ width: `${Math.min(100, ((150 - (molino.hours_to_oil_change || 0)) / 150) * 100)}%` }}
                         ></div>
                       </div>
                     </div>

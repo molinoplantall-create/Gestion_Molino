@@ -85,24 +85,32 @@ export const MillHistoryTimeline: React.FC<MillHistoryTimelineProps> = ({
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 text-center">
-          <p className="text-2xl font-black text-slate-800">{stats.total}</p>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
+      {loading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-slate-50 rounded-xl p-3 border border-slate-100 animate-pulse h-16"></div>
+          ))}
         </div>
-        <div className="bg-blue-50 rounded-xl p-3 border border-blue-100 text-center">
-          <p className="text-2xl font-black text-blue-700">{stats.preventivo}</p>
-          <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Preventivos</p>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 text-center">
+            <p className="text-xl font-black text-slate-800">{stats.total}</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
+          </div>
+          <div className="bg-blue-50 rounded-xl p-3 border border-blue-100 text-center">
+            <p className="text-xl font-black text-blue-700">{stats.preventivo}</p>
+            <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Prev.</p>
+          </div>
+          <div className="bg-red-50 rounded-xl p-3 border border-red-100 text-center">
+            <p className="text-xl font-black text-red-700">{stats.correctivo}</p>
+            <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Corr.</p>
+          </div>
+          <div className="bg-purple-50 rounded-xl p-3 border border-purple-100 text-center">
+            <p className="text-xl font-black text-purple-700">{stats.horasTotal}h</p>
+            <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest">Horas</p>
+          </div>
         </div>
-        <div className="bg-red-50 rounded-xl p-3 border border-red-100 text-center">
-          <p className="text-2xl font-black text-red-700">{stats.correctivo}</p>
-          <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Correctivos</p>
-        </div>
-        <div className="bg-purple-50 rounded-xl p-3 border border-purple-100 text-center">
-          <p className="text-2xl font-black text-purple-700">{stats.horasTotal}h</p>
-          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Horas</p>
-        </div>
-      </div>
+      )}
 
       {/* Timeline */}
       {loading ? (

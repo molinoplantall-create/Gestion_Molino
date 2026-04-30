@@ -807,7 +807,6 @@ _Enviado desde el sistema de Gestión de Molinos_`;
 
                 {/* Health Section */}
                 <div className="space-y-4 flex-1">
-                     <div className="space-y-4 flex-1">
                   {/* Hours Management (Dual Meter) */}
                   <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 space-y-4">
                     {/* Meter 1: Oil Cycle (The 150h cycle) */}
@@ -855,8 +854,6 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                          </button>
                       </div>
                     </div>
-                  </div>
-      </div>
                   </div>
 
                   {/* Clinical History Summary */}

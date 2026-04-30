@@ -4,7 +4,7 @@ import {
   History, Wrench, CheckCircle, Clock, AlertTriangle, X, 
   ChevronDown, Activity, Droplets
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useSupabaseStore } from '@/store/supabaseStore';
 
 interface MillHistoryTimelineProps {
   isOpen: boolean;
@@ -37,47 +37,34 @@ export const MillHistoryTimeline: React.FC<MillHistoryTimelineProps> = ({
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ total: 0, preventivo: 0, correctivo: 0, horasTotal: 0 });
 
+  const { fetchMillMaintenanceHistory } = useSupabaseStore();
+
   useEffect(() => {
     if (!isOpen || !millId) return;
 
     const fetchHistory = async () => {
       setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('maintenance_logs')
-          .select('*')
-          .or(`mill_id.eq.${millId},molino_id.eq.${millId}`)
-          .order('created_at', { ascending: false })
-          .limit(50);
-
-        if (!error && data) {
-          const normalized = data.map((log: any) => ({
-            ...log,
-            type: log.type || log.tipo || 'PREVENTIVO',
-            status: (log.status || log.estado || 'PENDIENTE').toUpperCase(),
-            description: log.description || log.descripcion_falla || '',
-            technician_name: log.technician_name || log.asignado_a || '',
-            worked_hours: log.worked_hours || log.horas_trabajadas || 0,
-            action_taken: log.action_taken || '',
-            created_at: log.created_at || log.fecha_registro || new Date().toISOString(),
-          }));
-          setLogs(normalized);
-          setStats({
-            total: normalized.length,
-            preventivo: normalized.filter(l => l.type === 'PREVENTIVO').length,
-            correctivo: normalized.filter(l => l.type === 'CORRECTIVO').length,
-            horasTotal: normalized.reduce((sum: number, l: any) => sum + (l.worked_hours || 0), 0),
-          });
-        }
-      } catch (e) {
-        console.error('Error fetching mill history:', e);
-      } finally {
-        setLoading(false);
-      }
+      const data = await fetchMillMaintenanceHistory(millId);
+      
+      // Filter out 'ACEITE' type logs and legacy oil change logs to avoid polluting counts and view
+      const visibleLogs = data.filter((l: any) => {
+        const type = (l.type || '').toUpperCase();
+        const desc = (l.description || '').toLowerCase();
+        return type !== 'ACEITE' && !desc.includes('cambio de aceite') && !desc.includes('vida útil');
+      });
+      
+      setLogs(visibleLogs);
+      setStats({
+        total: visibleLogs.length,
+        preventivo: visibleLogs.filter((l: any) => l.type === 'PREVENTIVO').length,
+        correctivo: visibleLogs.filter((l: any) => l.type === 'CORRECTIVO').length,
+        horasTotal: visibleLogs.reduce((sum: number, l: any) => sum + (l.worked_hours || 0), 0),
+      });
+      setLoading(false);
     };
 
     fetchHistory();
-  }, [isOpen, millId]);
+  }, [isOpen, millId, fetchMillMaintenanceHistory]);
 
   return (
     <BaseModal isOpen={isOpen} onClose={onClose} size="xl">

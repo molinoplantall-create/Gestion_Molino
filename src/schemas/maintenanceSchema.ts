@@ -5,7 +5,7 @@ export const maintenanceSchema = z.object({
     molinoId: z.string()
         .min(1, 'Debe seleccionar un molino'),
 
-    tipo: z.enum(['PREVENTIVO', 'CORRECTIVO'], {
+    tipo: z.enum(['PREVENTIVO', 'CORRECTIVO', 'PREDICTIVO', 'EMERGENCIA'], {
         errorMap: () => ({ message: 'Tipo de mantenimiento inválido' })
     }),
 

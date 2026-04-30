@@ -95,6 +95,7 @@ interface SupabaseStore {
   stopPollingMills: () => void;
   isPolling: boolean;
   fetchClientBatches: (clientId: string) => Promise<any[]>;
+  fetchMillMaintenanceHistory: (millId: string) => Promise<any[]>;
   updateBatchMineralType: (batchId: string, mineralType: 'OXIDO' | 'SULFURO') => Promise<boolean>;
   deleteStockBatch: (batchId: string, clientId: string) => Promise<boolean>;
   updateStockBatch: (batchId: string, clientId: string, newData: { initial_quantity: number, remaining_quantity: number, zone?: string, mineral_type?: string, created_at?: string }) => Promise<boolean>;
@@ -385,6 +386,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (type && type !== 'all') {
         query = query.or(`type.eq.${type},tipo.eq.${type}`);
+      } else {
+        // Hide automatic oil changes from general history to avoid cluttering
+        query = query.neq('type', 'ACEITE');
       }
 
       if (status && status !== 'all') {
@@ -1463,9 +1467,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (mill) {
         await supabase.from('maintenance_logs').insert({
           mill_id: id,
-          type: 'PREVENTIVO',
+          type: 'ACEITE', // Changed from PREVENTIVO to avoid polluting stats
           status: 'COMPLETADO',
-          description: `Cambio de Aceite Automático (Reiniciado a ${targetHours}h)`,
+          description: `Cambio de Aceite Automático (Reiniciado a ${targetHours}h). Horómetro Total: ${mill.horasTrabajadas || 0}h`,
           technician_name: 'Sistema',
           worked_hours: 0
         });
@@ -1516,6 +1520,47 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return data || [];
     } catch (error) {
       logger.error('❌ Error fetchClientBatches:', error);
+      return [];
+    }
+  },
+
+  fetchMillMaintenanceHistory: async (millId: string) => {
+    try {
+      let { data, error } = await supabase
+        .from('maintenance_logs')
+        .select('*')
+        .or(`mill_id.eq.${millId},molino_id.eq.${millId}`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      // Fallback 404
+      if (error && ((error as any).status === 404 || error.code === 'PGRST116' || error.code === '42P01')) {
+        const { data: retryData, error: retryError } = await supabase
+          .from('Maintenance' as any)
+          .select('*')
+          .eq('Mill_id' as any, millId)
+          .order('Created_at' as any, { ascending: false })
+          .limit(50);
+        data = retryData;
+        error = retryError;
+      }
+
+      if (error) throw error;
+
+      return (data || []).map((log: any) => ({
+        ...log,
+        id: log.id,
+        mill_id: log.mill_id || log.molino_id,
+        type: (log.type || log.tipo || 'PREVENTIVO').toUpperCase(),
+        status: (log.status || log.estado || 'PENDIENTE').toUpperCase(),
+        description: log.description || log.descripcion_falla || '',
+        technician_name: log.technician_name || log.asignado_a || '',
+        worked_hours: log.worked_hours || log.horas_trabajadas || 0,
+        action_taken: log.action_taken || log.accion_tomada || '',
+        created_at: log.created_at || log.fecha_registro || new Date().toISOString()
+      }));
+    } catch (error) {
+      logger.error('❌ Error fetchMillMaintenanceHistory:', error);
       return [];
     }
   },

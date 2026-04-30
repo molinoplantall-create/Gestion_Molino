@@ -3,7 +3,7 @@ import { Wrench, Plus, X } from 'lucide-react';
 
 export interface MaintenanceFormData {
     molinoId: string;
-    tipo: 'PREVENTIVO' | 'CORRECTIVO';
+    tipo: 'PREVENTIVO' | 'CORRECTIVO' | 'PREDICTIVO' | 'EMERGENCIA';
     categoria: string;
     descripcion: string;
     prioridad: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
@@ -110,6 +110,8 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     >
                         <option value="PREVENTIVO">Preventivo</option>
                         <option value="CORRECTIVO">Correctivo</option>
+                        <option value="PREDICTIVO">Predictivo</option>
+                        <option value="EMERGENCIA">Emergencia (Rotura/Falla)</option>
                     </select>
                 </div>
 

@@ -118,6 +118,7 @@ const Moliendas: React.FC = () => {
     {
       key: 'mills_used',
       label: 'Molino(s)',
+      className: 'hidden md:table-cell',
       render: (session: MillingLog) => {
         const mills_used = session.mills_used || [];
         return (
@@ -135,6 +136,7 @@ const Moliendas: React.FC = () => {
     {
       key: 'mineral_type',
       label: 'Carga Detalles',
+      className: 'hidden lg:table-cell',
       render: (session: MillingLog) => (
         <div className="flex flex-col">
           <div className="flex items-center gap-1 mb-1">
@@ -161,6 +163,7 @@ const Moliendas: React.FC = () => {
     {
       key: 'estimated_end',
       label: 'Fin Estimado',
+      className: 'hidden sm:table-cell',
       render: (session: MillingLog) => {
         const start = new Date(session.created_at);
         const durationHours = session.mineral_type === 'SULFURO' ? 2.25 : 1.67;
@@ -182,7 +185,7 @@ const Moliendas: React.FC = () => {
     {
       key: 'operator',
       label: 'Operador',
-      className: 'text-center',
+      className: 'hidden xl:table-cell text-center',
       render: (session: any) => (
         <div className="text-xs font-bold text-slate-600">{session.operator_name || '—'}</div>
       )

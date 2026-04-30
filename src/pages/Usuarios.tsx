@@ -402,9 +402,9 @@ const Usuarios: React.FC = () => {
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Usuario</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Rol</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Estado</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
@@ -426,7 +426,7 @@ const Usuarios: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
                     <div className="flex items-center text-slate-600">
                       <Mail size={16} strokeWidth={1.5} className="mr-2 text-slate-400" />
                       {user.email}
@@ -435,7 +435,7 @@ const Usuarios: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     {getRoleBadge(user.role)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
                     {getStatusBadge(user.is_active)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

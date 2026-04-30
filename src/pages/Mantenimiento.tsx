@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  Wrench, CheckCircle, Clock, AlertTriangle, Plus, Download, History, Settings, Activity, FileText, MessageSquare, AlertOctagon, Calendar, PenTool
+  Wrench, CheckCircle, Clock, AlertTriangle, Plus, Download, History, Settings, Activity, FileText, MessageSquare, AlertOctagon, Calendar, PenTool, Droplets
 } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useAuthStore } from '@/store/authStore';

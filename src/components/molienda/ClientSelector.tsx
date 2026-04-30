@@ -59,13 +59,16 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
                         <input
                             type="text"
                             placeholder="🔍 Buscar cliente por nombre..."
-                            value={selectedClient ? selectedClient.name : searchTerm}
+                            value={showDropdown ? searchTerm : (selectedClient ? selectedClient.name : searchTerm)}
                             onChange={(e) => {
                                 setSearchTerm(e.target.value);
-                                if (selectedClientId) onClientChange(''); // Reset if typing
+                                if (!showDropdown) setShowDropdown(true);
                             }}
-                            onFocus={() => setShowDropdown(true)}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-bold text-slate-800 transition-all"
+                            onFocus={() => {
+                                setShowDropdown(true);
+                                if (selectedClient) setSearchTerm(selectedClient.name);
+                            }}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-bold text-slate-800 transition-all placeholder:text-slate-400"
                             disabled={disabled}
                         />
                         {showDropdown && !disabled && (

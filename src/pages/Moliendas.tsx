@@ -384,13 +384,13 @@ const Moliendas: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
         {[
           { label: 'TOTAL PROCESADO', value: formatNumber(stats.totalSacos), icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', suffix: 'Sacos' },
           { label: 'MOLIENDAS ÉXITO', value: formatNumber(stats.finalizadas), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', suffix: 'Logs' },
           { label: 'TIEMPO ESTIMADO', value: stats.tiempoPromedio, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', suffix: 'Horas/Prom' },
-        ].map((kpi) => (
-          <div key={kpi.label} className="group kpi-card p-4">
+        ].map((kpi, idx) => (
+          <div key={kpi.label} className={`group kpi-card p-4 ${idx === 2 ? 'col-span-2 sm:col-span-1' : ''}`}>
             <div className="flex items-center">
               <div className={`p-3 ${kpi.bg} ${kpi.border} rounded-xl border mr-4`}>
                 <kpi.icon className={kpi.color} size={22} strokeWidth={2.5} />
@@ -408,9 +408,9 @@ const Moliendas: React.FC = () => {
       </div>
 
       {/* FILTRADO AVANZADO - ESTILO INDUSTRIAL COMPACTO */}
-      <div className="bg-slate-50 rounded-[1.5rem] p-4 lg:p-5 border border-white shadow-lg shadow-slate-200/50">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-4 items-end">
-          <div className="space-y-1">
+      <div className="bg-slate-50 rounded-3xl p-3 md:p-5 border border-white shadow-lg shadow-slate-200/50">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 md:gap-4 items-end">
+          <div className="space-y-1 col-span-2 sm:col-span-1 md:col-span-1 xl:col-span-2">
             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Búsqueda Técnica</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500" size={16} />

@@ -859,8 +859,8 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                          </button>
                       </div>
                     </div>
-                  </div>       </div>
                   </div>
+
 
                   {/* Clinical History Summary */}
                   <div className="grid grid-cols-2 gap-2">

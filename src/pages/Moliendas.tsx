@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, MessageSquare, Trash2, Calendar, ChevronLeft, ChevronRight, Package, CheckCircle, Clock, FileText } from 'lucide-react';
+import { Search, Filter, Download, MessageSquare, Trash2, Calendar, ChevronLeft, ChevronRight, Package, CheckCircle, Clock, FileText, Printer } from 'lucide-react';
 import { MillingLog } from '@/types';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { Table } from '@/components/common/Table';

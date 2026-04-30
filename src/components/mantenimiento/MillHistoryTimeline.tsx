@@ -50,7 +50,12 @@ export const MillHistoryTimeline: React.FC<MillHistoryTimelineProps> = ({
       const visibleLogs = data.filter((l: any) => {
         const type = (l.type || '').toUpperCase();
         const desc = (l.description || '').toLowerCase();
-        return type !== 'ACEITE' && !desc.includes('cambio de aceite') && !desc.includes('vida útil');
+        const action = (l.action_taken || '').toLowerCase();
+        return type !== 'ACEITE' && 
+               !desc.includes('cambio de aceite') && 
+               !desc.includes('vida útil') && 
+               !desc.includes('aceite') &&
+               !action.includes('cambio de aceite');
       });
       
       setLogs(visibleLogs);

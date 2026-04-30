@@ -134,9 +134,14 @@ const Mantenimiento: React.FC = () => {
       if (stats[mid]) {
         const type = (log.type || log.tipo || '').toUpperCase();
         const desc = (log.description || log.descripcion_falla || '').toLowerCase();
+        const action = (log.action_taken || log.accion_tomada || '').toLowerCase();
         
         // Exclude 'ACEITE' (automatic oil change) and legacy oil logs from counts
-        const isOilLog = type === 'ACEITE' || desc.includes('cambio de aceite') || desc.includes('vida útil');
+        const isOilLog = type === 'ACEITE' || 
+                         desc.includes('cambio de aceite') || 
+                         desc.includes('vida útil') || 
+                         desc.includes('aceite') ||
+                         action.includes('cambio de aceite');
 
         if (!isOilLog) {
           if (type === 'CORRECTIVO') stats[mid].corrective++;
@@ -814,16 +819,16 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                       <div className="flex justify-between items-end mb-1.5">
                         <div className="flex items-center gap-1.5">
                           <Droplets size={12} className={isCritical ? 'text-red-500' : 'text-indigo-500'} />
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ciclo de Aceite</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vida Útil Aceite</span>
                         </div>
                         <span className={`text-[10px] font-black ${isCritical ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-slate-700'}`}>
-                          Faltan {Math.round(molino.hours_to_oil_change || 0)}h
+                          {Math.round(molino.hours_to_oil_change || 0)}h restantes
                         </span>
                       </div>
-                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                      <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                         <div
                           className={`h-full transition-all duration-1000 ${molino.hours_to_oil_change! > 50 ? 'bg-emerald-500' : molino.hours_to_oil_change! > 20 ? 'bg-amber-500' : 'bg-red-500'}`}
-                          style={{ width: `${Math.min(100, (molino.hours_to_oil_change! / 150) * 100)}%` }}
+                          style={{ width: `${Math.max(0, Math.min(100, (molino.hours_to_oil_change! / 150) * 100))}%` }}
                         ></div>
                       </div>
                     </div>
@@ -833,27 +838,28 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                       <div className="flex justify-between items-center mb-1.5">
                         <div className="flex items-center gap-1.5">
                           <Activity size={12} className="text-slate-400" />
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Horómetro Total</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Horómetro Maestro</span>
                         </div>
                         <span className="text-xs font-black text-slate-600">
-                          {molino.horasTrabajadas || 0}h
+                          {molino.horasTrabajadas || 0}h totales
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-4">
                          <div className="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden opacity-50">
                             {/* Visual representation of total wear (e.g., toward a 2000h major service) */}
-                            <div className="h-full bg-slate-400" style={{ width: `${Math.min(100, (molino.horasTrabajadas || 0) % 1000 / 10)}%` }}></div>
+                            <div className="h-full bg-indigo-400" style={{ width: `${Math.min(100, (molino.horasTrabajadas || 0) % 1000 / 10)}%` }}></div>
                          </div>
                          <button
                            onClick={() => handleResetOil(molino.id, molino.name)}
                            className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border transition-all shadow-sm active:scale-95 ${
-                               isCritical ? 'bg-red-600 text-white border-red-600 shadow-red-100' : 'bg-white text-indigo-600 border-indigo-100 hover:border-indigo-600 hover:bg-indigo-50'
+                                isCritical ? 'bg-red-600 text-white border-red-600 shadow-red-100' : 'bg-white text-indigo-600 border-indigo-100 hover:border-indigo-600 hover:bg-indigo-50'
                            }`}
                          >
-                           Renovar
+                           Renovar Aceite
                          </button>
                       </div>
                     </div>
+                  </div>       </div>
                   </div>
 
                   {/* Clinical History Summary */}

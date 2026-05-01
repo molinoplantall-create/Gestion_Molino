@@ -300,7 +300,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .from('milling_logs')
         .select(`
           *,
-          clients!inner (
+          clients (
             name, contact_name, phone, zone
           )
         `, { count: 'exact' });

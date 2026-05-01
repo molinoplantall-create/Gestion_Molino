@@ -72,6 +72,31 @@ const Dashboard: React.FC = () => {
     }
   });
 
+  // Re-fetch data when period changes to ensure we have historical logs
+  useEffect(() => {
+    const fetchPeriodData = async () => {
+      if (comparisonMode === 'mes') {
+        const lastDay = new Date(comparisonYear, comparisonMonth + 1, 0).getDate();
+        const startDate = `${comparisonYear}-${(comparisonMonth + 1).toString().padStart(2, '0')}-01`;
+        const endDate = `${comparisonYear}-${(comparisonMonth + 1).toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+        
+        await fetchMillingLogs({
+          startDate,
+          endDate,
+          pageSize: 2000
+        });
+      } else {
+        await fetchMillingLogs({
+          startDate: `${comparisonYear}-01-01`,
+          endDate: `${comparisonYear}-12-31`,
+          pageSize: 5000
+        });
+      }
+    };
+    
+    fetchPeriodData();
+  }, [comparisonMonth, comparisonYear, comparisonMode]);
+
   // ═══════════════════════════════════════════════
   // CÁLCULOS OPERATIVOS
   // ═══════════════════════════════════════════════
@@ -90,7 +115,7 @@ const Dashboard: React.FC = () => {
   // CÁLCULOS DE INTELIGENCIA GERENCIAL
   // ═══════════════════════════════════════════════
   const intelligence = useMemo(() => {
-    const currentYear = now.getFullYear();
+    const currentYear = comparisonYear;
     const currentMonth = now.getMonth();
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -105,7 +130,13 @@ const Dashboard: React.FC = () => {
         sacos: logsInMonth.reduce((sum, log) => sum + (log.total_sacks || 0), 0),
         clientes: new Set(logsInMonth.map(l => l.client_id)).size
       };
-    }).filter((_, i) => i <= currentMonth);
+    }).filter((_, i) => {
+      const now = new Date();
+      if (currentYear === now.getFullYear()) {
+        return i <= now.getMonth();
+      }
+      return true;
+    });
 
     // 2. % Cambio vs mes anterior
     const sacosEsteMes = monthlyProd[currentMonth]?.sacos || 0;
@@ -207,7 +238,10 @@ const Dashboard: React.FC = () => {
 
     // 11. Comparativa de Clientes (Filtro interactivo)
     const comparisonLogs = millingLogs.filter(log => {
+      if (!log.created_at) return false;
       const d = new Date(log.created_at);
+      if (isNaN(d.getTime())) return false; // Fecha inválida
+      
       if (comparisonMode === 'mes') {
         return d.getMonth() === comparisonMonth && d.getFullYear() === comparisonYear;
       } else {
@@ -478,7 +512,7 @@ const Dashboard: React.FC = () => {
           {/* Tendencia Evolutiva */}
           <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
             <h3 className="text-base sm:text-xl font-black text-slate-900 mb-2 tracking-tight text-center sm:text-left">Tendencia Evolutiva</h3>
-            <p className="text-xs text-slate-500 font-medium text-center sm:text-left mb-6">Crecimiento mensual acumulado ({now.getFullYear()})</p>
+            <p className="text-xs text-slate-500 font-medium text-center sm:text-left mb-6">Crecimiento mensual acumulado ({comparisonYear})</p>
             <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={intelligence.monthlyProd}>
@@ -537,9 +571,12 @@ const Dashboard: React.FC = () => {
                   onChange={e => setComparisonMonth(Number(e.target.value))}
                   className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
-                  {MONTH_NAMES.map((name, i) => (
-                    <option key={i} value={i}>{name}</option>
-                  ))}
+                  {MONTH_NAMES.map((name, i) => {
+                    // Si el año seleccionado es el actual, deshabilitar meses futuros
+                    const isFuture = comparisonYear === now.getFullYear() && i > now.getMonth();
+                    if (isFuture) return null;
+                    return <option key={i} value={i}>{name}</option>;
+                  }).filter(Boolean)}
                 </select>
               )}
 
@@ -555,7 +592,12 @@ const Dashboard: React.FC = () => {
               </select>
             </div>
           </div>
-          <div className="h-[400px] w-full">
+          <div className="h-[400px] w-full relative">
+            {useSupabaseStore.getState().logsLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10 backdrop-blur-[1px]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              </div>
+            )}
             <ClientComparisonChart data={intelligence.clientMonthlyProd} />
           </div>
         </div>

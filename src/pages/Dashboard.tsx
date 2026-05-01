@@ -62,7 +62,7 @@ const Dashboard: React.FC = () => {
     fetchAllClients();
     fetchClients();
     fetchZones();
-    fetchMillingLogs({ pageSize: 200 });
+    fetchMillingLogs({ pageSize: 5000 });
 
     const repairDone = sessionStorage.getItem('repair_done');
     if (!repairDone) {
@@ -226,7 +226,7 @@ const Dashboard: React.FC = () => {
     
     const clientMonthlyProd = Object.values(clientDataMap)
       .sort((a, b) => b.total - a.total)
-      .slice(0, 15); // Top 15 para comparativa
+      .slice(0, 5); // Limitado a Top 5 según solicitud
 
     const availableYears = Array.from(new Set(millingLogs.map(l => new Date(l.created_at).getFullYear())));
     if (availableYears.length === 0) availableYears.push(new Date().getFullYear());
@@ -625,12 +625,11 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Top Clientes */}
           <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2 text-center sm:text-left">Top 3 Clientes</h3>
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2 text-center sm:text-left">Top 5 Clientes</h3>
             <p className="text-xs text-slate-500 font-medium mb-6 text-center sm:text-left">Ranking por balance actual</p>
             <div className="space-y-4">
-              {intelligence.topClients.slice(0, 3).map((client, idx) => (
+              {intelligence.topClients.slice(0, 5).map((client, idx) => (
                 <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-black shadow-sm">

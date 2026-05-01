@@ -398,7 +398,17 @@ const Dashboard: React.FC = () => {
               bg: 'bg-violet-50', 
               border: 'border-violet-100' 
             },
-          ].map((kpi, idx) => (
+          ].map((kpi: { 
+            label: string; 
+            value: string; 
+            unit: string; 
+            subtext: string; 
+            icon: any; 
+            color: string; 
+            bg: string; 
+            border: string; 
+            subtextColor?: string;
+          }, idx) => (
             <div key={idx} className="bg-white p-3 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group overflow-hidden">
               <div className="flex items-start justify-between mb-2 sm:mb-4 gap-2">
                 <div className="min-w-0 flex-1">

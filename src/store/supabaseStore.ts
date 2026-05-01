@@ -101,6 +101,7 @@ interface SupabaseStore {
   updateStockBatch: (batchId: string, clientId: string, newData: { initial_quantity: number, remaining_quantity: number, zone?: string, mineral_type?: string, created_at?: string }) => Promise<boolean>;
   recalcClientStock: (clientId: string) => Promise<boolean>;
   recalcAllClientsStock: () => Promise<boolean>;
+  normalizeMaintenanceLog: (log: any) => MaintenanceLog;
   pollingIntervalId: ReturnType<typeof setInterval> | null;
 }
 
@@ -1554,17 +1555,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }
   },
 
-  normalizeMaintenanceLog: (log: any) => ({
-    ...log,
+  normalizeMaintenanceLog: (log: any): MaintenanceLog => ({
     id: log.id,
-    mill_id: log.mill_id || log.molino_id,
-    type: (log.type || log.tipo || 'PREVENTIVO').toUpperCase(),
-    status: (log.status || log.estado || 'PENDIENTE').toUpperCase(),
-    description: log.description || log.descripcion_falla || '',
-    technician_name: log.technician_name || log.asignado_a || '',
-    worked_hours: log.worked_hours || log.horas_trabajadas || 0,
-    action_taken: log.action_taken || log.accion_tomada || '',
-    created_at: log.created_at || log.fecha_registro || new Date().toISOString()
+    mill_id: log.mill_id,
+    type: log.type,
+    description: log.description,
+    action_taken: log.action_taken,
+    worked_hours: log.worked_hours,
+    technician_name: log.technician_name,
+    priority: log.priority,
+    category: log.category,
+    cost_pen: log.cost_pen,
+    cost_usd: log.cost_usd,
+    tasks_checklist: log.tasks_checklist,
+    status: log.status,
+    created_at: log.created_at,
+    scheduled_date: log.scheduled_date,
+    completed_date: log.completed_date,
+    completed_at: log.completed_at
   }),
 
   updateBatchMineralType: async (batchId: string, mineralType: 'OXIDO' | 'SULFURO') => {

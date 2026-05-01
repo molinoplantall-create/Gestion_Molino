@@ -166,6 +166,7 @@ const Mantenimiento: React.FC = () => {
 
   usePageFocus(() => {
     fetchMills();
+    handleApplyFilters(); // This already calls fetchMaintenanceLogs with current state
   });
 
   useEffect(() => {
@@ -734,7 +735,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                     <div className="flex items-center gap-1.5">
                       <div className={`w-2 h-2 rounded-full ${isCritical ? 'bg-red-500 animate-ping' : 'bg-amber-500'}`} />
                       <span className={`text-lg font-black tracking-tight ${isCritical ? 'text-red-700' : 'text-amber-800'}`}>
-                        {150 - Math.round(mill.hours_to_oil_change || 0)}h / 150h
+                        {Math.round(mill.hours_to_oil_change || 0)}h restantes
                       </span>
                     </div>
                   </div>
@@ -767,7 +768,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {mills.map((molino) => {
             const stat = millMaintenanceStats[molino.id] || { corrective: 0, preventive: 0, predictive: 0, emergency: 0, lastDate: null };
             const isCritical = (molino.hours_to_oil_change || 0) <= 20;
@@ -786,8 +787,13 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                 'bg-indigo-50';
 
             return (
-              <div key={molino.id} className={`bg-white border rounded-2xl p-5 hover:shadow-lg transition-all duration-300 group flex flex-col h-full ${isCritical ? 'border-red-200' : isWarning ? 'border-amber-200' : 'border-slate-100 shadow-sm'
+              <div key={molino.id} className={`relative bg-white border rounded-2xl p-5 hover:shadow-lg transition-all duration-300 group flex flex-col h-full ${isCritical ? 'border-red-500 bg-red-50/20' : isWarning ? 'border-amber-500 bg-amber-50/20' : 'border-slate-100 shadow-sm'
                 }`}>
+                {isCritical && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-200 animate-bounce z-10">
+                    ⚠️ ACEITE VENCIDO
+                  </div>
+                )}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center border font-black text-lg transition-transform group-hover:scale-110 ${statusBg} ${statusColor} border-current/10`}>
@@ -819,16 +825,16 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                       <div className="flex justify-between items-end mb-1.5">
                         <div className="flex items-center gap-1.5">
                           <Droplets size={12} className={isCritical ? 'text-red-500' : 'text-indigo-500'} />
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Uso de Aceite</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vida Útil Aceite</span>
                         </div>
                         <span className={`text-[10px] font-black ${isCritical ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-slate-700'}`}>
-                          {Math.max(0, 150 - Math.round(molino.hours_to_oil_change || 0))}h / 150h
+                          {Math.round(molino.hours_to_oil_change || 0)}h restantes
                         </span>
                       </div>
                       <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                         <div
                           className={`h-full transition-all duration-1000 ${molino.hours_to_oil_change! > 50 ? 'bg-emerald-500' : molino.hours_to_oil_change! > 20 ? 'bg-amber-500' : 'bg-red-500'}`}
-                          style={{ width: `${Math.min(100, ((150 - (molino.hours_to_oil_change || 0)) / 150) * 100)}%` }}
+                          style={{ width: `${Math.min(100, ((molino.hours_to_oil_change || 0) / 150) * 100)}%` }}
                         ></div>
                       </div>
                     </div>

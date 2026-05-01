@@ -2,7 +2,7 @@ export type UserRole = 'ADMIN' | 'OPERADOR' | 'GERENCIA';
 export type MillStatus = 'LIBRE' | 'OCUPADO' | 'MANTENIMIENTO';
 export type MineralType = 'OXIDO' | 'SULFURO';
 export type SubMineralType = 'CUARZO' | 'LLAMPO';
-export type MillingStatus = 'EN_PROCESO' | 'FINALIZADO';
+export type MillingStatus = 'IN_PROGRESS' | 'EN_PROCESO' | 'FINALIZADO';
 export type MaintenanceType = 'PREVENTIVO' | 'CORRECTIVO' | 'PREDICTIVO' | 'EMERGENCIA';
 export type MaintenancePriority = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
 
@@ -74,7 +74,8 @@ export interface MillingLog {
   total_cuarzo: number;
   total_llampo: number;
   mills_used: MillEntry[] | null;
-  status: 'IN_PROGRESS' | 'FINALIZADO';
+  status: 'IN_PROGRESS' | 'EN_PROCESO' | 'FINALIZADO';
+  operator_name?: string | null;
   observations?: string;
   created_at: string;
   clients?: {
@@ -98,6 +99,8 @@ export interface MaintenanceLog {
   tasks_checklist?: any[];
   failure_start_time?: string;
   completed_at?: string;
+  completed_date?: string;
+  scheduled_date?: string;
   created_at: string;
   mills?: {
     name: string;

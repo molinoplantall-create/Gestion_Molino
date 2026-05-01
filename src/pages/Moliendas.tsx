@@ -28,6 +28,15 @@ const Moliendas: React.FC = () => {
   usePageFocus(() => {
     fetchMills();
     fetchZones();
+    fetchMillingLogs({
+      search,
+      status: selectedStatus,
+      millId: selectedMill,
+      mineralType: selectedMineral,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      zone: selectedZone
+    });
   });
 
   useEffect(() => {

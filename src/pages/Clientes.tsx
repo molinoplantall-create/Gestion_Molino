@@ -78,6 +78,13 @@ const Clientes: React.FC = () => {
 
   usePageFocus(() => {
     fetchZones();
+    fetchClients({
+      page: currentPage,
+      pageSize,
+      search,
+      status: filterStatus,
+      zone: filterZone
+    });
   });
 
   // Reset page when filters change

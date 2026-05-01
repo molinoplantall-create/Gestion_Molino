@@ -83,7 +83,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
             onClick={handleOverlayClick}
             role="dialog"
             aria-modal="true"
@@ -93,9 +93,10 @@ export const BaseModal: React.FC<BaseModalProps> = ({
                 ref={modalRef}
                 className={`
           relative w-full ${sizeClasses[size]} 
-          bg-white rounded-lg shadow-2xl
-          animate-in zoom-in-95 duration-200
-          max-h-[90vh] overflow-auto max-w-[calc(100vw-2rem)]
+          bg-white rounded-t-[2rem] sm:rounded-3xl shadow-2xl
+          animate-in slide-in-from-bottom sm:zoom-in-95 duration-300
+          max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden
+          mx-auto
         `}
                 tabIndex={-1}
             >
@@ -120,7 +121,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
                 )}
 
                 {/* Content */}
-                <div className="px-6 py-4">
+                <div className="px-6 py-4 overflow-y-auto flex-1 custom-scrollbar">
                     {children}
                 </div>
             </div>

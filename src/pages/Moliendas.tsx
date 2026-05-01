@@ -15,6 +15,18 @@ const Moliendas: React.FC = () => {
   const { millingLogs, logsCount, logsLoading, fetchMillingLogs, mills, fetchMills, deleteMillingLog, loading, zones, fetchZones } = useSupabaseStore();
   const deleteModal = useModal<{ id: string, name: string }>();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const searchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, [search]);
+
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedMill, setSelectedMill] = useState<string>('all');
   const [selectedMineral, setSelectedMineral] = useState<string>('all');
@@ -29,7 +41,7 @@ const Moliendas: React.FC = () => {
     fetchMills();
     fetchZones();
     fetchMillingLogs({
-      search,
+      search: debouncedSearch,
       status: selectedStatus,
       millId: selectedMill,
       mineralType: selectedMineral,
@@ -43,7 +55,7 @@ const Moliendas: React.FC = () => {
     fetchMillingLogs({
       page: currentPage,
       pageSize,
-      search,
+      search: debouncedSearch,
       status: selectedStatus,
       millId: selectedMill,
       mineralType: selectedMineral,
@@ -51,12 +63,12 @@ const Moliendas: React.FC = () => {
       endDate,
       zone: selectedZone
     });
-  }, [fetchMillingLogs, currentPage, search, selectedStatus, selectedMill, selectedMineral, startDate, endDate, selectedZone]);
+  }, [fetchMillingLogs, currentPage, debouncedSearch, selectedStatus, selectedMill, selectedMineral, startDate, endDate, selectedZone]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, selectedStatus, selectedMill, selectedMineral, startDate, endDate]);
+  }, [debouncedSearch, selectedStatus, selectedMill, selectedMineral, startDate, endDate]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

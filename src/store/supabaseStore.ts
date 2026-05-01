@@ -310,9 +310,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        // Mejoramos la búsqueda para que sea más robusta en relaciones
-        // Nota: Buscamos también en el JSONB de mills_used convirtiéndolo a texto
-        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%,clients.name.ilike.%${search}%,clients.contact_name.ilike.%${search}%,mills_used::text.ilike.%${search}%`);
+        // Buscamos en observaciones, tipo de mineral y datos del cliente (nombre y contacto)
+        // Eliminamos el cast a ::text de mills_used que causaba errores 400 en Supabase/PostgREST
+        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%,clients.name.ilike.%${search}%,clients.contact_name.ilike.%${search}%`);
       }
 
       if (zone && zone !== 'all') {

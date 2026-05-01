@@ -207,65 +207,75 @@ const ActivityChart: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Filtros */}
-      <div className="flex flex-wrap gap-2 items-center mb-2">
-        {/* Vista: Semana / Mes / Año */}
-        <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-          {([
-            { key: 'semana', label: '7 Días' },
-            { key: 'mes', label: 'Mes' },
-            { key: 'anio', label: 'Año' }
-          ] as { key: ViewMode; label: string }[]).map(v => (
-            <button
-              key={v.key}
-              onClick={() => setViewMode(v.key)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${viewMode === v.key
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-                }`}
-            >
-              {v.label}
-            </button>
-          ))}
+    <div className="space-y-6">
+      {/* Header con Título y Filtros de Tiempo */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="text-center md:text-left">
+          <h2 className="text-base sm:text-xl font-black text-slate-900">Actividad Reciente</h2>
+          <p className="text-xs text-slate-500 font-medium">Comparativa de ingresos y producción</p>
         </div>
 
+        <div className="flex flex-wrap gap-2 items-center justify-center md:justify-end">
+          {/* Vista: Semana / Mes / Año */}
+          <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+            {([
+              { key: 'semana', label: '7 Días' },
+              { key: 'mes', label: 'Mes' },
+              { key: 'anio', label: 'Año' }
+            ] as { key: ViewMode; label: string }[]).map(v => (
+              <button
+                key={v.key}
+                onClick={() => setViewMode(v.key)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${viewMode === v.key
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Year selector (mes + año) - AHORA EN LA PRIMERA LINEA */}
+          {(viewMode === 'mes' || viewMode === 'anio') && (
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(Number(e.target.value))}
+              className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-sm"
+            >
+              {availableYears.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      </div>
+
+      {/* Filtros Secundarios: Clientes y Zonas */}
+      <div className="flex flex-wrap gap-3 items-center bg-slate-50/50 p-3 sm:p-4 rounded-2xl border border-slate-100">
         {/* Mes selector (solo si viewMode = mes) */}
         {viewMode === 'mes' && (
-          <select
-            value={selectedMonth}
-            onChange={e => setSelectedMonth(Number(e.target.value))}
-            className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-          >
-            {MONTH_NAMES.map((name, i) => (
-              <option key={i} value={i}>{name}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <Calendar size={14} className="text-slate-400" />
+            <select
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(Number(e.target.value))}
+              className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none min-w-[110px]"
+            >
+              {MONTH_NAMES.map((name, i) => (
+                <option key={i} value={i}>{name}</option>
+              ))}
+            </select>
+          </div>
         )}
-
-        {/* Year selector (mes + año) */}
-        {(viewMode === 'mes' || viewMode === 'anio') && (
-          <select
-            value={selectedYear}
-            onChange={e => setSelectedYear(Number(e.target.value))}
-            className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-          >
-            {availableYears.map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        )}
-
-        {/* Separador visual */}
-        <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block" />
 
         {/* Cliente */}
-        <div className="flex items-center gap-1">
-          <Users size={13} className="text-slate-400" />
+        <div className="flex items-center gap-2 flex-1 min-w-[150px]">
+          <Users size={14} className="text-slate-400" />
           <select
             value={selectedClient}
             onChange={e => setSelectedClient(e.target.value)}
-            className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none max-w-[140px]"
+            className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
           >
             <option value="all">Todos los clientes</option>
             {clients.filter(c => c.is_active !== false).map(c => (
@@ -275,12 +285,12 @@ const ActivityChart: React.FC = () => {
         </div>
 
         {/* Zona */}
-        <div className="flex items-center gap-1">
-          <Map size={13} className="text-slate-400" />
+        <div className="flex items-center gap-2 flex-1 min-w-[150px]">
+          <Map size={14} className="text-slate-400" />
           <select
             value={selectedZone}
             onChange={e => setSelectedZone(e.target.value)}
-            className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none max-w-[140px]"
+            className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
           >
             <option value="all">Todas las zonas</option>
             {zones.map(z => (

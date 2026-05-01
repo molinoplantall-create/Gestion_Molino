@@ -19,6 +19,7 @@ import autoTable from 'jspdf-autotable';
 import MillCard from '@/components/dashboard/MillCard';
 import RecentSessions from '@/components/dashboard/RecentSessions';
 import ActivityChart from '@/components/dashboard/ActivityChart';
+import ClientComparisonChart from '@/components/dashboard/ClientComparisonChart';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useToast } from '@/hooks/useToast';
 import { usePageFocus } from '@/hooks/usePageFocus';
@@ -201,13 +202,33 @@ const Dashboard: React.FC = () => {
     const avgSacosReporte = millingLogs.length > 0 ? totalSacosReporte / millingLogs.length : 0;
     const millDisponibilidad = `${((mills.filter(m => m.status === 'LIBRE').length / mills.length) * 100).toFixed(0)}%`;
 
+    // 11. Comparativa de Clientes (Mes actual)
+    const currentMonthLogs = millingLogs.filter(log => {
+      const d = new Date(log.created_at);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+    
+    const clientDataMap: Record<string, { name: string, total: number }> = {};
+    currentMonthLogs.forEach(log => {
+      const clientName = log.clients?.name || 'Desconocido';
+      if (!clientDataMap[clientName]) {
+        clientDataMap[clientName] = { name: clientName, total: 0 };
+      }
+      clientDataMap[clientName].total += (log.total_sacks || 0);
+    });
+    
+    const clientMonthlyProd = Object.values(clientDataMap)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10); // Top 10 del mes
+
     return {
       monthlyProd, pctCambio, tendenciaPositiva,
       millStats, mineralData,
       totalSacos, avgSacos, totalOperaciones,
       topClients, chartZoneData, clientesSinZona,
       tasaOcupacion, sacosEsteMes, chartTypeData,
-      millStatsReport, totalSacosReporte, avgSacosReporte, millDisponibilidad
+      millStatsReport, totalSacosReporte, avgSacosReporte, millDisponibilidad,
+      clientMonthlyProd
     };
   }, [millingLogs, mills, allClients, now]);
 
@@ -307,6 +328,11 @@ const Dashboard: React.FC = () => {
   // ═══════════════════════════════════════════════
   // LOADING
   // ═══════════════════════════════════════════════
+  const MONTH_NAMES = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
   if (millsLoading && mills.length === 0) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -434,10 +460,8 @@ const Dashboard: React.FC = () => {
         {/* ROW 2: Charts (Actividad + Tendencia) */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {/* Actividad Reciente */}
-          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-            <h2 className="text-base sm:text-xl font-black text-slate-900 mb-2 text-center sm:text-left">Actividad Reciente</h2>
-            <p className="text-xs text-slate-500 font-medium text-center sm:text-left mb-6">Comparativa de ingresos y producción</p>
-            <div className="h-80 w-full"><ActivityChart /></div>
+          <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm overflow-hidden">
+            <div className="w-full"><ActivityChart /></div>
           </div>
 
           {/* Tendencia Evolutiva */}
@@ -467,7 +491,26 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ROW 3: Estado de Planta */}
+        {/* ROW 3: Comparativa de Clientes (Mes) */}
+        <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Users size={18} className="text-indigo-500" />
+                <h2 className="text-base sm:text-xl font-black text-slate-900">Comparativa de Producción por Cliente</h2>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">Volumen de sacos procesados en el periodo actual</p>
+            </div>
+            <div className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 self-start md:self-center">
+              Mes: {MONTH_NAMES[now.getMonth()]} {now.getFullYear()}
+            </div>
+          </div>
+          <div className="h-[400px] w-full">
+            <ClientComparisonChart data={intelligence.clientMonthlyProd} />
+          </div>
+        </div>
+
+        {/* ROW 4: Estado de Planta */}
         <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute -right-10 -top-10 opacity-[0.02] group-hover:scale-110 transition-transform duration-500 pointer-events-none">
              <Factory size={250} strokeWidth={1.5} className="text-indigo-600" />

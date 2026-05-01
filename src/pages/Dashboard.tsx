@@ -53,6 +53,9 @@ const Dashboard: React.FC = () => {
   } = useSupabaseStore();
 
   const [showSinZonaModal, setShowSinZonaModal] = useState(false);
+  const [comparisonMonth, setComparisonMonth] = useState(new Date().getMonth());
+  const [comparisonYear, setComparisonYear] = useState(new Date().getFullYear());
+  const [comparisonMode, setComparisonMode] = useState<'mes' | 'anio'>('mes');
 
   usePageFocus(() => {
     fetchMills();
@@ -202,14 +205,18 @@ const Dashboard: React.FC = () => {
     const avgSacosReporte = millingLogs.length > 0 ? totalSacosReporte / millingLogs.length : 0;
     const millDisponibilidad = `${((mills.filter(m => m.status === 'LIBRE').length / mills.length) * 100).toFixed(0)}%`;
 
-    // 11. Comparativa de Clientes (Mes actual)
-    const currentMonthLogs = millingLogs.filter(log => {
+    // 11. Comparativa de Clientes (Filtro interactivo)
+    const comparisonLogs = millingLogs.filter(log => {
       const d = new Date(log.created_at);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      if (comparisonMode === 'mes') {
+        return d.getMonth() === comparisonMonth && d.getFullYear() === comparisonYear;
+      } else {
+        return d.getFullYear() === comparisonYear;
+      }
     });
     
     const clientDataMap: Record<string, { name: string, total: number }> = {};
-    currentMonthLogs.forEach(log => {
+    comparisonLogs.forEach(log => {
       const clientName = log.clients?.name || 'Desconocido';
       if (!clientDataMap[clientName]) {
         clientDataMap[clientName] = { name: clientName, total: 0 };
@@ -219,7 +226,11 @@ const Dashboard: React.FC = () => {
     
     const clientMonthlyProd = Object.values(clientDataMap)
       .sort((a, b) => b.total - a.total)
-      .slice(0, 10); // Top 10 del mes
+      .slice(0, 15); // Top 15 para comparativa
+
+    const availableYears = Array.from(new Set(millingLogs.map(l => new Date(l.created_at).getFullYear())));
+    if (availableYears.length === 0) availableYears.push(new Date().getFullYear());
+    availableYears.sort((a, b) => b - a);
 
     return {
       monthlyProd, pctCambio, tendenciaPositiva,
@@ -228,7 +239,7 @@ const Dashboard: React.FC = () => {
       topClients, chartZoneData, clientesSinZona,
       tasaOcupacion, sacosEsteMes, chartTypeData,
       millStatsReport, totalSacosReporte, avgSacosReporte, millDisponibilidad,
-      clientMonthlyProd
+      clientMonthlyProd, availableYears
     };
   }, [millingLogs, mills, allClients, now]);
 
@@ -491,7 +502,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ROW 3: Comparativa de Clientes (Mes) */}
+        {/* ROW 3: Comparativa de Clientes (Interactivo) */}
         <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
@@ -499,10 +510,49 @@ const Dashboard: React.FC = () => {
                 <Users size={18} className="text-indigo-500" />
                 <h2 className="text-base sm:text-xl font-black text-slate-900">Comparativa de Producción por Cliente</h2>
               </div>
-              <p className="text-xs text-slate-500 font-medium">Volumen de sacos procesados en el periodo actual</p>
+              <p className="text-xs text-slate-500 font-medium">Análisis de volumen por periodo seleccionado</p>
             </div>
-            <div className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 self-start md:self-center">
-              Mes: {MONTH_NAMES[now.getMonth()]} {now.getFullYear()}
+            
+            <div className="flex flex-wrap gap-2 items-center bg-slate-50 p-2 rounded-2xl border border-slate-100">
+              {/* Selector de Modo */}
+              <div className="flex bg-white p-0.5 rounded-lg border border-slate-200 shadow-sm">
+                <button 
+                  onClick={() => setComparisonMode('mes')}
+                  className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${comparisonMode === 'mes' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  Mes
+                </button>
+                <button 
+                  onClick={() => setComparisonMode('anio')}
+                  className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${comparisonMode === 'anio' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  Año
+                </button>
+              </div>
+
+              {/* Selector de Mes (solo si modo mes) */}
+              {comparisonMode === 'mes' && (
+                <select 
+                  value={comparisonMonth}
+                  onChange={e => setComparisonMonth(Number(e.target.value))}
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  {MONTH_NAMES.map((name, i) => (
+                    <option key={i} value={i}>{name}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* Selector de Año */}
+              <select 
+                value={comparisonYear}
+                onChange={e => setComparisonYear(Number(e.target.value))}
+                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
+              >
+                {intelligence.availableYears.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="h-[400px] w-full">

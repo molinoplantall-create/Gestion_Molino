@@ -36,6 +36,7 @@ import { FormModal } from '../components/ui/FormModal';
 import { DeleteConfirmModal } from '../components/ui/DeleteConfirmModal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { formatNumber } from '../utils/formatters';
+import { ClientSelector } from '@/components/molienda/ClientSelector';
 
 export interface NuevoIngresoForm {
   fechaRecepcion: string;
@@ -546,12 +547,12 @@ const Stock: React.FC = () => {
       <div className="bg-slate-50 rounded-[2.5rem] p-6 lg:p-8 border border-white shadow-xl shadow-slate-200/50">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-2 space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Búsqueda Global</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Buscar Cliente</label>
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500" size={18} />
               <input
                 type="text"
-                placeholder="Buscar por cliente o zona de producción..."
+                placeholder="Buscar cliente..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none shadow-sm"
@@ -900,25 +901,19 @@ const Stock: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Cliente *</label>
-              <select
-                value={nuevoIngreso.clienteId}
-                onChange={(e) => {
-                  const client = clients.find(c => c.id === e.target.value);
+              <ClientSelector
+                clients={clients}
+                selectedClientId={nuevoIngreso.clienteId}
+                onClientChange={(clientId) => {
+                  const client = clients.find(c => c.id === clientId);
                   setNuevoIngreso({
                     ...nuevoIngreso,
-                    clienteId: e.target.value,
+                    clienteId: clientId,
                     clienteNombre: client?.name || '',
                     tipoCliente: client?.client_type || ''
                   });
                 }}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-slate-800"
-                required
-              >
-                <option value="">Seleccionar Cliente</option>
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              />
             </div>
 
             <div>

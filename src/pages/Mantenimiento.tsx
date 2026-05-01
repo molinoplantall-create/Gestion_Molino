@@ -573,6 +573,17 @@ _Enviado desde el sistema de Gestión de Molinos_`;
   };
 
   const handleApplyFilters = () => {
+    setCurrentPage(1);
+    fetchMaintenanceLogs({
+      page: 1,
+      pageSize: 20, // matching default pageSize
+      search: debouncedSearch,
+      type: filterType,
+      status: filterStatus,
+      millId: selectedMill,
+      startDate,
+      endDate
+    });
     toast.success('Filtros Aplicados', 'Los filtros se han aplicado correctamente.');
   };
 

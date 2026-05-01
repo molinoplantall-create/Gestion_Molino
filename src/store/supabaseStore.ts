@@ -376,7 +376,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .from('maintenance_logs')
         .select(`
           *,
-          mills!inner (
+          mills!left (
             *
           )
         `, { count: 'exact' });
@@ -397,8 +397,22 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        // Forzamos la búsqueda en descripción y en el nombre del molino relacionado
-        query = query.or(`description.ilike.%${search}%,descripcion_falla.ilike.%${search}%,mills.name.ilike.%${search}%`);
+        const searchLower = search.toLowerCase();
+        // Buscar mills cuyos nombres coincidan
+        const matchingMills = get().mills.filter(m => 
+          m.name.toLowerCase().includes(searchLower)
+        );
+        const millIds = matchingMills.map(m => m.id);
+        
+        if (millIds.length > 0) {
+          query = query.or(
+            `description.ilike.%${search}%,descripcion_falla.ilike.%${search}%,technician_name.ilike.%${search}%,mill_id.in.(${millIds.join(',')})`
+          );
+        } else {
+          query = query.or(
+            `description.ilike.%${search}%,descripcion_falla.ilike.%${search}%,technician_name.ilike.%${search}%`
+          );
+        }
       }
 
       if (startDate) {
@@ -866,7 +880,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         }
       }
 
-      await get().fetchMaintenanceLogs({});
+      // Leer el estado actual de filtros del store para no resetearlos
+      const state = get();
+      await state.fetchMaintenanceLogs({
+        page: 1,
+        pageSize: 20,
+      });
       await get().fetchMills();
       return true;
     } catch (error) {

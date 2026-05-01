@@ -420,12 +420,12 @@ const Moliendas: React.FC = () => {
       <div className="bg-slate-50 rounded-3xl p-3 md:p-5 border border-white shadow-lg shadow-slate-200/50">
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 md:gap-4 items-end">
           <div className="space-y-1 col-span-2 sm:col-span-1 md:col-span-1 xl:col-span-2">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Búsqueda Técnica</label>
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Buscar Cliente</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500" size={16} />
               <input
                 type="text"
-                placeholder="Cliente..."
+                placeholder="Buscar cliente..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all shadow-sm text-xs"

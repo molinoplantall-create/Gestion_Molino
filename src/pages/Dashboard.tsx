@@ -22,8 +22,8 @@ import ActivityChart from '@/components/dashboard/ActivityChart';
 import ClientComparisonChart from '@/components/dashboard/ClientComparisonChart';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useToast } from '@/hooks/useToast';
-import { usePageFocus } from '@/hooks/usePageFocus';
 import { formatNumber } from '@/utils/formatters';
+import ClientStockPanel from '@/components/dashboard/ClientStockPanel';
 
 const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 const MINERAL_COLORS: Record<string, string> = { 'Óxido': '#6366f1', 'Sulfuro': '#facc15' };
@@ -57,7 +57,8 @@ const Dashboard: React.FC = () => {
   const [comparisonYear, setComparisonYear] = useState(new Date().getFullYear());
   const [comparisonMode, setComparisonMode] = useState<'mes' | 'anio'>('mes');
 
-  usePageFocus(() => {
+  // InitFetch: Garantizar carga de Supabase al montar la vista
+  useEffect(() => {
     fetchMills();
     fetchAllClients();
     fetchClients();
@@ -70,7 +71,8 @@ const Dashboard: React.FC = () => {
         sessionStorage.setItem('repair_done', 'true');
       });
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Re-fetch data when period changes to ensure we have historical logs
   useEffect(() => {
@@ -427,7 +429,7 @@ const Dashboard: React.FC = () => {
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
         
         {/* ROW 1: KPIs Unificados */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
           {[
             { 
               label: 'Producción Acumulada', 
@@ -460,14 +462,14 @@ const Dashboard: React.FC = () => {
               border: 'border-emerald-100' 
             },
             { 
-              label: 'Rendimiento Global', 
-              value: `${intelligence.tasaOcupacion}%`, 
-              unit: 'eficiencia', 
-              subtext: `Promedio: ${formatNumber(intelligence.avgSacos, 1)} sacos`,
-              icon: Activity, 
-              color: 'text-violet-600', 
-              bg: 'bg-violet-50', 
-              border: 'border-violet-100' 
+              label: 'Stock en Patio', 
+              value: formatNumber(totalStockSacos), 
+              unit: 'sacos', 
+              subtext: 'Inventario listo',
+              icon: Package, 
+              color: 'text-indigo-600', 
+              bg: 'bg-indigo-50', 
+              border: 'border-indigo-100' 
             },
           ].map((kpi: { 
             label: string; 
@@ -480,21 +482,17 @@ const Dashboard: React.FC = () => {
             border: string; 
             subtextColor?: string;
           }, idx) => (
-            <div key={idx} className="bg-white p-3 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group overflow-hidden">
-              <div className="flex items-start justify-between mb-2 sm:mb-4 gap-2">
-                <div className="min-w-0 flex-1">
-                   <p className="text-[9px] sm:text-xs font-black text-slate-400 uppercase tracking-widest mb-1 truncate">{kpi.label}</p>
-                   <div className="flex items-baseline gap-1 sm:gap-2 truncate">
-                     <h3 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
-                     <span className="text-[9px] sm:text-xs font-bold text-slate-400 flex-shrink-0">{kpi.unit}</span>
-                   </div>
-                </div>
-                <div className={`p-2.5 sm:p-3 ${kpi.bg} ${kpi.border} border rounded-xl sm:rounded-2xl flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                  <kpi.icon className={`${kpi.color} w-4 h-4 sm:w-6 sm:h-6`} strokeWidth={2.5} />
-                </div>
+            <div key={idx} className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all group overflow-hidden">
+              <div className={`w-14 h-14 rounded-xl ${kpi.bg} border ${kpi.border} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                <kpi.icon className={`${kpi.color} w-6 h-6`} strokeWidth={2.5} />
               </div>
-              <div className="min-w-0">
-                <span className={`text-[9px] sm:text-xs font-black block truncate ${kpi.subtextColor || 'text-slate-500'}`}>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{kpi.label}</p>
+                <div className="flex items-baseline gap-1 mt-0.5 truncate">
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                  <span className="text-[10px] font-bold text-slate-500">{kpi.unit}</span>
+                </div>
+                <span className={`text-[9px] font-black block truncate ${kpi.subtextColor || 'text-slate-500'}`}>
                   {kpi.subtext}
                 </span>
               </div>
@@ -536,69 +534,81 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ROW 3: Comparativa de Clientes (Interactivo) */}
-        <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm overflow-hidden">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Users size={18} className="text-indigo-500" />
-                <h2 className="text-base sm:text-xl font-black text-slate-900">Comparativa de Producción por Cliente</h2>
+        {/* ROW 3: Comparativa de Clientes y Stock Actual */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Comparativa (60% width on LG) */}
+          <div className="lg:col-span-7 xl:col-span-8 bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Users size={18} className="text-indigo-500" />
+                  <h2 className="text-base sm:text-xl font-black text-slate-900">Comparativa de Producción</h2>
+                </div>
+                <p className="text-xs text-slate-500 font-medium">Volumen procesado por cliente en el periodo</p>
               </div>
-              <p className="text-xs text-slate-500 font-medium">Análisis de volumen por periodo seleccionado</p>
-            </div>
-            
-            <div className="flex flex-wrap gap-2 items-center bg-slate-50 p-2 rounded-2xl border border-slate-100">
-              {/* Selector de Modo */}
-              <div className="flex bg-white p-0.5 rounded-lg border border-slate-200 shadow-sm">
-                <button 
-                  onClick={() => setComparisonMode('mes')}
-                  className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${comparisonMode === 'mes' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                  Mes
-                </button>
-                <button 
-                  onClick={() => setComparisonMode('anio')}
-                  className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${comparisonMode === 'anio' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                  Año
-                </button>
-              </div>
+              
+              <div className="flex flex-wrap gap-2 items-center bg-slate-50 p-2 rounded-2xl border border-slate-100">
+                {/* Selector de Modo */}
+                <div className="flex bg-white p-0.5 rounded-lg border border-slate-200 shadow-sm">
+                  <button 
+                    onClick={() => setComparisonMode('mes')}
+                    className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${comparisonMode === 'mes' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Mes
+                  </button>
+                  <button 
+                    onClick={() => setComparisonMode('anio')}
+                    className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${comparisonMode === 'anio' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Año
+                  </button>
+                </div>
 
-              {/* Selector de Mes (solo si modo mes) */}
-              {comparisonMode === 'mes' && (
+                {/* Selector de Mes (solo si modo mes) */}
+                {comparisonMode === 'mes' && (
+                  <select 
+                    value={comparisonMonth}
+                    onChange={e => setComparisonMonth(Number(e.target.value))}
+                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  >
+                    {MONTH_NAMES.map((name, i) => {
+                      // Si el año seleccionado es el actual, deshabilitar meses futuros
+                      const isFuture = comparisonYear === now.getFullYear() && i > now.getMonth();
+                      if (isFuture) return null;
+                      return <option key={i} value={i}>{name}</option>;
+                    }).filter(Boolean)}
+                  </select>
+                )}
+
+                {/* Selector de Año */}
                 <select 
-                  value={comparisonMonth}
-                  onChange={e => setComparisonMonth(Number(e.target.value))}
+                  value={comparisonYear}
+                  onChange={e => setComparisonYear(Number(e.target.value))}
                   className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
-                  {MONTH_NAMES.map((name, i) => {
-                    // Si el año seleccionado es el actual, deshabilitar meses futuros
-                    const isFuture = comparisonYear === now.getFullYear() && i > now.getMonth();
-                    if (isFuture) return null;
-                    return <option key={i} value={i}>{name}</option>;
-                  }).filter(Boolean)}
+                  {intelligence.availableYears.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
                 </select>
-              )}
-
-              {/* Selector de Año */}
-              <select 
-                value={comparisonYear}
-                onChange={e => setComparisonYear(Number(e.target.value))}
-                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
-              >
-                {intelligence.availableYears.map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+              </div>
+            </div>
+            
+            <div className="h-[400px] w-full relative flex-1">
+              {useSupabaseStore.getState().logsLoading ? (
+                <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-4"></div>
+                    <p className="text-xs font-bold text-slate-500">Cargando producción...</p>
+                  </div>
+                </div>
+              ) : null}
+              <ClientComparisonChart data={intelligence.clientMonthlyProd} />
             </div>
           </div>
-          <div className="h-[400px] w-full relative">
-            {useSupabaseStore.getState().logsLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10 backdrop-blur-[1px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-              </div>
-            )}
-            <ClientComparisonChart data={intelligence.clientMonthlyProd} />
+
+          {/* Stock por Cliente (40% width on LG) */}
+          <div className="lg:col-span-5 xl:col-span-4 h-[600px] lg:h-auto">
+             <ClientStockPanel clients={allClients} loading={useSupabaseStore.getState().clientsLoading && allClients.length === 0} />
           </div>
         </div>
 

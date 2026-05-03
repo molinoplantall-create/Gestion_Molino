@@ -17,7 +17,6 @@ import { MillHistoryTimeline } from '@/components/mantenimiento/MillHistoryTimel
 import { FailureRanking } from '@/components/mantenimiento/FailureRanking';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
-import { usePageFocus } from '@/hooks/usePageFocus';
 import { InputModal } from '@/components/ui/InputModal';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { maintenanceSchema } from '@/schemas/maintenanceSchema';
@@ -164,10 +163,12 @@ const Mantenimiento: React.FC = () => {
     schema: maintenanceSchema
   });
 
-  usePageFocus(() => {
+  // Efecto montado o dependiente del store para cargar datos base
+  useEffect(() => {
     fetchMills();
     handleApplyFilters(); // This already calls fetchMaintenanceLogs with current state
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetchMaintenanceLogs({

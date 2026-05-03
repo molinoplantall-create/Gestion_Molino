@@ -28,6 +28,9 @@ interface SupabaseStore {
   logsLoading: boolean;
   error: string | null;
 
+  // Global Reset
+  resetLoadingStates: () => void;
+
   // Actions
   fetchMills: () => Promise<void>;
   fetchAllClients: () => Promise<void>;
@@ -132,9 +135,30 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   pollingIntervalId: null,
   error: null,
 
+  resetLoadingStates: () => {
+    logger.warn('⚠️ Force resetting all loading states to false due to timeout or manual override.');
+    set({
+      loading: false,
+      millsLoading: false,
+      clientsLoading: false,
+      zonesLoading: false,
+      logsLoading: false,
+      error: 'Hubo un problema de conexión. Algunos datos podrían no estar actualizados.'
+    });
+  },
+
   fetchMills: async () => {
     const currentFetchId = ++fetchMillsId;
     set({ millsLoading: true, error: null });
+    
+    // Safety timeout
+    const timeoutId = setTimeout(() => {
+      if (currentFetchId === fetchMillsId && get().millsLoading) {
+        set({ millsLoading: false, error: 'Tiempo de espera agotado al cargar molinos. Verifique su conexión.' });
+        logger.error('TIMEOUT: fetchMills se quedó colgado por más de 10 segundos');
+      }
+    }, 10000);
+
     try {
       // First try to fetch all data without a specific order to avoid crashing if 'name' doesn't exist
       const { data, error } = await supabase
@@ -187,6 +211,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (currentFetchId === fetchMillsId) {
         set({ millsLoading: false });
       }
+      clearTimeout(timeoutId);
     }
   },
 
@@ -212,6 +237,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const currentFetchId = ++fetchClientsId;
     const { page = 1, pageSize = 500, search, status, zone } = options;
     set({ clientsLoading: true, error: null });
+
+    const timeoutId = setTimeout(() => {
+      if (currentFetchId === fetchClientsId && get().clientsLoading) {
+        set({ clientsLoading: false, error: 'Tiempo de espera agotado al cargar clientes. Verifique su conexión.' });
+        logger.error('TIMEOUT: fetchClients se quedó colgado por más de 10 segundos');
+      }
+    }, 10000);
+
     try {
       let query = supabase
         .from('clients')
@@ -249,12 +282,21 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (currentFetchId === fetchClientsId) {
         set({ clientsLoading: false });
       }
+      clearTimeout(timeoutId);
     }
   },
 
   fetchZones: async () => {
     const currentFetchId = ++fetchZonesId;
     set({ zonesLoading: true, error: null });
+
+    const timeoutId = setTimeout(() => {
+      if (currentFetchId === fetchZonesId && get().zonesLoading) {
+        set({ zonesLoading: false, error: 'Tiempo de espera agotado al cargar zonas.' });
+        logger.error('TIMEOUT: fetchZones se quedó colgado por más de 10 segundos');
+      }
+    }, 10000);
+
     try {
       const { data, error } = await supabase
         .from('zones')
@@ -273,6 +315,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (currentFetchId === fetchZonesId) {
         set({ zonesLoading: false });
       }
+      clearTimeout(timeoutId);
     }
   },
 
@@ -322,6 +365,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
     const currentFetchId = ++fetchMillingLogsId;
     set({ logsLoading: true, error: null });
+
+    const timeoutId = setTimeout(() => {
+      if (currentFetchId === fetchMillingLogsId && get().logsLoading) {
+        set({ logsLoading: false, error: 'Tiempo de espera agotado al cargar producciones. Verifique su conexión.' });
+        logger.error('TIMEOUT: fetchMillingLogs se quedó colgado por más de 10 segundos');
+      }
+    }, 10000);
+
     try {
       // Clean up historical logs before fetching
       await get().cleanupHistoricalLogs();
@@ -399,6 +450,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (currentFetchId === fetchMillingLogsId) {
         set({ logsLoading: false });
       }
+      clearTimeout(timeoutId);
     }
   },
 
@@ -406,6 +458,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const currentFetchId = ++fetchMaintenanceLogsId;
     const { page = 1, pageSize = 20, search, millId, startDate, endDate, type, status } = options;
     set({ loading: true, error: null });
+
+    const timeoutId = setTimeout(() => {
+      if (currentFetchId === fetchMaintenanceLogsId && get().loading) {
+        set({ loading: false, error: 'Tiempo de espera agotado al cargar mantenimientos. Verifique su conexión.' });
+        logger.error('TIMEOUT: fetchMaintenanceLogs se quedó colgado por más de 10 segundos');
+      }
+    }, 10000);
+
     try {
       logger.log('📡 store: fetching maintenance logs...', { millId, search, type, status });
 
@@ -514,6 +574,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (currentFetchId === fetchMaintenanceLogsId) {
         set({ loading: false });
       }
+      clearTimeout(timeoutId);
     }
   },
 

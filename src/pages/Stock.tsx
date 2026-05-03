@@ -618,7 +618,7 @@ const Stock: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {clientsLoading ? (
+              {clientsLoading && sortedClients.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-20">
                     <LoadingSpinner text="Sincronizando existencias..." />

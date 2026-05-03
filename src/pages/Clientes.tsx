@@ -335,7 +335,7 @@ const Clientes: React.FC = () => {
       {/* Clients Table */}
       <ClientTable
         clients={clients}
-        loading={loading}
+        loading={loading && clients.length === 0}
         onEdit={handleEditClick}
         onDelete={handleDeleteClick}
         pagination={{

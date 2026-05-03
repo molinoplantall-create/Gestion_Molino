@@ -36,7 +36,6 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { useSupabaseStore } from '../store/supabaseStore';
 import { useToast } from '../hooks/useToast';
-import { usePageFocus } from '../hooks/usePageFocus';
 
 const Reportes: React.FC = () => {
   const { millingLogs, mills, clients, allClients, fetchMillingLogs, fetchMills, fetchClients, fetchAllClients, recalcAllClientsStock } = useSupabaseStore();
@@ -51,7 +50,7 @@ const Reportes: React.FC = () => {
   const [dateRange, setDateRange] = useState('month');
   const [reportType, setReportType] = useState('general');
 
-  usePageFocus(() => {
+  useEffect(() => {
     fetchMillingLogs({ pageSize: 200 });
     fetchMills();
     fetchAllClients();
@@ -64,7 +63,8 @@ const Reportes: React.FC = () => {
         sessionStorage.setItem('repair_done', 'true');
       });
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Helper para formatear fechas sin desfase de zona horaria
   const formatDateSafe = (dateStr: string) => {

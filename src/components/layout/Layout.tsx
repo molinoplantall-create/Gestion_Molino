@@ -6,11 +6,22 @@ import { useAuthStore } from '../../store/authStore';
 import { useSupabaseStore } from '../../store/supabaseStore';
 import { Navigate } from 'react-router-dom';
 import { useAppStore } from '../../store/appStore';
+import { useAppInit } from '../../hooks/useAppInit';
+import { useToast } from '../../hooks/useToast';
 
 const Layout = () => {
+  useAppInit();
+  const toast = useToast();
   const { user, loading } = useAuthStore();
-  const { startPollingMills, stopPollingMills } = useSupabaseStore();
+  const { startPollingMills, stopPollingMills, error } = useSupabaseStore();
   const { sidebarOpen } = useAppStore();
+
+  useEffect(() => {
+    if (error) {
+      toast.error('Error de Conexión', error);
+      useSupabaseStore.setState({ error: null });
+    }
+  }, [error]);
 
   useEffect(() => {
     startPollingMills();

@@ -6,7 +6,6 @@ import { Table } from '@/components/common/Table';
 import { useModal } from '@/hooks/useModal';
 import { DeleteConfirmModal } from '@/components/ui/DeleteConfirmModal';
 import { useAuthStore } from '@/store/authStore';
-import { usePageFocus } from '@/hooks/usePageFocus';
 import { formatNumber } from '@/utils/formatters';
 import { printReceipt } from '@/utils/printReceipt';
 import { printGlobalReport } from '@/utils/printGlobalReport';
@@ -37,7 +36,7 @@ const Moliendas: React.FC = () => {
   const { user } = useAuthStore();
   const pageSize = 10;
 
-  usePageFocus(() => {
+  useEffect(() => {
     fetchMills();
     fetchZones();
     fetchMillingLogs({
@@ -49,7 +48,8 @@ const Moliendas: React.FC = () => {
       endDate: endDate || undefined,
       zone: selectedZone
     });
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetchMillingLogs({

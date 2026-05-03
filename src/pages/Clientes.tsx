@@ -3,7 +3,6 @@ import {
   Users, UserPlus, MessageSquare, CheckCircle, AlertTriangle, Layers
 } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
-import { usePageFocus } from '@/hooks/usePageFocus';
 import { supabase } from '@/lib/supabase';
 import { useModal } from '@/hooks/useModal';
 import { formatNumber } from '@/utils/formatters';
@@ -19,10 +18,12 @@ import { ZoneManagerModal } from '@/components/clientes/ZoneManagerModal';
 const Clientes: React.FC = () => {
   const {
     clients,
+    allClients,
     clientsCount,
     zones,
     clientsLoading: loading,
     fetchClients,
+    fetchAllClients,
     fetchZones,
     addZone,
     updateClient,
@@ -65,27 +66,27 @@ const Clientes: React.FC = () => {
     schema: clientSchema
   });
 
-  // Fetch data on filters/pagination change
+  // Fetch data on filters/pagination change with debounce
   useEffect(() => {
-    fetchClients({
-      page: currentPage,
-      pageSize,
-      search,
-      status: filterStatus,
-      zone: filterZone
-    });
+    const timeoutId = setTimeout(() => {
+      fetchClients({
+        page: currentPage,
+        pageSize,
+        search,
+        status: filterStatus,
+        zone: filterZone
+      });
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
   }, [fetchClients, currentPage, search, filterStatus, filterZone]);
 
-  usePageFocus(() => {
+  // Initial fetch for zones on mount
+  useEffect(() => {
     fetchZones();
-    fetchClients({
-      page: currentPage,
-      pageSize,
-      search,
-      status: filterStatus,
-      zone: filterZone
-    });
-  });
+    fetchAllClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reset page when filters change
   useEffect(() => {
@@ -327,6 +328,7 @@ const Clientes: React.FC = () => {
         filterZone={filterZone}
         setFilterZone={setFilterZone}
         zones={zones}
+        allClients={allClients}
         onClear={handleClearFilters}
       />
 

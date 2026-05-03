@@ -3,6 +3,14 @@ import { supabase } from '@/lib/supabase';
 import { Mill, Client, MillingLog, Zone, MaintenanceLog, MaintenanceUpdateData, MaintenanceRegisterData } from '@/types';
 import { logger } from '@/utils/logger';
 
+// Request ID tracking to prevent race conditions and loading loops on fast navigation
+let fetchMillsId = 0;
+let fetchAllClientsId = 0;
+let fetchClientsId = 0;
+let fetchZonesId = 0;
+let fetchMillingLogsId = 0;
+let fetchMaintenanceLogsId = 0;
+
 interface SupabaseStore {
   mills: Mill[];
   clients: Client[];
@@ -125,6 +133,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   error: null,
 
   fetchMills: async () => {
+    const currentFetchId = ++fetchMillsId;
     set({ millsLoading: true, error: null });
     try {
       // First try to fetch all data without a specific order to avoid crashing if 'name' doesn't exist
@@ -134,6 +143,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         *,
         clients:current_client_id ( name )
       `);
+
+      if (currentFetchId !== fetchMillsId) return; // Ignore stale response
 
       if (error) {
         logger.error('❌ Supabase error in fetchMills:', error);
@@ -169,28 +180,36 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       // Liberar molinos automáticamente si ya terminó su tiempo
       await get().checkAndLiberateMills(normalizedMills);
     } catch (error: any) {
+      if (currentFetchId !== fetchMillsId) return;
       logger.error('❌ Error fetchMills:', error);
       set({ error: error.message });
     } finally {
-      set({ millsLoading: false });
+      if (currentFetchId === fetchMillsId) {
+        set({ millsLoading: false });
+      }
     }
   },
 
   fetchAllClients: async () => {
+    const currentFetchId = ++fetchAllClientsId;
     try {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
         .order('name');
 
+      if (currentFetchId !== fetchAllClientsId) return;
+
       if (error) throw error;
       set({ allClients: data as Client[] });
     } catch (error: any) {
+      if (currentFetchId !== fetchAllClientsId) return;
       logger.error('❌ Error fetchAllClients:', error);
     }
   },
 
   fetchClients: async (options = {}) => {
+    const currentFetchId = ++fetchClientsId;
     const { page = 1, pageSize = 500, search, status, zone } = options;
     set({ clientsLoading: true, error: null });
     try {
@@ -218,17 +237,23 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .order('name')
         .range(from, to);
 
+      if (currentFetchId !== fetchClientsId) return;
+
       if (error) throw error;
       set({ clients: data as Client[], clientsCount: count || 0 });
     } catch (error: any) {
+      if (currentFetchId !== fetchClientsId) return;
       logger.error('❌ Error fetchClients:', error);
       set({ error: error.message });
     } finally {
-      set({ clientsLoading: false });
+      if (currentFetchId === fetchClientsId) {
+        set({ clientsLoading: false });
+      }
     }
   },
 
   fetchZones: async () => {
+    const currentFetchId = ++fetchZonesId;
     set({ zonesLoading: true, error: null });
     try {
       const { data, error } = await supabase
@@ -236,13 +261,18 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .select('*')
         .order('name');
 
+      if (currentFetchId !== fetchZonesId) return;
+
       if (error) throw error;
       set({ zones: data as Zone[] });
     } catch (error: any) {
+      if (currentFetchId !== fetchZonesId) return;
       logger.error('❌ Error fetchZones:', error);
       set({ error: error.message });
     } finally {
-      set({ zonesLoading: false });
+      if (currentFetchId === fetchZonesId) {
+        set({ zonesLoading: false });
+      }
     }
   },
 
@@ -290,6 +320,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       zone = options.zone || '';
     }
 
+    const currentFetchId = ++fetchMillingLogsId;
     set({ logsLoading: true, error: null });
     try {
       // Clean up historical logs before fetching
@@ -345,6 +376,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .order('created_at', { ascending: false })
         .range(from, to);
 
+      if (currentFetchId !== fetchMillingLogsId) return;
+
       if (error) throw error;
 
       // Normalization check: Ensure fields are mapped consistently
@@ -359,14 +392,18 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       set({ millingLogs: normalizedLogs as MillingLog[], logsCount: count || 0 });
     } catch (error: any) {
+      if (currentFetchId !== fetchMillingLogsId) return;
       logger.error('❌ Error fetchMillingLogs:', error);
       set({ error: error.message });
     } finally {
-      set({ logsLoading: false });
+      if (currentFetchId === fetchMillingLogsId) {
+        set({ logsLoading: false });
+      }
     }
   },
 
   fetchMaintenanceLogs: async (options = {}) => {
+    const currentFetchId = ++fetchMaintenanceLogsId;
     const { page = 1, pageSize = 20, search, millId, startDate, endDate, type, status } = options;
     set({ loading: true, error: null });
     try {
@@ -444,6 +481,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         error = retryError;
       }
 
+      if (currentFetchId !== fetchMaintenanceLogsId) return;
+
       if (error) {
         logger.error('❌ Supabase error in fetchMaintenanceLogs:', error);
         throw error;
@@ -468,10 +507,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       set({ maintenanceLogs: normalizedLogs, maintenanceLogsCount: count || normalizedLogs.length });
       logger.log(`✅ store: ${normalizedLogs.length} maintenance logs loaded.`);
     } catch (error: any) {
+      if (currentFetchId !== fetchMaintenanceLogsId) return;
       logger.error('❌ Error fetchMaintenanceLogs:', error);
       set({ error: error.message || 'Error al cargar mantenimientos. ¿Se ejecutó el script SQL?' });
     } finally {
-      set({ loading: false });
+      if (currentFetchId === fetchMaintenanceLogsId) {
+        set({ loading: false });
+      }
     }
   },
 

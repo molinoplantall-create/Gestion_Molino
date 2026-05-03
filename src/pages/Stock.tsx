@@ -31,7 +31,6 @@ import {
 import { useAuthStore } from '../store/authStore';
 import { useSupabaseStore } from '../store/supabaseStore';
 import { useToast } from '../hooks/useToast';
-import { usePageFocus } from '../hooks/usePageFocus';
 import { FormModal } from '../components/ui/FormModal';
 import { DeleteConfirmModal } from '../components/ui/DeleteConfirmModal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -70,7 +69,7 @@ const Stock: React.FC = () => {
       return '---';
     }
   };
-  const { clients, zones, loading, clientsLoading, fetchClients, fetchZones, addClientStock, updateBatchMineralType, deleteStockBatch, fetchClientBatches } = useSupabaseStore();
+  const { clients, zones, loading, clientsLoading, fetchClients, fetchZones, allClients, fetchAllClients, addClientStock, updateBatchMineralType, deleteStockBatch, fetchClientBatches } = useSupabaseStore();
   const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
@@ -143,10 +142,12 @@ const Stock: React.FC = () => {
   });
   const [isUpdatingBatch, setIsUpdatingBatch] = useState(false);
 
-  usePageFocus(() => {
-    fetchClients({ search, pageSize: 100, status: 'all' });
+  // Initial fetch
+  useEffect(() => {
     fetchZones();
-  });
+    fetchAllClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch clients when search changes
   useEffect(() => {
@@ -552,11 +553,17 @@ const Stock: React.FC = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500" size={18} />
               <input
                 type="text"
+                list="clientes-datalist"
                 placeholder="Buscar cliente..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none shadow-sm"
               />
+              <datalist id="clientes-datalist">
+                {allClients.map(c => (
+                  <option key={c.id} value={c.name} />
+                ))}
+              </datalist>
             </div>
           </div>
 
@@ -712,7 +719,7 @@ const Stock: React.FC = () => {
                   {expandedClient === client.id && (
                     <tr className="bg-slate-50 border-x-4 border-l-indigo-500 border-r-transparent">
                       <td colSpan={8} className="p-0">
-                        <div className="px-4 sm:px-8 py-8 sticky left-0 w-[calc(100vw-32px)] lg:w-full lg:static box-border">
+                        <div className="px-4 sm:px-8 py-8 sticky left-0 w-[calc(100vw-32px)] md:w-full lg:static box-border">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                           <div>
                             <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Historial de Ingresos Consolidados</h4>

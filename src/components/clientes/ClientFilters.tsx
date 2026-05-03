@@ -9,6 +9,8 @@ interface ClientFiltersProps {
     filterZone: string;
     setFilterZone: (value: string) => void;
     zones: Array<{ id: string; name: string }>;
+    zones: Array<{ id: string; name: string }>;
+    allClients: Array<{ id: string; name: string }>;
     onClear: () => void;
 }
 
@@ -20,6 +22,7 @@ export const ClientFilters: React.FC<ClientFiltersProps> = ({
     filterZone,
     setFilterZone,
     zones,
+    allClients,
     onClear
 }) => {
     return (
@@ -30,11 +33,17 @@ export const ClientFilters: React.FC<ClientFiltersProps> = ({
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                     <input
                         type="text"
+                        list="clientes-datalist-filters"
                         placeholder="Buscar por cliente o contacto..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
+                    <datalist id="clientes-datalist-filters">
+                        {allClients?.map(c => (
+                            <option key={c.id} value={c.name} />
+                        ))}
+                    </datalist>
                 </div>
 
                 {/* Filtro por estado */}

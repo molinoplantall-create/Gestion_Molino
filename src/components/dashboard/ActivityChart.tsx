@@ -19,7 +19,7 @@ type ViewMode = 'semana' | 'mes' | 'anio';
 const COLORS = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd'];
 
 const ActivityChart: React.FC = () => {
-  const { millingLogs, clients, zones } = useSupabaseStore();
+  const { millingLogs, clients, zones, allClients } = useSupabaseStore();
 
   // Filters
   const [viewMode, setViewMode] = useState<ViewMode>('semana');

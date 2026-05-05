@@ -215,9 +215,9 @@ const ActivityChart: React.FC = () => {
           <p className="text-xs text-slate-500 font-medium">Comparativa de ingresos y producción</p>
         </div>
 
-        <div className="flex flex-wrap gap-2 items-center justify-center md:justify-end">
+        <div className="flex flex-wrap gap-1.5 items-center justify-center md:justify-end">
           {/* Vista: Semana / Mes / Año */}
-          <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+          <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 shadow-inner">
             {([
               { key: 'semana', label: '7 Días' },
               { key: 'mes', label: 'Mes' },
@@ -226,7 +226,7 @@ const ActivityChart: React.FC = () => {
               <button
                 key={v.key}
                 onClick={() => setViewMode(v.key)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${viewMode === v.key
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all ${viewMode === v.key
                   ? 'bg-white text-indigo-600 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
                   }`}
@@ -236,12 +236,12 @@ const ActivityChart: React.FC = () => {
             ))}
           </div>
 
-          {/* Year selector (mes + año) - AHORA EN LA PRIMERA LINEA */}
+          {/* Year selector (mes + año) */}
           {(viewMode === 'mes' || viewMode === 'anio') && (
             <select
               value={selectedYear}
               onChange={e => setSelectedYear(Number(e.target.value))}
-              className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-sm"
+              className="px-2 py-1 sm:py-1.5 border border-slate-200 rounded-lg text-[10px] sm:text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-sm"
             >
               {availableYears.map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -251,16 +251,16 @@ const ActivityChart: React.FC = () => {
         </div>
       </div>
 
-      {/* Filtros Secundarios: Clientes y Zonas */}
-      <div className="flex flex-wrap gap-3 items-center bg-slate-50/50 p-3 sm:p-4 rounded-2xl border border-slate-100">
+      {/* Filtros Secundarios: Clientes y Zonas en UNA SOLA LÍNEA */}
+      <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-center bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
         {/* Mes selector (solo si viewMode = mes) */}
         {viewMode === 'mes' && (
-          <div className="flex items-center gap-2">
-            <Calendar size={14} className="text-slate-400" />
+          <div className="flex items-center gap-1.5 col-span-2 md:col-span-3">
+            <Calendar size={12} className="text-slate-400 shrink-0" />
             <select
               value={selectedMonth}
               onChange={e => setSelectedMonth(Number(e.target.value))}
-              className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none min-w-[110px]"
+              className="w-full px-1.5 py-1 border border-slate-200 rounded-lg text-[10px] font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             >
               {MONTH_NAMES.map((name, i) => (
                 <option key={i} value={i}>{name}</option>
@@ -270,12 +270,12 @@ const ActivityChart: React.FC = () => {
         )}
 
         {/* Cliente */}
-        <div className="flex items-center gap-2 flex-1 min-w-[150px]">
-          <Users size={14} className="text-slate-400" />
+        <div className={`flex items-center gap-1.5 ${viewMode === 'mes' ? 'col-span-1 md:col-span-5' : 'col-span-1 md:col-span-6'}`}>
+          <Users size={12} className="text-slate-400 shrink-0" />
           <select
             value={selectedClient}
             onChange={e => setSelectedClient(e.target.value)}
-            className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            className="w-full px-1.5 py-1 border border-slate-200 rounded-lg text-[10px] font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none truncate"
           >
             <option value="all">Todos los clientes</option>
             {clients.filter(c => c.is_active !== false).map(c => (
@@ -285,12 +285,12 @@ const ActivityChart: React.FC = () => {
         </div>
 
         {/* Zona */}
-        <div className="flex items-center gap-2 flex-1 min-w-[150px]">
-          <Map size={14} className="text-slate-400" />
+        <div className={`flex items-center gap-1.5 ${viewMode === 'mes' ? 'col-span-1 md:col-span-4' : 'col-span-1 md:col-span-6'}`}>
+          <Map size={12} className="text-slate-400 shrink-0" />
           <select
             value={selectedZone}
             onChange={e => setSelectedZone(e.target.value)}
-            className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            className="w-full px-1.5 py-1 border border-slate-200 rounded-lg text-[10px] font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none truncate"
           >
             <option value="all">Todas las zonas</option>
             {zones.map(z => (
@@ -300,22 +300,22 @@ const ActivityChart: React.FC = () => {
         </div>
       </div>
 
-      {/* Mini Stats */}
-      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs items-center bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100">
+      {/* Mini Stats - Colores alineados con el gráfico */}
+      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100">
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-indigo-500" />
-          <span className="text-slate-500">Total:</span>
-          <span className="font-black text-slate-800">{totalSacos.toLocaleString()} <span className="hidden sm:inline">sacos</span></span>
+          <span className="text-slate-500 font-bold">Producción:</span>
+          <span className="font-black text-indigo-600">{totalSacos.toLocaleString()} <span className="hidden sm:inline">sacos</span></span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-slate-500">Ingresos:</span>
-          <span className="font-black text-slate-800">{chartData.reduce((sum, d) => sum + d.ingresos, 0).toLocaleString()} <span className="hidden sm:inline">sacos</span></span>
+          <span className="text-slate-500 font-bold">Ingresos:</span>
+          <span className="font-black text-emerald-600">{chartData.reduce((sum, d) => sum + d.ingresos, 0).toLocaleString()} <span className="hidden sm:inline">sacos</span></span>
         </div>
         <div className="flex items-center gap-1.5 group relative ml-auto">
           <Info size={14} className="text-indigo-400 cursor-help" />
           <span className="text-[10px] sm:text-xs text-slate-400 italic">Nota</span>
-          <div className="absolute bottom-full right-0 sm:left-auto sm:right-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl border border-slate-700">
+          <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl border border-slate-700">
             <p className="font-bold mb-1 text-indigo-300">¿Por qué los totales no coinciden con el Stock?</p>
             Este gráfico muestra el <strong>flujo del periodo</strong>. El <strong>Stock Total</strong> incluye el saldo acumulado anterior.
           </div>

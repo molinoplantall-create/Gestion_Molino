@@ -12,7 +12,7 @@ import {
   startOfYear, endOfYear, subMonths
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, Users, Map, Filter, BarChart3, Info } from 'lucide-react';
+import { Calendar, Users, Map, Filter, BarChart3, Info, ArrowRightLeft, X, TrendingUp, History } from 'lucide-react';
 
 type ViewMode = 'semana' | 'mes' | 'anio';
 
@@ -189,9 +189,60 @@ const ActivityChart: React.FC = () => {
   }, [filteredLogs, filteredInputs, viewMode, selectedMonth, selectedYear]);
 
   // Stats summary
+  const [showTraceability, setShowTraceability] = useState(false);
+  
+  // Calculate Lag/Traceability for the selected month/year
+  const lagAnalysis = useMemo(() => {
+    if (viewMode !== 'mes' && viewMode !== 'anio') return [];
+    
+    const clientSummary: Record<string, { 
+      id: string, 
+      name: string, 
+      ingresos: number, 
+      produccion: number, 
+      rezago: number,
+      pendienteAnterior: number 
+    }> = {};
+
+    // Grouping logic
+    const periodStart = viewMode === 'mes' 
+      ? startOfMonth(new Date(selectedYear, selectedMonth))
+      : startOfYear(new Date(selectedYear, 0));
+    
+    const periodEnd = viewMode === 'mes'
+      ? endOfMonth(periodStart)
+      : endOfYear(periodStart);
+
+    allClients.forEach(c => {
+      clientSummary[c.id] = { id: c.id, name: c.name, ingresos: 0, produccion: 0, rezago: 0, pendienteAnterior: 0 };
+    });
+
+    // 1. Calc current period stats
+    filteredLogs.forEach(log => {
+      const d = parseISO(log.created_at);
+      if (d >= periodStart && d <= periodEnd) {
+        if (clientSummary[log.client_id]) clientSummary[log.client_id].produccion += (log.total_sacks || 0);
+      }
+    });
+
+    filteredInputs.forEach(input => {
+      const d = parseISO(input.created_at);
+      if (d >= periodStart && d <= periodEnd) {
+        if (clientSummary[input.client_id]) clientSummary[input.client_id].ingresos += (input.initial_quantity || 0);
+      } else if (d < periodStart) {
+        // Mineral entered before period that might still be pending
+        if (clientSummary[input.client_id]) clientSummary[input.client_id].pendienteAnterior += (input.remaining_quantity || 0);
+      }
+    });
+
+    return Object.values(clientSummary)
+      .map(s => ({ ...s, rezago: s.produccion - s.ingresos }))
+      .filter(s => s.produccion > 0 || s.ingresos > 0)
+      .sort((a, b) => b.rezago - a.rezago);
+  }, [allClients, filteredLogs, filteredInputs, viewMode, selectedMonth, selectedYear]);
+
   const totalSacos = chartData.reduce((sum, d) => sum + d.sacos, 0);
-  const maxDay = chartData.reduce((max, d) => d.sacos > max.sacos ? d : max, { label: '-', sacos: 0 });
-  const avgSacos = chartData.length > 0 ? Math.round(totalSacos / chartData.filter(d => d.sacos > 0).length || 1) : 0;
+  const totalIngresos = chartData.reduce((sum, d) => sum + d.ingresos, 0);
 
   const MONTH_NAMES = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -208,6 +259,92 @@ const ActivityChart: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Traceability Modal */}
+      {showTraceability && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowTraceability(false)}>
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-600">
+                  <ArrowRightLeft size={24} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">Análisis de Trazabilidad</h3>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                    {viewMode === 'mes' ? `${MONTH_NAMES[selectedMonth]} ${selectedYear}` : `Año ${selectedYear}`}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowTraceability(false)} className="p-2 hover:bg-white rounded-xl transition-all shadow-sm">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-6">
+                <div className="flex gap-3">
+                  <Info className="text-amber-500 shrink-0" size={18} />
+                  <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                    Este análisis identifica moliendas que corresponden a mineral ingresado en meses anteriores. 
+                    Un <span className="font-black">Rezago Positivo</span> indica que el cliente procesó más de lo que trajo este mes (molió stock antiguo).
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {lagAnalysis.map((item, idx) => (
+                  <div key={item.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all group">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[10px] font-black text-slate-400 border border-slate-100">
+                          {idx + 1}
+                        </div>
+                        <span className="font-black text-slate-900">{item.name}</span>
+                      </div>
+                      {item.rezago > 0 ? (
+                        <span className="flex items-center text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">
+                          <TrendingUp size={12} className="mr-1" /> Rezago Positivo
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Ingresos</span>
+                        <span className="text-xs font-black text-emerald-600">+{item.ingresos}</span>
+                      </div>
+                      <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Molienda</span>
+                        <span className="text-xs font-black text-indigo-600">-{item.produccion}</span>
+                      </div>
+                      <div className={`p-2.5 rounded-xl border ${item.rezago > 0 ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-100 border-slate-200'}`}>
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Diferencia</span>
+                        <span className={`text-xs font-black ${item.rezago > 0 ? 'text-indigo-700' : 'text-slate-600'}`}>
+                          {item.rezago > 0 ? `+${item.rezago}` : item.rezago}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {item.pendienteAnterior > 0 && item.rezago > 0 && (
+                      <div className="mt-3 flex items-center gap-2 text-[10px] font-bold text-slate-400 italic">
+                        <History size={12} />
+                        Tenía {item.pendienteAnterior} sacos pendientes de meses anteriores.
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 text-center">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                Sistema de Trazabilidad Planta Saramarca II
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header con Título y Filtros de Tiempo */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="text-center md:text-left">
@@ -310,14 +447,28 @@ const ActivityChart: React.FC = () => {
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
           <span className="text-slate-500 font-bold">Ingresos:</span>
-          <span className="font-black text-emerald-600">{chartData.reduce((sum, d) => sum + d.ingresos, 0).toLocaleString()} <span className="hidden sm:inline">sacos</span></span>
+          <span className="font-black text-emerald-600">{totalIngresos.toLocaleString()} <span className="hidden sm:inline">sacos</span></span>
         </div>
-        <div className="flex items-center gap-1.5 group relative ml-auto">
-          <Info size={14} className="text-indigo-400 cursor-help" />
-          <span className="text-[10px] sm:text-xs text-slate-400 italic">Nota</span>
-          <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl border border-slate-700">
-            <p className="font-bold mb-1 text-indigo-300">¿Por qué los totales no coinciden con el Stock?</p>
-            Este gráfico muestra el <strong>flujo del periodo</strong>. El <strong>Stock Total</strong> incluye el saldo acumulado anterior.
+        
+        <div className="flex items-center gap-2 ml-auto">
+          {/* BOTÓN DE TRAZABILIDAD */}
+          {(viewMode === 'mes' || viewMode === 'anio') && (
+            <button 
+              onClick={() => setShowTraceability(true)}
+              className="flex items-center gap-1.5 px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-all text-[10px] font-black uppercase tracking-wider shadow-sm"
+            >
+              <ArrowRightLeft size={12} strokeWidth={3} />
+              Trazabilidad
+            </button>
+          )}
+
+          <div className="flex items-center gap-1.5 group relative">
+            <Info size={14} className="text-indigo-400 cursor-help" />
+            <span className="text-[10px] sm:text-xs text-slate-400 italic">Nota</span>
+            <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-800 text-white text-[10px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl border border-slate-700">
+              <p className="font-bold mb-1 text-indigo-300">¿Por qué los totales no coinciden con el Stock?</p>
+              Este gráfico muestra el <strong>flujo del periodo</strong>. El <strong>Stock Total</strong> incluye el saldo acumulado anterior.
+            </div>
           </div>
         </div>
       </div>
@@ -341,11 +492,24 @@ const ActivityChart: React.FC = () => {
               <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
               <Tooltip
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
-                formatter={(value: number, name: string) => [
-                  `${value.toLocaleString()} sacos`, 
-                  name === 'sacos' ? 'Producción' : 'Ingreso'
-                ]}
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-white p-3 border-none shadow-2xl rounded-2xl">
+                        <p className="text-[10px] font-black text-slate-400 uppercase mb-2 border-b border-slate-50 pb-1">{label}</p>
+                        {payload.map((entry: any) => (
+                          <div key={entry.name} className="flex items-center justify-between gap-4 py-0.5">
+                            <span className={`text-xs font-black ${entry.name === 'sacos' ? 'text-indigo-600' : 'text-emerald-600'}`}>
+                              {entry.name === 'sacos' ? 'Producción' : 'Ingreso'}:
+                            </span>
+                            <span className="text-xs font-black text-slate-900">{entry.value.toLocaleString()} sacos</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
               />
               <Area type="monotone" dataKey="sacos" name="sacos" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSacos)" animationDuration={1200} />
               <Area type="monotone" dataKey="ingresos" name="ingresos" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIngresos)" animationDuration={1200} />
@@ -356,11 +520,24 @@ const ActivityChart: React.FC = () => {
               <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
               <Tooltip
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
-                formatter={(value: number, name: string) => [
-                  `${value.toLocaleString()} sacos`, 
-                  name === 'sacos' ? 'Producción' : 'Ingreso'
-                ]}
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-white p-3 border-none shadow-2xl rounded-2xl">
+                        <p className="text-[10px] font-black text-slate-400 uppercase mb-2 border-b border-slate-50 pb-1">{label}</p>
+                        {payload.map((entry: any) => (
+                          <div key={entry.name} className="flex items-center justify-between gap-4 py-0.5">
+                            <span className={`text-xs font-black ${entry.name === 'sacos' ? 'text-indigo-600' : 'text-emerald-600'}`}>
+                              {entry.name === 'sacos' ? 'Producción' : 'Ingreso'}:
+                            </span>
+                            <span className="text-xs font-black text-slate-900">{entry.value.toLocaleString()} sacos</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
               />
               <Bar dataKey="sacos" name="sacos" radius={[6, 6, 0, 0]} barSize={viewMode === 'anio' ? 28 : (chartData.length > 20 ? 12 : 20)}>
                 {chartData.map((entry, index) => (

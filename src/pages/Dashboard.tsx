@@ -500,18 +500,18 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
 
-        {/* ROW 2: Charts (Actividad + Tendencia) */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* ROW 2: Intelligence - Row 1 */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Actividad Reciente */}
-          <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm overflow-hidden">
-            <div className="w-full"><ActivityChart /></div>
+          <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[500px]">
+            <div className="w-full flex-1"><ActivityChart /></div>
           </div>
 
           {/* Tendencia Evolutiva */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <h3 className="text-base sm:text-xl font-black text-slate-900 mb-2 tracking-tight text-center sm:text-left">Tendencia Evolutiva</h3>
-            <p className="text-xs text-slate-500 font-medium text-center sm:text-left mb-6">Crecimiento mensual acumulado ({comparisonYear})</p>
-            <div className="h-80 w-full">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[500px]">
+            <h3 className="text-base sm:text-xl font-black text-slate-900 mb-2 tracking-tight">Tendencia Evolutiva</h3>
+            <p className="text-xs text-slate-500 font-medium mb-6">Crecimiento mensual acumulado ({comparisonYear})</p>
+            <div className="flex-1 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={intelligence.monthlyProd}>
                   <defs>
@@ -532,59 +532,52 @@ const Dashboard: React.FC = () => {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
 
-        {/* ROW 3: Comparativa de Clientes y Stock Actual */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Comparativa (60% width on LG) */}
-          <div className="lg:col-span-7 xl:col-span-8 bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
+          {/* Comparativa de Producción */}
+          <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[500px]">
+            <div className="flex flex-col gap-4 mb-6">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Users size={18} className="text-indigo-500" />
-                  <h2 className="text-base sm:text-xl font-black text-slate-900">Comparativa de Producción</h2>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900">Comparativa de Producción</h2>
                 </div>
-                <p className="text-xs text-slate-500 font-medium">Volumen procesado por cliente en el periodo</p>
+                <p className="text-[10px] text-slate-500 font-medium">Volumen por cliente en el periodo</p>
               </div>
               
-              <div className="flex flex-wrap gap-2 items-center bg-slate-50 p-2 rounded-2xl border border-slate-100">
-                {/* Selector de Modo */}
+              <div className="flex flex-wrap gap-2 items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
                 <div className="flex bg-white p-0.5 rounded-lg border border-slate-200 shadow-sm">
                   <button 
                     onClick={() => setComparisonMode('mes')}
-                    className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${comparisonMode === 'mes' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-md transition-all ${comparisonMode === 'mes' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
                   >
                     Mes
                   </button>
                   <button 
                     onClick={() => setComparisonMode('anio')}
-                    className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${comparisonMode === 'anio' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-md transition-all ${comparisonMode === 'anio' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
                   >
                     Año
                   </button>
                 </div>
 
-                {/* Selector de Mes (solo si modo mes) */}
                 {comparisonMode === 'mes' && (
                   <select 
                     value={comparisonMonth}
                     onChange={e => setComparisonMonth(Number(e.target.value))}
-                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-700 outline-none"
                   >
                     {MONTH_NAMES.map((name, i) => {
-                      // Si el año seleccionado es el actual, deshabilitar meses futuros
                       const isFuture = comparisonYear === now.getFullYear() && i > now.getMonth();
                       if (isFuture) return null;
-                      return <option key={i} value={i}>{name}</option>;
+                      return <option key={i} value={i}>{name.slice(0, 3)}</option>;
                     }).filter(Boolean)}
                   </select>
                 )}
 
-                {/* Selector de Año */}
                 <select 
                   value={comparisonYear}
                   onChange={e => setComparisonYear(Number(e.target.value))}
-                  className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-700 outline-none"
                 >
                   {intelligence.availableYears.map(y => (
                     <option key={y} value={y}>{y}</option>
@@ -593,59 +586,57 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
             
-            <div className="h-[400px] w-full relative flex-1">
+            <div className="flex-1 relative">
               {useSupabaseStore.getState().logsLoading ? (
                 <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-4"></div>
-                    <p className="text-xs font-bold text-slate-500">Cargando producción...</p>
-                  </div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                 </div>
               ) : null}
               <ClientComparisonChart data={intelligence.clientMonthlyProd} />
             </div>
           </div>
-
-          {/* Stock por Cliente (40% width on LG) */}
-          <div className="lg:col-span-5 xl:col-span-4 h-[600px] lg:h-auto">
-             <ClientStockPanel clients={allClients} loading={useSupabaseStore.getState().clientsLoading && allClients.length === 0} />
-          </div>
         </div>
 
-        {/* ROW 4: Estado de Planta */}
-        <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-10 -top-10 opacity-[0.02] group-hover:scale-110 transition-transform duration-500 pointer-events-none">
-             <Factory size={250} strokeWidth={1.5} className="text-indigo-600" />
-          </div>
-          <div className="relative z-10">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-              <h2 className="text-base sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight text-center sm:text-left">Estado de Planta</h2>
-              <button onClick={() => navigate('/registro-molienda')} className="flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
-                <Plus size={16} className="mr-2" /> Nueva Molienda
-              </button>
+        {/* ROW 3: Intelligence - Row 2 */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* Volumen por Zona */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[450px]">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight">Volumen por Zona</h3>
+              <MapPin className="text-slate-400" size={20} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {mills.map((mill) => <MillCard key={mill.id} mill={mill} />)}
-            </div>
-          </div>
-        </div>
+            <p className="text-xs text-slate-500 font-medium mb-6">Rendimiento por ubicación</p>
 
-        {/* ROW 4: Carga, Composición, Top Clientes */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              {intelligence.chartZoneData.slice(0, 10).map((z, i) => (
+                <div key={z.name} className="flex items-center gap-4">
+                  <div className="w-20 flex-shrink-0 text-[10px] font-black text-slate-600 truncate uppercase tracking-tighter">{z.name}</div>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-indigo-600 rounded-full" 
+                      style={{ width: `${Math.max(10, (z.value / (intelligence.chartZoneData[0]?.value || 1)) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="w-10 text-right text-[10px] font-black text-slate-900">{formatNumber(z.value)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Carga por Molino */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2 text-center sm:text-left">Carga por Molino</h3>
-            <p className="text-xs text-slate-500 font-medium mb-6 text-center sm:text-left">Distribución de producción</p>
-            <div className="h-[250px] w-full">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[450px]">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2">Carga por Molino</h3>
+            <p className="text-xs text-slate-500 font-medium mb-6">Distribución de producción</p>
+            <div className="flex-1 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={intelligence.millStats} margin={{ top: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 900 }} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10, fontWeight: 900 }} />
                   <YAxis hide />
                   <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} formatter={(value) => formatNumber(value as number)} />
-                  <Bar dataKey="total" radius={[6, 6, 0, 0]} barSize={40} animationDuration={1500} className="hover:opacity-80 transition-opacity cursor-pointer">
+                  <Bar dataKey="total" radius={[6, 6, 0, 0]} barSize={30} animationDuration={1500}>
                     {intelligence.millStats.map((_, index) => (
-                      <Cell key={index} fill="#3b82f6" />
+                      <Cell key={index} fill="#4f46e5" />
                     ))}
                   </Bar>
                 </BarChart>
@@ -654,16 +645,16 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Composición Mineral */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2 text-center sm:text-left">Composición de Mineral</h3>
-            <p className="text-xs text-slate-500 font-medium mb-6 text-center sm:text-left">Distribución por tipo</p>
-            <div className="h-[250px]">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[450px]">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2">Composición de Mineral</h3>
+            <p className="text-xs text-slate-500 font-medium mb-6">Distribución por tipo</p>
+            <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie 
                     data={intelligence.mineralData} 
                     cx="50%" cy="50%" 
-                    innerRadius={60} outerRadius={90} 
+                    innerRadius={50} outerRadius={80} 
                     paddingAngle={5} dataKey="value"
                   >
                     {intelligence.mineralData.map((entry, i) => (
@@ -671,27 +662,44 @@ const Dashboard: React.FC = () => {
                     ))}
                   </Pie>
                   <Tooltip contentStyle={{ borderRadius: '15px', border: 'none', fontWeight: 900 }} />
-                  <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ paddingTop: '20px', fontWeight: 700, fontSize: '11px' }} />
+                  <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ paddingTop: '10px', fontWeight: 700, fontSize: '10px' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </div>
+        </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2 text-center sm:text-left">Top 5 Clientes</h3>
-            <p className="text-xs text-slate-500 font-medium mb-6 text-center sm:text-left">Ranking por balance actual</p>
-            <div className="space-y-4">
+        {/* ROW 4: Intelligence - Row 3 */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* Stock Listo para Molienda */}
+          <div className="h-[500px]">
+             <ClientStockPanel clients={allClients} loading={useSupabaseStore.getState().clientsLoading && allClients.length === 0} />
+          </div>
+
+          {/* Últimas Moliendas */}
+          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col h-[500px]">
+            <h2 className="text-base sm:text-xl font-black text-slate-900 mb-6">Últimas Moliendas</h2>
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <RecentSessions sessions={millingLogs.slice(0, 5)} mills={mills} />
+            </div>
+          </div>
+
+          {/* Top 5 Clientes */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[500px]">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2">Top 5 Clientes</h3>
+            <p className="text-xs text-slate-500 font-medium mb-6">Ranking por producción acumulada</p>
+            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
               {intelligence.topClients.slice(0, 5).map((client, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                  <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-black shadow-sm">
+                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-black">
                       {idx + 1}
                     </div>
-                    <span className="text-sm font-black text-slate-900">{client.name}</span>
+                    <span className="text-xs font-black text-slate-900">{client.name}</span>
                   </div>
                   <div className="text-right">
-                    <span className="block text-sm font-black text-slate-900">{formatNumber(client.total)}</span>
-                    <span className="block text-[10px] font-bold text-emerald-600">+{formatNumber(client.stockActual)}</span>
+                    <span className="block text-xs font-black text-slate-900">{formatNumber(client.total)}</span>
+                    <span className="block text-[9px] font-bold text-emerald-600">Stock: {formatNumber(client.stockActual)}</span>
                   </div>
                 </div>
               ))}
@@ -699,33 +707,20 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ROW 5: Últimas Moliendas, Volumen por Zona */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-            <h2 className="text-base sm:text-xl font-black text-slate-900 mb-6 text-center lg:text-left">Últimas Moliendas</h2>
-            <RecentSessions sessions={millingLogs.slice(0, 4)} mills={mills} />
+        {/* ROW 5: Estado de Planta (Mills) */}
+        <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute -right-10 -top-10 opacity-[0.02] group-hover:scale-110 transition-transform duration-500 pointer-events-none">
+             <Factory size={250} strokeWidth={1.5} className="text-indigo-600" />
           </div>
-
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight text-center sm:text-left">Volumen por Zona</h3>
-              <MapPin className="text-slate-400" size={20} />
+          <div className="relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+              <h2 className="text-base sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight">Estado de Planta</h2>
+              <button onClick={() => navigate('/registro-molienda')} className="flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
+                <Plus size={16} className="mr-2" /> Nueva Molienda
+              </button>
             </div>
-            <p className="text-xs text-slate-500 font-medium text-center sm:text-left mb-6">Rendimiento por ubicación</p>
-
-            <div className="space-y-4">
-              {intelligence.chartZoneData.slice(0, 6).map((z, i) => (
-                <div key={z.name} className="flex items-center gap-4">
-                  <div className="w-24 flex-shrink-0 text-xs font-bold text-slate-700 truncate">{z.name}</div>
-                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-600 rounded-full" 
-                      style={{ width: `${Math.max(10, (z.value / intelligence.chartZoneData[0].value) * 100)}%` }}
-                    ></div>
-                  </div>
-                  <div className="w-12 text-right text-xs font-black text-slate-900">{formatNumber(z.value)}</div>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {mills.map((mill) => <MillCard key={mill.id} mill={mill} />)}
             </div>
           </div>
         </div>

@@ -18,6 +18,12 @@ const Layout = () => {
 
   useEffect(() => {
     if (error) {
+      // Filter out harmless AbortError related to Supabase multi-tab lock synchronization
+      if (error.includes('Lock broken by another request') || error.includes('steal option')) {
+        useSupabaseStore.setState({ error: null });
+        return;
+      }
+      
       toast.error('Error de Conexión', error);
       useSupabaseStore.setState({ error: null });
     }

@@ -49,7 +49,8 @@ const Dashboard: React.FC = () => {
     fetchAllClients,
     fetchZones,
     fetchMillingLogs,
-    recalcAllClientsStock
+    recalcAllClientsStock,
+    resetLoadingStates
   } = useSupabaseStore();
 
   const [showSinZonaModal, setShowSinZonaModal] = useState(false);
@@ -58,7 +59,7 @@ const Dashboard: React.FC = () => {
   const [comparisonMode, setComparisonMode] = useState<'mes' | 'anio'>('mes');
   const [showRetry, setShowRetry] = useState(false);
 
-  // Timeout de seguridad: si pasa más de 12 segundos en loading
+  // Timeout de seguridad: si pasa más de 12 segundos en loading → mostrar botón Reintentar
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (millsLoading) {
@@ -67,9 +68,20 @@ const Dashboard: React.FC = () => {
       }
     }, 12000);
 
-    return () => {
-      clearTimeout(timeout);
-    };
+    return () => clearTimeout(timeout);
+  }, [millsLoading]);
+
+  // Force-reset de emergencia: si mills sigue cargando a los 8s, resetear y reintentar
+  useEffect(() => {
+    const forceReset = setTimeout(() => {
+      if (millsLoading) {
+        console.warn("🔄 Forzando reset de loading states");
+        resetLoadingStates();
+        fetchMills();
+      }
+    }, 8000);
+
+    return () => clearTimeout(forceReset);
   }, [millsLoading]);
 
   // InitFetch: Garantizar carga de Supabase al montar la vista

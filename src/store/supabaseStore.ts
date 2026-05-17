@@ -241,8 +241,6 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const currentFetchId = ++fetchClientsId;
     const { page = 1, pageSize = 500, search, status, zone } = options;
     set({ clientsLoading: true, error: null });
-
-    if (get().clientsLoading) return; // Evitar llamadas simultáneas
     const timeoutId = setTimeout(() => {
       if (currentFetchId === fetchClientsId && get().clientsLoading) {
         set({ clientsLoading: false });
@@ -295,8 +293,6 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   fetchZones: async () => {
     const currentFetchId = ++fetchZonesId;
     set({ zonesLoading: true, error: null });
-
-    if (get().zonesLoading) return; // Evitar llamadas simultáneas
     const timeoutId = setTimeout(() => {
       if (currentFetchId === fetchZonesId && get().zonesLoading) {
         set({ zonesLoading: false });
@@ -374,7 +370,6 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const currentFetchId = ++fetchMillingLogsId;
     set({ logsLoading: true, error: null });
 
-    if (get().logsLoading) return; // Evitar llamadas simultáneas
     const timeoutId = setTimeout(() => {
       if (currentFetchId === fetchMillingLogsId && get().logsLoading) {
         set({ logsLoading: false });
@@ -469,7 +464,6 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const { page = 1, pageSize = 20, search, millId, startDate, endDate, type, status } = options;
     set({ loading: true, error: null });
 
-    if (get().loading) return; // Evitar llamadas simultáneas
     const timeoutId = setTimeout(() => {
       if (currentFetchId === fetchMaintenanceLogsId && get().loading) {
         set({ loading: false });

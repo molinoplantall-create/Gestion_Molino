@@ -406,10 +406,14 @@ const Dashboard: React.FC = () => {
               onClick={() => {
                 setShowRetry(false);
                 fetchMills();
+                fetchAllClients();
+                fetchClients();
+                fetchZones();
+                fetchMillingLogs({ pageSize: 1000 });
               }}
-              className="mt-6 px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2 mx-auto"
+              className="mt-6 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2 mx-auto"
             >
-              <Zap size={16} /> Reintentar Conexión
+              <Zap size={16} /> Reintentar Carga
             </button>
           )}
         </div>

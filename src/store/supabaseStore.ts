@@ -158,14 +158,15 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const currentFetchId = ++fetchMillsId;
     set({ millsLoading: true, error: null });
 
-    if (get().millsLoading) return; // Evitar llamadas simultáneas
     const timeoutId = setTimeout(() => {
       if (currentFetchId === fetchMillsId && get().millsLoading) {
-        set({ millsLoading: false }); // Quitar error para no mostrar alertas rojas agresivas
-        logger.warn('⚠️ Timeout en fetchMills. Reintentando de forma silenciosa...');
-        setTimeout(() => get().fetchMills(), 1000); // Retry suave 
+        set({ 
+          millsLoading: false, 
+          error: 'Tiempo de espera agotado al cargar molinos. Presiona Reintentar.' 
+        });
+        logger.warn('⚠️ Timeout en fetchMills');
       }
-    }, 25000); // Aumentado a 25s
+    }, 20000);
 
     try {
       const { data, error } = await supabase
@@ -176,19 +177,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         `)
         .order('name');
 
-      if (currentFetchId !== fetchMillsId) return; // Ignorar respuestas viejas
+      if (currentFetchId !== fetchMillsId) return;
 
       if (error) {
-        logger.error('❌ Supabase error in fetchMills:', error);
+        logger.error('❌ Supabase error fetchMills:', error);
         throw error;
       }
 
-      if (!data) {
-        set({ mills: [] });
-        return;
-      }
-
-      const normalizedMills = (data as any[]).map(m => ({
+      const normalizedMills = (data || []).map(m => ({
         ...m,
         name: m.name || `Molino ${m.id}`,
         status: (m.status || 'LIBRE').toUpperCase(),
@@ -198,18 +194,23 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         sacks_processing: m.sacks_processing || 0,
         current_client: m.clients?.name || null,
         current_client_id: m.current_client_id || null,
-        current_mineral: m.current_mineral || null
+        current_mineral: m.current_mineral || null,
+        last_oil_change: m.last_oil_change || m.ultimo_cambio_aceite
       })) as Mill[];
 
       set({ mills: normalizedMills });
-      logger.log(`✅ Mills cargados: ${normalizedMills.length}`);
+      logger.log(`✅ Mills cargados correctamente: ${normalizedMills.length}`);
 
       await get().checkAndLiberateMills(normalizedMills);
       get().checkOilChangeNotifications(normalizedMills);
+
     } catch (error: any) {
       if (currentFetchId !== fetchMillsId) return;
       logger.error('❌ Error fetchMills:', error);
-      set({ error: 'Error al cargar molinos. Verifique su conexión a internet.' });
+      set({ 
+        error: 'Error al cargar molinos. Verifique su conexión y presione Reintentar.',
+        mills: [] 
+      });
     } finally {
       if (currentFetchId === fetchMillsId) {
         set({ millsLoading: false });

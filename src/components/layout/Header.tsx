@@ -146,27 +146,34 @@ const Header: React.FC = () => {
                             onClick={() => {
                               markNotificationAsRead(notif.id);
                               setShowNotifications(false);
-                              if (notif.tipo === 'MANTENIMIENTO' || notif.titulo?.includes('Mantenimiento') || notif.mensaje?.includes('requiere')) {
+
+                              // Navegación inteligente según el tipo
+                              if (notif.tipo === 'MANTENIMIENTO' || notif.mensaje?.toLowerCase().includes('mantenimiento') || notif.mensaje?.toLowerCase().includes('aceite')) {
                                 navigate('/mantenimiento');
+                              } else if (notif.tipo === 'STOCK') {
+                                navigate('/clientes');
+                              } else if (notif.tipo === 'MOLIENDA') {
+                                navigate('/dashboard');
                               }
                             }}
-                            className={`p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer relative ${!notif.leida ? 'bg-indigo-50/30' : ''}`}
+                            className={`p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer relative ${!notif.leida ? 'bg-indigo-50/50' : ''}`}
                           >
                             {!notif.leida && <div className="absolute top-4 right-4 w-2 h-2 bg-indigo-500 rounded-full"></div>}
+                            
                             <div className="flex gap-3">
                               <div className={`p-2 rounded-xl shrink-0 ${
                                 notif.tipo === 'MANTENIMIENTO' ? 'bg-amber-100 text-amber-600' :
                                 notif.tipo === 'STOCK' ? 'bg-rose-100 text-rose-600' :
-                                'bg-indigo-100 text-indigo-600'
+                                'bg-emerald-100 text-emerald-600'
                               }`}>
                                 {notif.tipo === 'MANTENIMIENTO' ? <Wrench size={16} /> : 
                                  notif.tipo === 'STOCK' ? <Package size={16} /> : 
                                  <Factory size={16} />}
                               </div>
-                              <div>
+                              <div className="flex-1 min-w-0">
                                 <p className="text-xs font-bold text-slate-900 mb-0.5">{notif.titulo}</p>
-                                <p className="text-[11px] text-slate-500 leading-relaxed">{notif.mensaje}</p>
-                                <p className="text-[9px] text-slate-400 font-bold mt-1.5 uppercase tracking-tighter">
+                                <p className="text-[11px] text-slate-600 leading-relaxed line-clamp-2">{notif.mensaje}</p>
+                                <p className="text-[9px] text-slate-400 mt-1.5">
                                   {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                               </div>
@@ -176,7 +183,7 @@ const Header: React.FC = () => {
                       ) : (
                         <div className="p-8 text-center">
                           <Bell size={32} className="mx-auto text-slate-200 mb-2" />
-                          <p className="text-xs font-bold text-slate-400">No hay notificaciones</p>
+                          <p className="text-xs font-bold text-slate-400">No hay notificaciones nuevas</p>
                         </div>
                       )}
                     </div>

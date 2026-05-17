@@ -7,6 +7,7 @@ interface Notification {
   mensaje: string;
   leida: boolean;
   createdAt: Date;
+  link?: string;           // ← Nueva propiedad para navegación
 }
 
 interface AppStore {
@@ -17,40 +18,15 @@ interface AppStore {
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'leida'>) => void;
   markNotificationAsRead: (id: string) => void;
   clearAllNotifications: () => void;
+  removeFakeNotifications: () => void;   // ← Nueva función
 }
 
 export const useAppStore = create<AppStore>((set) => ({
-  // Inicialmente cerrado, se ajustará en el componente según el viewport
   sidebarOpen: false,
-
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
-  notifications: [
-    {
-      id: '1',
-      tipo: 'MANTENIMIENTO',
-      titulo: 'Mantenimiento Preventivo',
-      mensaje: 'El Molino III requiere cambio de aceite en 24 horas.',
-      leida: false,
-      createdAt: new Date()
-    },
-    {
-      id: '2',
-      tipo: 'STOCK',
-      titulo: 'Stock Crítico',
-      mensaje: 'El cliente Chemo tiene menos de 15 sacos en stock.',
-      leida: false,
-      createdAt: new Date(Date.now() - 3600000)
-    },
-    {
-      id: '3',
-      tipo: 'MOLIENDA',
-      titulo: 'Molienda Finalizada',
-      mensaje: 'Se completó el proceso de Soc. Camila en Molino I.',
-      leida: true,
-      createdAt: new Date(Date.now() - 7200000)
-    }
-  ],
+  // Empezamos sin notificaciones falsas
+  notifications: [],
 
   addNotification: (notification) => set((state) => ({
     notifications: [
@@ -61,7 +37,7 @@ export const useAppStore = create<AppStore>((set) => ({
         leida: false,
       },
       ...state.notifications,
-    ],
+    ].slice(0, 20), // Máximo 20 notificaciones
   })),
 
   markNotificationAsRead: (id) => set((state) => ({
@@ -71,4 +47,7 @@ export const useAppStore = create<AppStore>((set) => ({
   })),
 
   clearAllNotifications: () => set({ notifications: [] }),
+
+  // Función para limpiar cualquier notificación falsa que quede
+  removeFakeNotifications: () => set({ notifications: [] }),
 }));

@@ -100,14 +100,12 @@ export const BaseModal: React.FC<BaseModalProps> = ({
         `}
                 tabIndex={-1}
             >
-                {/* Header */}
-                {(title || showCloseButton) && (
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                        {title && (
-                            <h2 id="modal-title" className="text-xl font-semibold text-slate-900">
-                                {title}
-                            </h2>
-                        )}
+        {/* Header — solo si se pasa title explícito */}
+                {title && (
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
+                        <h2 id="modal-title" className="text-xl font-semibold text-slate-900">
+                            {title}
+                        </h2>
                         {showCloseButton && (
                             <button
                                 onClick={onClose}
@@ -121,9 +119,10 @@ export const BaseModal: React.FC<BaseModalProps> = ({
                 )}
 
                 {/* Content */}
-                <div className="px-6 py-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div className={title ? "px-6 py-4 overflow-y-auto flex-1 custom-scrollbar" : "flex-1 overflow-y-auto flex flex-col"}>
                     {children}
                 </div>
+
             </div>
         </div>
     );

@@ -146,15 +146,7 @@ const Header: React.FC = () => {
                             onClick={() => {
                               markNotificationAsRead(notif.id);
                               setShowNotifications(false);
-
-                              // Navegación inteligente según el tipo
-                              if (notif.tipo === 'MANTENIMIENTO' || notif.mensaje?.toLowerCase().includes('mantenimiento') || notif.mensaje?.toLowerCase().includes('aceite')) {
-                                navigate('/mantenimiento');
-                              } else if (notif.tipo === 'STOCK') {
-                                navigate('/clientes');
-                              } else if (notif.tipo === 'MOLIENDA') {
-                                navigate('/dashboard');
-                              }
+                              navigate(notif.link || '/dashboard');
                             }}
                             className={`p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer relative ${!notif.leida ? 'bg-indigo-50/50' : ''}`}
                           >

@@ -115,10 +115,10 @@ interface SupabaseStore {
   recalcAllClientsStock: () => Promise<boolean>;
   normalizeMaintenanceLog: (log: any) => MaintenanceLog;
   pollingIntervalId: ReturnType<typeof setInterval> | null;
-  notifyNewMilling: (clientName: string, totalSacos: number) => void;
+  notifyNewMilling: (clientName: string, totalSacos: number, millName?: string) => void;
   notifyMillingFinished: (millName: string, clientName?: string) => void;
   notifyNewClient: (clientName: string) => void;
-  notifyStockEntry: (clientName: string, cantidad: number, tipo: string) => void;
+  notifyStockEntry: (clientName: string, cantidad: number, tipoSaco?: string) => void;
   notifyMaintenance: (millName: string, description: string) => void;
   checkOilChangeNotifications: (mills: Mill[]) => void;
 }
@@ -207,6 +207,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       logger.log(`✅ Mills cargados: ${normalizedMills.length}`);
 
       await get().checkAndLiberateMills(normalizedMills);
+      get().checkOilChangeNotifications(normalizedMills);
     } catch (error: any) {
       if (currentFetchId !== fetchMillsId) return;
       logger.error('❌ Error fetchMills:', error);
@@ -587,7 +588,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       const { data: clientData, error: clientFetchError } = await supabase
         .from('clients')
-        .select('stock_cuarzo, stock_llampo')
+        .select('stock_cuarzo, stock_llampo, name')
         .eq('id', data.clientId)
         .single();
 
@@ -772,6 +773,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       ]);
       logger.log('🏁 registerMilling: 7. Datos de UI refrescados');
 
+      get().notifyNewMilling(clientData.name || data.clientId, data.totalSacos, data.mills.length > 1 ? 'Varios molinos' : data.mills[0]?.id);
+
       return true;
     } catch (error: any) {
       logger.error('❌ Error registerMilling:', error);
@@ -933,6 +936,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       await get().fetchMaintenanceLogs();
       await get().fetchMills(); // Refrescar molinos
+      
+      const mill = get().mills.find(m => m.id === data.mill_id);
+      get().notifyMaintenance(mill?.name || `Molino ${data.mill_id}`, data.description);
+      
       return true;
     } catch (error: any) {
       logger.error('❌ Error registerMaintenance:', error);
@@ -1141,6 +1148,10 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       await get().fetchMills();
       await get().fetchMillingLogs({ pageSize: 12 });
+
+      const clientName = get().clients.find(c => c.id === mill.current_client_id)?.name;
+      get().notifyMillingFinished(mill.name, clientName);
+
       return true;
     } catch (error: any) {
       logger.error('Error finalizeMilling:', error);
@@ -1299,7 +1310,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       logger.log('📡 store: Fetching client current stock...');
       const { data: client, error: fetchError } = await supabase
         .from('clients')
-        .select('stock_cuarzo, stock_llampo, cumulative_cuarzo, cumulative_llampo')
+        .select('stock_cuarzo, stock_llampo, cumulative_cuarzo, cumulative_llampo, name')
         .eq('id', clientId)
         .single();
 
@@ -1386,6 +1397,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       logger.log('✅ store: Stock updated successfully. Refreshing clients list...');
       await get().fetchClients();
       logger.log('✨ store: Client list refreshed.');
+
+      get().notifyStockEntry(client.name || clientId, cuarzo > 0 ? cuarzo : llampo, 'Sacos');
+
       return true;
     } catch (error: any) {
       logger.error('❌ store: catch in addClientStock:', error);
@@ -1613,12 +1627,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   // ==================== NOTIFICACIONES REALES ====================
 
-  notifyNewMilling: (clientName: string, totalSacos: number) => {
+  notifyNewMilling: (clientName: string, totalSacos: number, millName?: string) => {
     const appStore = useAppStore.getState();
     appStore.addNotification({
       tipo: 'MOLIENDA',
-      titulo: 'Nueva Molienda Iniciada',
-      mensaje: `Se inició molienda de ${totalSacos} sacos para ${clientName}`,
+      titulo: '🟢 Nueva Molienda Iniciada',
+      mensaje: `Se inició molienda de ${totalSacos} sacos para ${clientName}${millName ? ` en ${millName}` : ''}`,
       link: '/dashboard'
     });
   },
@@ -1627,8 +1641,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const appStore = useAppStore.getState();
     appStore.addNotification({
       tipo: 'MOLIENDA',
-      titulo: 'Molienda Finalizada',
-      mensaje: `Se completó molienda en ${millName}${clientName ? ` (${clientName})` : ''}`,
+      titulo: '✅ Molienda Finalizada',
+      mensaje: `Se completó la molienda en ${millName}${clientName ? ` (${clientName})` : ''}`,
       link: '/dashboard'
     });
   },
@@ -1637,18 +1651,18 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const appStore = useAppStore.getState();
     appStore.addNotification({
       tipo: 'CLIENTE',
-      titulo: 'Nuevo Cliente',
-      mensaje: `Se registró el cliente ${clientName}`,
+      titulo: '👤 Nuevo Cliente Registrado',
+      mensaje: `Se agregó el cliente ${clientName}`,
       link: '/clientes'
     });
   },
 
-  notifyStockEntry: (clientName: string, cantidad: number, tipo: string) => {
+  notifyStockEntry: (clientName: string, cantidad: number, tipoSaco: string = 'Sacos') => {
     const appStore = useAppStore.getState();
     appStore.addNotification({
       tipo: 'STOCK',
-      titulo: 'Ingreso de Stock',
-      mensaje: `Se agregaron ${cantidad} sacos de ${tipo} al cliente ${clientName}`,
+      titulo: '📦 Ingreso de Stock',
+      mensaje: `Se agregaron ${cantidad} ${tipoSaco} al cliente ${clientName}`,
       link: '/clientes'
     });
   },
@@ -1657,7 +1671,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const appStore = useAppStore.getState();
     appStore.addNotification({
       tipo: 'MANTENIMIENTO',
-      titulo: 'Mantenimiento Registrado',
+      titulo: '🔧 Mantenimiento Registrado',
       mensaje: `${millName}: ${description}`,
       link: '/mantenimiento'
     });
@@ -1665,24 +1679,24 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   checkOilChangeNotifications: (mills: Mill[]) => {
     const appStore = useAppStore.getState();
-    
-    mills.forEach(mill => {
-      const horas = mill.horas_trabajadas || mill.horasTrabajadas || 0;
-      const umbral = 150; // Puedes configurarlo después
+    const UMBRAL_ACEITE = 150;
 
-      if (horas >= umbral - 10 && horas < umbral) {
+    mills.forEach(mill => {
+      const horas = Number(mill.horas_trabajadas || mill.horasTrabajadas || 0);
+      
+      if (horas >= UMBRAL_ACEITE - 10 && horas < UMBRAL_ACEITE) {
         appStore.addNotification({
           tipo: 'MANTENIMIENTO',
           titulo: '⚠️ Cambio de Aceite Próximo',
-          mensaje: `${mill.name} tiene ${horas}h trabajadas. Cambio de aceite en menos de 10 horas.`,
+          mensaje: `${mill.name} tiene ${horas}h. Realizar cambio de aceite en las próximas ${UMBRAL_ACEITE - horas} horas.`,
           link: '/mantenimiento'
         });
       } 
-      else if (horas >= umbral) {
+      else if (horas >= UMBRAL_ACEITE) {
         appStore.addNotification({
           tipo: 'MANTENIMIENTO',
-          titulo: '🔴 Cambio de Aceite Requerido',
-          mensaje: `${mill.name} superó las ${umbral}h. Realizar cambio de aceite urgente.`,
+          titulo: '🔴 Cambio de Aceite Urgente',
+          mensaje: `${mill.name} superó las ${UMBRAL_ACEITE}h (${horas}h). Realizar cambio de aceite INMEDIATAMENTE.`,
           link: '/mantenimiento'
         });
       }

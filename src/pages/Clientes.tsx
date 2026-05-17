@@ -159,6 +159,7 @@ const Clientes: React.FC = () => {
 
       toast.success('Cliente Registrado', `El cliente ${formData.nombre} ha sido registrado exitosamente.`);
       fetchClients();
+      useSupabaseStore.getState().notifyNewClient(formData.nombre);
       createModal.close();
       resetForm();
     } catch (error: any) {

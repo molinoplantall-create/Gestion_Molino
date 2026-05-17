@@ -545,8 +545,8 @@ const Dashboard: React.FC = () => {
         {/* ROW 2: Intelligence - Row 1 */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Actividad Reciente */}
-          <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[500px]">
-            <div className="w-full flex-1"><ActivityChart /></div>
+          <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm flex flex-col h-[500px] overflow-hidden">
+            <ActivityChart />
           </div>
 
           {/* Tendencia Evolutiva */}
@@ -666,23 +666,87 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Carga por Molino */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[450px]">
-            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2">Carga por Molino</h3>
-            <p className="text-xs text-slate-500 font-medium mb-6">Distribución de producción</p>
-            <div className="flex-1 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={intelligence.millStats} margin={{ top: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10, fontWeight: 900 }} />
-                  <YAxis hide />
-                  <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '14px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 700 }} formatter={(value) => formatNumber(value as number)} />
-                  <Bar dataKey="total" radius={[6, 6, 0, 0]} barSize={30} animationDuration={1500}>
-                    {intelligence.millStats.map((_, index) => (
-                      <Cell key={index} fill="#4f46e5" />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm flex flex-col h-[450px]">
+            <div className="flex items-center justify-between mb-1">
+              <div>
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Carga por Molino</h3>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Producción histórica acumulada</p>
+              </div>
+              {/* Tabs Año / Mes */}
+              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+                <button
+                  onClick={() => setComparisonMode('anio')}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                    comparisonMode === 'anio' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Año
+                </button>
+                <button
+                  onClick={() => setComparisonMode('mes')}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                    comparisonMode === 'mes' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Mes
+                </button>
+              </div>
+            </div>
+
+            {/* Barras horizontales por molino */}
+            <div className="flex-1 overflow-y-auto space-y-3 mt-4 custom-scrollbar pr-1">
+              {(() => {
+                const stats = intelligence.millStats;
+                const maxVal = Math.max(...stats.map(m => m.total), 1);
+                return stats.map((mill, idx) => {
+                  const pct = Math.round((mill.total / maxVal) * 100);
+                  const statusColor = mill.status === 'OCUPADO' ? 'bg-emerald-500' :
+                    mill.status === 'MANTENIMIENTO' || mill.status === 'mantenimiento' ? 'bg-amber-400' : 'bg-slate-300';
+                  const barColor = idx === 0 ? 'from-indigo-500 to-violet-500' :
+                    idx === 1 ? 'from-indigo-400 to-violet-400' :
+                    idx === 2 ? 'from-indigo-300 to-violet-300' : 'from-slate-300 to-slate-400';
+                  return (
+                    <div key={mill.name} className="group">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${statusColor} shrink-0`} />
+                          <span className="text-[11px] font-black text-slate-700">{mill.name}</span>
+                        </div>
+                        <span className="text-[11px] font-black text-slate-900">
+                          {formatNumber(mill.total)} <span className="text-[9px] font-bold text-slate-400">scs</span>
+                        </span>
+                      </div>
+                      <div className="h-5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full bg-gradient-to-r ${barColor} transition-all duration-700`}
+                          style={{ width: `${Math.max(pct, mill.total > 0 ? 3 : 0)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+              {intelligence.millStats.length === 0 && (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">
+                  Sin datos de producción
+                </div>
+              )}
+            </div>
+
+            {/* Leyenda de estado */}
+            <div className="flex items-center gap-4 mt-4 pt-3 border-t border-slate-100 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-[10px] font-bold text-slate-400">Ocupado</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className="text-[10px] font-bold text-slate-400">Mantenimiento</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-slate-300" />
+                <span className="text-[10px] font-bold text-slate-400">Libre</span>
+              </div>
             </div>
           </div>
 

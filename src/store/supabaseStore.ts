@@ -150,25 +150,28 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   fetchMills: async () => {
     const currentFetchId = ++fetchMillsId;
     set({ millsLoading: true, error: null });
-    
-    // Safety timeout
+
+    // Timeout más tolerante (15 segundos) y mejor manejo
     const timeoutId = setTimeout(() => {
       if (currentFetchId === fetchMillsId && get().millsLoading) {
-        set({ millsLoading: false, error: 'Tiempo de espera agotado al cargar molinos. Verifique su conexión.' });
-        logger.error('TIMEOUT: fetchMills se quedó colgado por más de 10 segundos');
+        set({ 
+          millsLoading: false, 
+          error: 'Tiempo de espera al cargar molinos. Intentando de nuevo...' 
+        });
+        logger.warn('⚠️ Timeout en fetchMills - se aumentó la tolerancia');
       }
-    }, 10000);
+    }, 15000); // ← Aumentado de 10s a 15s
 
     try {
-      // First try to fetch all data without a specific order to avoid crashing if 'name' doesn't exist
       const { data, error } = await supabase
         .from('mills')
         .select(`
-        *,
-        clients:current_client_id ( name )
-      `);
+          *,
+          clients:current_client_id ( name )
+        `)
+        .order('name');
 
-      if (currentFetchId !== fetchMillsId) return; // Ignore stale response
+      if (currentFetchId !== fetchMillsId) return; // Ignorar respuestas viejas
 
       if (error) {
         logger.error('❌ Supabase error in fetchMills:', error);
@@ -180,7 +183,6 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         return;
       }
 
-      // Normalize data: only handle essential defaults
       const normalizedMills = (data as any[]).map(m => ({
         ...m,
         name: m.name || `Molino ${m.id}`,
@@ -189,24 +191,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         horas_trabajadas: m.total_hours_worked || m.horas_trabajadas || 0,
         horasTrabajadas: m.total_hours_worked || m.horas_trabajadas || 0,
         sacks_processing: m.sacks_processing || 0,
-        current_sacks: m.sacks_processing || 0,
         current_client: m.clients?.name || null,
         current_client_id: m.current_client_id || null,
         current_mineral: m.current_mineral || null
       })) as Mill[];
 
-      // Sort alphabetically by name
-      normalizedMills.sort((a, b) => a.name.localeCompare(b.name));
-
       set({ mills: normalizedMills });
-      logger.log('✅ store: mills loaded and normalized:', normalizedMills.length);
+      logger.log(`✅ Mills cargados: ${normalizedMills.length}`);
 
-      // Liberar molinos automáticamente si ya terminó su tiempo
       await get().checkAndLiberateMills(normalizedMills);
     } catch (error: any) {
       if (currentFetchId !== fetchMillsId) return;
       logger.error('❌ Error fetchMills:', error);
-      set({ error: error.message });
+      set({ error: 'Error al cargar molinos. Verifique su conexión a internet.' });
     } finally {
       if (currentFetchId === fetchMillsId) {
         set({ millsLoading: false });

@@ -56,6 +56,21 @@ const Dashboard: React.FC = () => {
   const [comparisonMonth, setComparisonMonth] = useState(new Date().getMonth());
   const [comparisonYear, setComparisonYear] = useState(new Date().getFullYear());
   const [comparisonMode, setComparisonMode] = useState<'mes' | 'anio'>('mes');
+  const [showRetry, setShowRetry] = useState(false);
+
+  // Timeout de seguridad: si pasa más de 12 segundos en loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (millsLoading) {
+        console.warn("⏰ Loading timeout - forzando finalización / mostrando reintento");
+        setShowRetry(true);
+      }
+    }, 12000);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [millsLoading]);
 
   // InitFetch: Garantizar carga de Supabase al montar la vista
   useEffect(() => {
@@ -386,6 +401,17 @@ const Dashboard: React.FC = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-slate-600 font-bold italic">Sincronizando planta...</p>
+          {showRetry && (
+            <button 
+              onClick={() => {
+                setShowRetry(false);
+                fetchMills();
+              }}
+              className="mt-6 px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2 mx-auto"
+            >
+              <Zap size={16} /> Reintentar Conexión
+            </button>
+          )}
         </div>
       </div>
     );

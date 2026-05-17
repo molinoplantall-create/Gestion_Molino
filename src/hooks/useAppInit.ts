@@ -30,7 +30,7 @@ export function useAppInit() {
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key]);
+  }, []);
 
   // Opcional: refresco suave cada 30 segundos solo de molinos
   useEffect(() => {

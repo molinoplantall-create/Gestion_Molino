@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useAppStore } from './appStore';
 import { supabase } from '@/lib/supabase';
 import { Mill, Client, MillingLog, Zone, MaintenanceLog, MaintenanceUpdateData, MaintenanceRegisterData } from '@/types';
 import { logger } from '@/utils/logger';
@@ -114,6 +115,12 @@ interface SupabaseStore {
   recalcAllClientsStock: () => Promise<boolean>;
   normalizeMaintenanceLog: (log: any) => MaintenanceLog;
   pollingIntervalId: ReturnType<typeof setInterval> | null;
+  notifyNewMilling: (clientName: string, totalSacos: number) => void;
+  notifyMillingFinished: (millName: string, clientName?: string) => void;
+  notifyNewClient: (clientName: string) => void;
+  notifyStockEntry: (clientName: string, cantidad: number, tipo: string) => void;
+  notifyMaintenance: (millName: string, description: string) => void;
+  checkOilChangeNotifications: (mills: Mill[]) => void;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -1602,6 +1609,84 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       logger.error('❌ Error resetMillOil:', error);
       return false;
     }
+  },
+
+  // ==================== NOTIFICACIONES REALES ====================
+
+  notifyNewMilling: (clientName: string, totalSacos: number) => {
+    const appStore = useAppStore.getState();
+    appStore.addNotification({
+      tipo: 'MOLIENDA',
+      titulo: 'Nueva Molienda Iniciada',
+      mensaje: `Se inició molienda de ${totalSacos} sacos para ${clientName}`,
+      link: '/dashboard'
+    });
+  },
+
+  notifyMillingFinished: (millName: string, clientName?: string) => {
+    const appStore = useAppStore.getState();
+    appStore.addNotification({
+      tipo: 'MOLIENDA',
+      titulo: 'Molienda Finalizada',
+      mensaje: `Se completó molienda en ${millName}${clientName ? ` (${clientName})` : ''}`,
+      link: '/dashboard'
+    });
+  },
+
+  notifyNewClient: (clientName: string) => {
+    const appStore = useAppStore.getState();
+    appStore.addNotification({
+      tipo: 'CLIENTE',
+      titulo: 'Nuevo Cliente',
+      mensaje: `Se registró el cliente ${clientName}`,
+      link: '/clientes'
+    });
+  },
+
+  notifyStockEntry: (clientName: string, cantidad: number, tipo: string) => {
+    const appStore = useAppStore.getState();
+    appStore.addNotification({
+      tipo: 'STOCK',
+      titulo: 'Ingreso de Stock',
+      mensaje: `Se agregaron ${cantidad} sacos de ${tipo} al cliente ${clientName}`,
+      link: '/clientes'
+    });
+  },
+
+  notifyMaintenance: (millName: string, description: string) => {
+    const appStore = useAppStore.getState();
+    appStore.addNotification({
+      tipo: 'MANTENIMIENTO',
+      titulo: 'Mantenimiento Registrado',
+      mensaje: `${millName}: ${description}`,
+      link: '/mantenimiento'
+    });
+  },
+
+  checkOilChangeNotifications: (mills: Mill[]) => {
+    const appStore = useAppStore.getState();
+    
+    mills.forEach(mill => {
+      const horas = mill.horas_trabajadas || mill.horasTrabajadas || 0;
+      const umbral = 150; // Puedes configurarlo después
+
+      if (horas >= umbral - 10 && horas < umbral) {
+        appStore.addNotification({
+          tipo: 'MANTENIMIENTO',
+          titulo: '⚠️ Cambio de Aceite Próximo',
+          mensaje: `${mill.name} tiene ${horas}h trabajadas. Cambio de aceite en menos de 10 horas.`,
+          link: '/mantenimiento'
+        });
+      } 
+      else if (horas >= umbral) {
+        appStore.addNotification({
+          tipo: 'MANTENIMIENTO',
+          titulo: '🔴 Cambio de Aceite Requerido',
+          mensaje: `${mill.name} superó las ${umbral}h. Realizar cambio de aceite urgente.`,
+          link: '/mantenimiento'
+        });
+      }
+    });
   },
 
   startPollingMills: () => {

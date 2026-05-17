@@ -2,12 +2,12 @@ import { create } from 'zustand';
 
 interface Notification {
   id: string;
-  tipo: 'MOLIENDA' | 'MANTENIMIENTO' | 'STOCK' | 'SISTEMA';
+  tipo: 'MOLIENDA' | 'MANTENIMIENTO' | 'STOCK' | 'CLIENTE' | 'SISTEMA';
   titulo: string;
   mensaje: string;
   leida: boolean;
   createdAt: Date;
-  link?: string;           // ← Nueva propiedad para navegación
+  link?: string;
 }
 
 interface AppStore {
@@ -18,14 +18,12 @@ interface AppStore {
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'leida'>) => void;
   markNotificationAsRead: (id: string) => void;
   clearAllNotifications: () => void;
-  removeFakeNotifications: () => void;   // ← Nueva función
 }
 
 export const useAppStore = create<AppStore>((set) => ({
   sidebarOpen: false,
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
-  // Empezamos sin notificaciones falsas
   notifications: [],
 
   addNotification: (notification) => set((state) => ({
@@ -37,7 +35,7 @@ export const useAppStore = create<AppStore>((set) => ({
         leida: false,
       },
       ...state.notifications,
-    ].slice(0, 20), // Máximo 20 notificaciones
+    ].slice(0, 30),
   })),
 
   markNotificationAsRead: (id) => set((state) => ({
@@ -47,7 +45,4 @@ export const useAppStore = create<AppStore>((set) => ({
   })),
 
   clearAllNotifications: () => set({ notifications: [] }),
-
-  // Función para limpiar cualquier notificación falsa que quede
-  removeFakeNotifications: () => set({ notifications: [] }),
 }));

@@ -12,7 +12,7 @@ import {
   startOfYear, endOfYear
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, Map, TrendingUp, TrendingDown, Package, Factory, Minus } from 'lucide-react';
+import { Users, Map, TrendingUp, TrendingDown, Package, Factory, Minus, Table as TableIcon, BarChart2 } from 'lucide-react';
 
 export type ChartViewMode = 'semana' | 'mes' | 'anio';
 
@@ -50,6 +50,7 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
   const [allLogs, setAllLogs] = useState<any[]>([]);
   const [allInputs, setAllInputs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTrazabilidad, setShowTrazabilidad] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -148,7 +149,11 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
         if (m) m.ingresos += (input.initial_quantity || 0);
       }
     });
-    // Always return all 12 months (no filter) — show future months as 0
+    
+    const now = new Date();
+    if (selectedYear === now.getFullYear()) {
+      return data.filter((_, i) => i <= now.getMonth());
+    }
     return data;
   }, [filteredLogs, filteredInputs, viewMode, selectedMonth, selectedYear]);
 
@@ -198,6 +203,18 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
 
   return (
     <div className="flex flex-col h-full gap-3">
+      
+      {/* ── Header con Toggle ── */}
+      <div className="flex items-center justify-between shrink-0">
+        <h3 className="text-base font-black text-slate-900 tracking-tight">Actividad Reciente</h3>
+        <button 
+          onClick={() => setShowTrazabilidad(!showTrazabilidad)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
+        >
+          {showTrazabilidad ? <BarChart2 size={14} /> : <TableIcon size={14} />}
+          <span className="text-[10px] font-black uppercase tracking-wider">{showTrazabilidad ? 'Ver Gráfico' : 'Trazabilidad'}</span>
+        </button>
+      </div>
 
       {/* ── KPI pills ── */}
       <div className="flex gap-2 shrink-0">
@@ -274,10 +291,49 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
         </div>
       )}
 
-      {/* ── Gráfico ── */}
-      <div className="flex-1 min-h-0">
-        {viewMode === 'anio' ? (
-          /* AÑO: BarChart compacto con todos los 12 meses sin scroll */
+      {/* ── Gráfico o Tabla ── */}
+      <div className="flex-1 min-h-0 overflow-hidden relative">
+        {showTrazabilidad ? (
+          <div className="h-full overflow-y-auto custom-scrollbar bg-slate-50 rounded-xl border border-slate-100 p-2">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr>
+                  <th className="py-2 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200">Periodo</th>
+                  <th className="py-2 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 text-right">Ingresos</th>
+                  <th className="py-2 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 text-right">Procesado</th>
+                  <th className="py-2 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 text-right">Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {chartData.slice().reverse().map((row, idx) => {
+                  const saldo = row.ingresos - row.sacos;
+                  const absSaldo = Math.abs(saldo);
+                  // Resaltar si la diferencia es mayor a 500 sacos
+                  const isHighDiff = absSaldo > 500;
+                  return (
+                    <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-white transition-colors">
+                      <td className="py-2.5 px-3 text-[11px] font-bold text-slate-700">{row.fullLabel || row.label}</td>
+                      <td className="py-2.5 px-3 text-[11px] font-black text-emerald-600 text-right">{row.ingresos.toLocaleString()}</td>
+                      <td className="py-2.5 px-3 text-[11px] font-black text-indigo-600 text-right">{row.sacos.toLocaleString()}</td>
+                      <td className="py-2.5 px-3 text-right">
+                        <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-black ${
+                          saldo > 0 ? 'bg-emerald-100 text-emerald-700' : 
+                          saldo < 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
+                        } ${isHighDiff ? 'ring-2 ring-offset-1 ring-amber-300' : ''}`}>
+                          {saldo > 0 ? '+' : ''}{saldo.toLocaleString()}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div className="mt-3 text-[9px] text-slate-400 font-medium px-2 text-center">
+              * El saldo positivo indica acumulación de stock. Saldo negativo indica molienda de stock de meses anteriores. Resaltado si la diferencia {'>'} 500.
+            </div>
+          </div>
+        ) : viewMode === 'anio' ? (
+          /* AÑO: BarChart compacto con los meses del año (sin scroll) */
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 4, left: -28, bottom: 0 }} barCategoryGap="20%">
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />

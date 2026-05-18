@@ -478,72 +478,6 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════ */}
-      {/* FILTRO GLOBAL DE PERIODO                    */}
-      {/* ═══════════════════════════════════════════ */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in duration-500">
-        <div className="flex items-center gap-2">
-          <Calendar size={18} className="text-indigo-500" />
-          <h2 className="text-sm font-black text-slate-800 tracking-tight">Filtro Global del Dashboard</h2>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Tabs Periodo */}
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
-            <button
-              onClick={() => setViewMode('semana')}
-              className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
-                viewMode === 'semana' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              7 Días
-            </button>
-            <button
-              onClick={() => setViewMode('mes')}
-              className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
-                viewMode === 'mes' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Mes
-            </button>
-            <button
-              onClick={() => setViewMode('anio')}
-              className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
-                viewMode === 'anio' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Año
-            </button>
-          </div>
-
-          {/* Selectores de Fecha */}
-          {(viewMode === 'mes' || viewMode === 'anio') && (
-            <div className="flex items-center gap-2">
-              {viewMode === 'mes' && (
-                <select 
-                  value={selectedMonth}
-                  onChange={e => setSelectedMonth(Number(e.target.value))}
-                  className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  {MONTH_NAMES.map((name, i) => (
-                    <option key={i} value={i}>{name}</option>
-                  ))}
-                </select>
-              )}
-              <select 
-                value={selectedYear}
-                onChange={e => setSelectedYear(Number(e.target.value))}
-                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {intelligence.availableYears.map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════ */}
       {/* UNIFIED DASHBOARD LAYOUT                    */}
       {/* ═══════════════════════════════════════════ */}
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -620,6 +554,77 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
 
+        {/* ═══════════════════════════════════════════ */}
+        {/* FILTRO GLOBAL DE PERIODO                    */}
+        {/* ═══════════════════════════════════════════ */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm mt-8 animate-in fade-in duration-500">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+              <Calendar size={20} className="text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-black text-slate-900 tracking-tight">Período de Análisis</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Controla todos los gráficos</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Tabs Periodo */}
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
+              <button
+                onClick={() => setViewMode('semana')}
+                className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                  viewMode === 'semana' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                7 Días
+              </button>
+              <button
+                onClick={() => setViewMode('mes')}
+                className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                  viewMode === 'mes' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Mes
+              </button>
+              <button
+                onClick={() => setViewMode('anio')}
+                className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                  viewMode === 'anio' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Año
+              </button>
+            </div>
+
+            {/* Selectores de Fecha */}
+            {(viewMode === 'mes' || viewMode === 'anio') && (
+              <div className="flex items-center gap-2">
+                {viewMode === 'mes' && (
+                  <select 
+                    value={selectedMonth}
+                    onChange={e => setSelectedMonth(Number(e.target.value))}
+                    className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none hover:border-indigo-300 transition-colors"
+                  >
+                    {MONTH_NAMES.map((name, i) => (
+                      <option key={i} value={i}>{name}</option>
+                    ))}
+                  </select>
+                )}
+                <select 
+                  value={selectedYear}
+                  onChange={e => setSelectedYear(Number(e.target.value))}
+                  className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none hover:border-indigo-300 transition-colors"
+                >
+                  {intelligence.availableYears.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* ROW 2: Intelligence - Row 1 */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Actividad Reciente */}
@@ -632,29 +637,30 @@ const Dashboard: React.FC = () => {
             />
           </div>
 
-          {/* Tendencia Evolutiva */}
+          {/* Top 5 Clientes (Listado) */}
           <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[500px]">
-            <h3 className="text-base sm:text-xl font-black text-slate-900 mb-2 tracking-tight">Tendencia Evolutiva</h3>
-            <p className="text-xs text-slate-500 font-medium mb-6">Crecimiento mensual acumulado ({selectedYear})</p>
-            <div className="flex-1 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={intelligence.monthlyProd}>
-                  <defs>
-                    <linearGradient id="premiumGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', fontWeight: 800 }}
-                    cursor={{ stroke: '#8b5cf6', strokeWidth: 2, strokeDasharray: '5 5' }}
-                  />
-                  <Area type="monotone" dataKey="sacos" stroke="#8b5cf6" strokeWidth={4} fillOpacity={1} fill="url(#premiumGradient)" animationDuration={1500} />
-                </AreaChart>
-              </ResponsiveContainer>
+            <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight mb-2">Top 5 Clientes</h3>
+            <p className="text-xs text-slate-500 font-medium mb-6">Ranking por producción histórica acumulada</p>
+            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              {intelligence.topClients.slice(0, 5).map((client, idx) => (
+                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-black">
+                      {idx + 1}
+                    </div>
+                    <span className="text-xs font-black text-slate-900">{client.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-xs font-black text-slate-900">{formatNumber(client.total)} scs</span>
+                    <span className="block text-[9px] font-bold text-emerald-600 mt-1">Stock: {formatNumber(client.stockActual)}</span>
+                  </div>
+                </div>
+              ))}
+              {intelligence.topClients.length === 0 && (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">
+                  Sin clientes registrados
+                </div>
+              )}
             </div>
           </div>
 
@@ -681,6 +687,32 @@ const Dashboard: React.FC = () => {
 
         {/* ROW 3: Intelligence - Row 2 */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          
+          {/* Tendencia Evolutiva */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[450px]">
+            <h3 className="text-base sm:text-xl font-black text-slate-900 mb-2 tracking-tight">Tendencia Evolutiva</h3>
+            <p className="text-xs text-slate-500 font-medium mb-6">Crecimiento mensual acumulado ({selectedYear})</p>
+            <div className="flex-1 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={intelligence.monthlyProd}>
+                  <defs>
+                    <linearGradient id="premiumGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', fontWeight: 800 }}
+                    cursor={{ stroke: '#8b5cf6', strokeWidth: 2, strokeDasharray: '5 5' }}
+                  />
+                  <Area type="monotone" dataKey="sacos" stroke="#8b5cf6" strokeWidth={4} fillOpacity={1} fill="url(#premiumGradient)" animationDuration={1500} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
           {/* Volumen por Zona */}
           <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[450px]">
             <div className="flex items-center justify-between mb-2">
@@ -727,21 +759,22 @@ const Dashboard: React.FC = () => {
                     idx === 1 ? 'from-indigo-400 to-violet-400' :
                     idx === 2 ? 'from-indigo-300 to-violet-300' : 'from-slate-300 to-slate-400';
                   return (
-                    <div key={mill.name} className="group">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${statusColor} shrink-0`} />
-                          <span className="text-[11px] font-black text-slate-700">{mill.name}</span>
-                        </div>
-                        <span className="text-[11px] font-black text-slate-900">
-                          {formatNumber(mill.total)} <span className="text-[9px] font-bold text-slate-400">scs</span>
-                        </span>
+                    <div key={mill.name} className="flex items-center gap-3 group">
+                      <div className="w-24 flex-shrink-0 flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full ${statusColor} shrink-0`} />
+                        <span className="text-[10px] font-black text-slate-700 truncate uppercase tracking-tighter">{mill.name}</span>
                       </div>
-                      <div className="h-5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full bg-gradient-to-r ${barColor} transition-all duration-700`}
                           style={{ width: `${Math.max(pct, mill.total > 0 ? 3 : 0)}%` }}
                         />
+                      </div>
+                      <div className="w-16 text-right">
+                        <span className="text-[11px] font-black text-slate-900">
+                          {formatNumber(mill.total)}
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-400 ml-1">scs</span>
                       </div>
                     </div>
                   );
@@ -811,26 +844,12 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Top 5 Clientes */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[500px]">
-            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2">Top 5 Clientes</h3>
-            <p className="text-xs text-slate-500 font-medium mb-6">Ranking por producción acumulada</p>
-            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-              {intelligence.topClients.slice(0, 5).map((client, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-black">
-                      {idx + 1}
-                    </div>
-                    <span className="text-xs font-black text-slate-900">{client.name}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="block text-xs font-black text-slate-900">{formatNumber(client.total)}</span>
-                    <span className="block text-[9px] font-bold text-emerald-600">Stock: {formatNumber(client.stockActual)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* Espacio reservado si se desean agregar más métricas aquí */}
+          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col h-[500px] justify-center items-center text-center">
+             <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
+                <BarChart3 className="text-slate-300" size={32} />
+             </div>
+             <p className="text-slate-400 font-bold text-sm">Espacio para futuros KPIs</p>
           </div>
         </div>
 

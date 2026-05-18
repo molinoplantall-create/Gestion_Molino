@@ -21,6 +21,7 @@ import RecentSessions from '@/components/dashboard/RecentSessions';
 import ActivityChart from '@/components/dashboard/ActivityChart';
 import ClientComparisonChart from '@/components/dashboard/ClientComparisonChart';
 import { useSupabaseStore } from '@/store/supabaseStore';
+import { useToast } from '@/hooks/useToast';
 import { formatNumber } from '@/utils/formatters';
 import ClientStockPanel from '@/components/dashboard/ClientStockPanel';
 import { ChartViewMode } from '@/components/dashboard/ActivityChart';

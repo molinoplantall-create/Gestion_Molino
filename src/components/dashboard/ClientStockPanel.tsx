@@ -2,6 +2,7 @@ import React from 'react';
 import { Package, TrendingUp, AlertCircle, ChevronRight } from 'lucide-react';
 import { Client } from '@/types';
 import { formatNumber } from '@/utils/formatters';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 
 interface ClientStockPanelProps {
   clients: Client[];
@@ -58,23 +59,17 @@ const ClientStockPanel: React.FC<ClientStockPanelProps> = ({ clients, loading })
       {/* Decorative background */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-50 to-transparent rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 group-hover:opacity-70 transition-opacity duration-700 pointer-events-none"></div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative z-10">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Stock Listo para Molienda
-            </h2>
-            <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-black border border-emerald-200 shadow-sm shadow-emerald-100">
+      <div className="relative z-10">
+        <SectionHeader 
+          icon={Package} 
+          title="Stock Listo para Molienda" 
+          subtitle="Top Clientes con Material"
+          rightAction={
+            <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] sm:text-xs font-black border border-emerald-200 shadow-sm shadow-emerald-100 whitespace-nowrap">
               {formatNumber(totalStockSum)} sacos
             </div>
-          </div>
-          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">
-            Top Clientes con Material
-          </p>
-        </div>
-        <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600 hidden sm:block">
-          <Package size={20} strokeWidth={2.5} />
-        </div>
+          }
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-3 relative z-10 custom-scrollbar">

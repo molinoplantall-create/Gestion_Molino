@@ -26,6 +26,7 @@ import { formatNumber } from '@/utils/formatters';
 import ClientStockPanel from '@/components/dashboard/ClientStockPanel';
 import { ChartViewMode } from '@/components/dashboard/ActivityChart';
 import { subDays, format } from 'date-fns';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 
 const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 const MINERAL_COLORS: Record<string, string> = { 'Óxido': '#6366f1', 'Sulfuro': '#facc15' };
@@ -59,6 +60,7 @@ const Dashboard: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [viewMode, setViewMode] = useState<ChartViewMode>('semana');
+  const [selectedClientFilter, setSelectedClientFilter] = useState<string>('ALL');
   const [showRetry, setShowRetry] = useState(false);
 
   // Timeout de seguridad: si pasa más de 12 segundos en loading → mostrar botón Reintentar
@@ -163,14 +165,22 @@ const Dashboard: React.FC = () => {
       const d = new Date(log.created_at);
       if (isNaN(d.getTime())) return false;
       
+      let inPeriod = false;
       if (viewMode === 'semana') {
         const last7Days = subDays(now, 7);
-        return d >= last7Days && d <= now;
+        inPeriod = d >= last7Days && d <= now;
       } else if (viewMode === 'mes') {
-        return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+        inPeriod = d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
       } else {
-        return d.getFullYear() === selectedYear;
+        inPeriod = d.getFullYear() === selectedYear;
       }
+      
+      if (!inPeriod) return false;
+
+      if (selectedClientFilter !== 'ALL' && log.client_id !== selectedClientFilter) {
+          return false;
+      }
+      return true;
     });
 
     // 1. Producción Mensual (AreaChart - Tendencia Evolutiva)
@@ -316,7 +326,7 @@ const Dashboard: React.FC = () => {
       millStatsReport, totalSacosReporte, avgSacosReporte, millDisponibilidad,
       clientMonthlyProd, availableYears
     };
-  }, [millingLogs, mills, allClients, now, viewMode, selectedYear, selectedMonth]);
+  }, [millingLogs, mills, allClients, now, viewMode, selectedYear, selectedMonth, selectedClientFilter]);
 
   // ═══════════════════════════════════════════════
   // EXPORTACIONES
@@ -483,7 +493,7 @@ const Dashboard: React.FC = () => {
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
         
         {/* ROW 1: KPIs Unificados */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
           {[
             { 
               label: 'Producción Acumulada', 
@@ -597,6 +607,21 @@ const Dashboard: React.FC = () => {
               </button>
             </div>
 
+            {/* Selector de Cliente */}
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-2 py-1 shadow-sm">
+              <Users size={14} className="text-slate-400 ml-2" />
+              <select
+                value={selectedClientFilter}
+                onChange={e => setSelectedClientFilter(e.target.value)}
+                className="bg-transparent border-none px-2 py-1 text-xs font-bold text-slate-700 outline-none cursor-pointer w-32 md:w-48 truncate"
+              >
+                <option value="ALL">Todos los clientes</option>
+                {allClients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Selectores de Fecha */}
             {(viewMode === 'mes' || viewMode === 'anio') && (
               <div className="flex items-center gap-2">
@@ -625,9 +650,12 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ROW 2: Intelligence - Row 1 */}
+        {/* ═══════════════════════════════════════════ */}
+        {/* SECCIÓN PRINCIPAL DE GRÁFICOS               */}
+        {/* ═══════════════════════════════════════════ */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Actividad Reciente */}
+          
+          {/* 1. Actividad Reciente */}
           <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm flex flex-col h-[500px] overflow-hidden">
             <ActivityChart 
               viewMode={viewMode}
@@ -637,62 +665,10 @@ const Dashboard: React.FC = () => {
             />
           </div>
 
-          {/* Top 5 Clientes (Listado) */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[500px]">
-            <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight mb-2">Top 5 Clientes</h3>
-            <p className="text-xs text-slate-500 font-medium mb-6">Ranking por producción histórica acumulada</p>
-            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-              {intelligence.topClients.slice(0, 5).map((client, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-black">
-                      {idx + 1}
-                    </div>
-                    <span className="text-xs font-black text-slate-900">{client.name}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="block text-xs font-black text-slate-900">{formatNumber(client.total)} scs</span>
-                    <span className="block text-[9px] font-bold text-emerald-600 mt-1">Stock: {formatNumber(client.stockActual)}</span>
-                  </div>
-                </div>
-              ))}
-              {intelligence.topClients.length === 0 && (
-                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">
-                  Sin clientes registrados
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Comparativa de Producción */}
-          <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[500px]">
-            <div className="flex flex-col gap-1 mb-6">
-              <div className="flex items-center gap-2 mb-1">
-                <Users size={18} className="text-indigo-500" />
-                <h2 className="text-base sm:text-lg font-black text-slate-900">Comparativa de Producción</h2>
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium">Volumen por cliente en el periodo seleccionado</p>
-            </div>
-            
-            <div className="flex-1 relative">
-              {useSupabaseStore.getState().logsLoading ? (
-                <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                </div>
-              ) : null}
-              <ClientComparisonChart data={intelligence.clientMonthlyProd} />
-            </div>
-          </div>
-        </div>
-
-        {/* ROW 3: Intelligence - Row 2 */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          
-          {/* Tendencia Evolutiva */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[450px]">
-            <h3 className="text-base sm:text-xl font-black text-slate-900 mb-2 tracking-tight">Tendencia Evolutiva</h3>
-            <p className="text-xs text-slate-500 font-medium mb-6">Crecimiento mensual acumulado ({selectedYear})</p>
-            <div className="flex-1 w-full">
+          {/* 2. Tendencia Evolutiva */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm flex flex-col h-[500px]">
+            <SectionHeader icon={TrendingUp} title="Tendencia Evolutiva" subtitle={`Crecimiento mensual acumulado (${selectedYear})`} />
+            <div className="flex-1 w-full min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={intelligence.monthlyProd}>
                   <defs>
@@ -713,41 +689,24 @@ const Dashboard: React.FC = () => {
               </ResponsiveContainer>
             </div>
           </div>
-          {/* Volumen por Zona */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[450px]">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-base sm:text-xl font-black text-slate-900 tracking-tight">Volumen por Zona</h3>
-              <MapPin className="text-slate-400" size={20} />
-            </div>
-            <p className="text-xs text-slate-500 font-medium mb-6">Rendimiento por ubicación</p>
 
-            <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-              {intelligence.chartZoneData.slice(0, 10).map((z, i) => (
-                <div key={z.name} className="flex items-center gap-4">
-                  <div className="w-20 flex-shrink-0 text-[10px] font-black text-slate-600 truncate uppercase tracking-tighter">{z.name}</div>
-                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-indigo-600 rounded-full" 
-                      style={{ width: `${Math.max(10, (z.value / (intelligence.chartZoneData[0]?.value || 1)) * 100)}%` }}
-                    ></div>
-                  </div>
-                  <div className="w-10 text-right text-[10px] font-black text-slate-900">{formatNumber(z.value)}</div>
+          {/* 3. Comparativa de Producción */}
+          <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[500px]">
+            <SectionHeader icon={Users} title="Comparativa de Producción" subtitle="Volumen por cliente en el periodo seleccionado" />
+            <div className="flex-1 relative min-h-0">
+              {useSupabaseStore.getState().logsLoading ? (
+                <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                 </div>
-              ))}
+              ) : null}
+              <ClientComparisonChart data={intelligence.clientMonthlyProd} />
             </div>
           </div>
 
-          {/* Carga por Molino */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm flex flex-col h-[450px]">
-            <div className="flex items-center justify-between mb-1">
-              <div>
-                <h3 className="text-base font-black text-slate-900 tracking-tight">Carga por Molino</h3>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Producción en el periodo seleccionado</p>
-              </div>
-            </div>
-
-            {/* Barras horizontales por molino */}
-            <div className="flex-1 overflow-y-auto space-y-3 mt-4 custom-scrollbar pr-1">
+          {/* 4. Carga por Molino */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm flex flex-col h-[500px]">
+            <SectionHeader icon={Factory} title="Carga por Molino" subtitle="Producción en el periodo seleccionado" />
+            <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
               {(() => {
                 const stats = intelligence.millStats;
                 const maxVal = Math.max(...stats.map(m => m.total), 1);
@@ -771,9 +730,7 @@ const Dashboard: React.FC = () => {
                         />
                       </div>
                       <div className="w-16 text-right">
-                        <span className="text-[11px] font-black text-slate-900">
-                          {formatNumber(mill.total)}
-                        </span>
+                        <span className="text-[11px] font-black text-slate-900">{formatNumber(mill.total)}</span>
                         <span className="text-[9px] font-bold text-slate-400 ml-1">scs</span>
                       </div>
                     </div>
@@ -781,12 +738,9 @@ const Dashboard: React.FC = () => {
                 });
               })()}
               {intelligence.millStats.length === 0 && (
-                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">
-                  Sin datos de producción
-                </div>
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Sin datos de producción</div>
               )}
             </div>
-
             {/* Leyenda de estado */}
             <div className="flex items-center gap-4 mt-4 pt-3 border-t border-slate-100 shrink-0">
               <div className="flex items-center gap-1.5">
@@ -804,11 +758,29 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Composición Mineral */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[450px]">
-            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2">Composición de Mineral</h3>
-            <p className="text-xs text-slate-500 font-medium mb-6">Distribución por tipo</p>
-            <div className="flex-1">
+          {/* 5. Volumen por Zona */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm flex flex-col h-[500px]">
+            <SectionHeader icon={MapPin} title="Volumen por Zona" subtitle="Rendimiento por ubicación" />
+            <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              {intelligence.chartZoneData.slice(0, 10).map((z, i) => (
+                <div key={z.name} className="flex items-center gap-4">
+                  <div className="w-20 flex-shrink-0 text-[10px] font-black text-slate-600 truncate uppercase tracking-tighter">{z.name}</div>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-indigo-600 rounded-full" 
+                      style={{ width: `${Math.max(10, (z.value / (intelligence.chartZoneData[0]?.value || 1)) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="w-10 text-right text-[10px] font-black text-slate-900">{formatNumber(z.value)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 6. Composición de Mineral */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm flex flex-col h-[500px]">
+            <SectionHeader icon={PieIcon} title="Composición de Mineral" subtitle="Distribución por tipo" />
+            <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie 
@@ -827,30 +799,44 @@ const Dashboard: React.FC = () => {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
 
-        {/* ROW 4: Intelligence - Row 3 */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Stock Listo para Molienda */}
-          <div className="h-[500px]">
+          {/* 7. Stock Listo para Molienda */}
+          <div className="h-[500px] overflow-hidden rounded-[2.5rem] border border-slate-100">
              <ClientStockPanel clients={allClients} loading={useSupabaseStore.getState().clientsLoading && allClients.length === 0} />
           </div>
 
-          {/* Últimas Moliendas */}
-          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col h-[500px]">
-            <h2 className="text-base sm:text-xl font-black text-slate-900 mb-6">Últimas Moliendas</h2>
+          {/* 8. Top 5 Clientes */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm flex flex-col h-[500px]">
+            <SectionHeader icon={Users} title="Top 5 Clientes" subtitle="Ranking por producción histórica acumulada" />
+            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              {intelligence.topClients.slice(0, 5).map((client, idx) => (
+                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-black">
+                      {idx + 1}
+                    </div>
+                    <span className="text-xs font-black text-slate-900">{client.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-xs font-black text-slate-900">{formatNumber(client.total)} scs</span>
+                    <span className="block text-[9px] font-bold text-emerald-600 mt-1">Stock: {formatNumber(client.stockActual)}</span>
+                  </div>
+                </div>
+              ))}
+              {intelligence.topClients.length === 0 && (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Sin clientes registrados</div>
+              )}
+            </div>
+          </div>
+
+          {/* 9. Últimas Moliendas */}
+          <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm flex flex-col h-[500px]">
+            <SectionHeader icon={Clock} title="Últimas Moliendas" subtitle="Registro de operaciones recientes" />
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
               <RecentSessions sessions={millingLogs.slice(0, 5)} mills={mills} />
             </div>
           </div>
-
-          {/* Espacio reservado si se desean agregar más métricas aquí */}
-          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex flex-col h-[500px] justify-center items-center text-center">
-             <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
-                <BarChart3 className="text-slate-300" size={32} />
-             </div>
-             <p className="text-slate-400 font-bold text-sm">Espacio para futuros KPIs</p>
-          </div>
+          
         </div>
 
         {/* ROW 5: Estado de Planta (Mills) */}

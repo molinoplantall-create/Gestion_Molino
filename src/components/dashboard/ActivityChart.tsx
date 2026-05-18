@@ -12,7 +12,8 @@ import {
   startOfYear, endOfYear
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, Map, TrendingUp, TrendingDown, Package, Factory, Minus, Table as TableIcon, BarChart2 } from 'lucide-react';
+import { Users, Map, TrendingUp, TrendingDown, Package, Factory, Minus, Table as TableIcon, BarChart2, Activity } from 'lucide-react';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 
 export type ChartViewMode = 'semana' | 'mes' | 'anio';
 
@@ -205,16 +206,20 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
     <div className="flex flex-col h-full gap-3">
       
       {/* ── Header con Toggle ── */}
-      <div className="flex items-center justify-between shrink-0">
-        <h3 className="text-base font-black text-slate-900 tracking-tight">Actividad Reciente</h3>
-        <button 
-          onClick={() => setShowTrazabilidad(!showTrazabilidad)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
-        >
-          {showTrazabilidad ? <BarChart2 size={14} /> : <TableIcon size={14} />}
-          <span className="text-[10px] font-black uppercase tracking-wider">{showTrazabilidad ? 'Ver Gráfico' : 'Trazabilidad'}</span>
-        </button>
-      </div>
+      <SectionHeader 
+        icon={Activity} 
+        title="Actividad Reciente" 
+        subtitle="Evolución de producción e ingresos"
+        rightAction={
+          <button 
+            onClick={() => setShowTrazabilidad(!showTrazabilidad)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
+          >
+            {showTrazabilidad ? <BarChart2 size={14} /> : <TableIcon size={14} />}
+            <span className="text-[10px] font-black uppercase tracking-wider">{showTrazabilidad ? 'Ver Gráfico' : 'Trazabilidad'}</span>
+          </button>
+        }
+      />
 
       {/* ── KPI pills ── */}
       <div className="flex gap-2 shrink-0">

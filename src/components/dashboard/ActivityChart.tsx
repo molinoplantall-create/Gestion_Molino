@@ -12,33 +12,47 @@ import {
   startOfYear, endOfYear
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, Users, Map, TrendingUp, TrendingDown, Package, Factory, Minus } from 'lucide-react';
+import { Users, Map, TrendingUp, TrendingDown, Package, Factory, Minus } from 'lucide-react';
 
-type ViewMode = 'semana' | 'mes' | 'anio';
+export type ChartViewMode = 'semana' | 'mes' | 'anio';
 
-const MONTH_NAMES = [
+export interface ActivityChartProps {
+  /** Período controlado externamente desde el Dashboard */
+  viewMode: ChartViewMode;
+  selectedYear: number;
+  selectedMonth: number;
+  /** Filtros opcionales de cliente/zona internos al chart */
+  showFilters?: boolean;
+}
+
+const MONTH_NAMES_FULL = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 const MONTH_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-const BAR_COLORS = ['#6366f1', '#8b5cf6', '#a78bfa', '#818cf8', '#6366f1', '#8b5cf6', '#a78bfa', '#818cf8', '#6366f1', '#8b5cf6', '#a78bfa', '#818cf8'];
+// Paleta por mes para modo AÑO — degradado indigo-violet
+const MONTH_COLORS = [
+  '#6366f1','#7c3aed','#8b5cf6','#6366f1','#7c3aed','#a78bfa',
+  '#6366f1','#7c3aed','#8b5cf6','#6366f1','#7c3aed','#a78bfa'
+];
 
-const ActivityChart: React.FC = () => {
+const ActivityChart: React.FC<ActivityChartProps> = ({
+  viewMode,
+  selectedYear,
+  selectedMonth,
+  showFilters = true,
+}) => {
   const { clients, zones } = useSupabaseStore();
 
-  const [viewMode, setViewMode] = useState<ViewMode>('semana');
   const [selectedClient, setSelectedClient] = useState<string>('all');
   const [selectedZone, setSelectedZone] = useState<string>('all');
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-
   const [allLogs, setAllLogs] = useState<any[]>([]);
   const [allInputs, setAllInputs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAllData = async () => {
+    const fetchAll = async () => {
       setLoading(true);
       try {
         const [logsRes, intakeRes] = await Promise.all([
@@ -48,20 +62,13 @@ const ActivityChart: React.FC = () => {
         if (!logsRes.error && logsRes.data) setAllLogs(logsRes.data);
         if (!intakeRes.error && intakeRes.data) setAllInputs(intakeRes.data);
       } catch (e) {
-        console.error('Error fetching chart data:', e);
+        console.error('ActivityChart fetch error:', e);
       } finally {
         setLoading(false);
       }
     };
-    fetchAllData();
+    fetchAll();
   }, []);
-
-  const availableYears = useMemo(() => {
-    const years = new Set<number>();
-    allLogs.forEach(log => years.add(new Date(log.created_at).getFullYear()));
-    if (years.size === 0) years.add(new Date().getFullYear());
-    return Array.from(years).sort((a, b) => b - a);
-  }, [allLogs]);
 
   const filteredLogs = useMemo(() =>
     allLogs.filter(log => {
@@ -116,62 +123,65 @@ const ActivityChart: React.FC = () => {
       return days;
     }
 
-    // anio → monthly aggregation
-    if (viewMode === 'anio') {
-      const yearStart = startOfYear(new Date(selectedYear, 0));
-      const months = eachMonthOfInterval({ start: yearStart, end: endOfYear(yearStart) });
-      const data = months.map(date => ({
-        date, label: format(date, 'MMM', { locale: es }), sacos: 0, ingresos: 0, monthIndex: date.getMonth()
-      }));
-      filteredLogs.forEach(log => {
-        const d = parseISO(log.created_at);
-        if (d.getFullYear() === selectedYear) {
-          const m = data[d.getMonth()];
-          if (m) m.sacos += (log.total_sacks || 0);
-        }
-      });
-      filteredInputs.forEach(input => {
-        const d = parseISO(input.created_at);
-        if (d.getFullYear() === selectedYear) {
-          const m = data[d.getMonth()];
-          if (m) m.ingresos += (input.initial_quantity || 0);
-        }
-      });
-      const now = new Date();
-      if (selectedYear === now.getFullYear()) return data.filter((_, i) => i <= now.getMonth());
-      return data;
-    }
-    return [];
+    // anio → 12 monthly bars (all months, no scroll)
+    const yearStart = startOfYear(new Date(selectedYear, 0));
+    const months = eachMonthOfInterval({ start: yearStart, end: endOfYear(yearStart) });
+    const data = months.map((date, idx) => ({
+      date,
+      label: MONTH_SHORT[idx],
+      fullLabel: MONTH_NAMES_FULL[idx],
+      sacos: 0,
+      ingresos: 0,
+      monthIndex: idx
+    }));
+    filteredLogs.forEach(log => {
+      const d = parseISO(log.created_at);
+      if (d.getFullYear() === selectedYear) {
+        const m = data[d.getMonth()];
+        if (m) m.sacos += (log.total_sacks || 0);
+      }
+    });
+    filteredInputs.forEach(input => {
+      const d = parseISO(input.created_at);
+      if (d.getFullYear() === selectedYear) {
+        const m = data[d.getMonth()];
+        if (m) m.ingresos += (input.initial_quantity || 0);
+      }
+    });
+    // Always return all 12 months (no filter) — show future months as 0
+    return data;
   }, [filteredLogs, filteredInputs, viewMode, selectedMonth, selectedYear]);
 
   const totalSacos = chartData.reduce((s, d) => s + d.sacos, 0);
   const totalIngresos = chartData.reduce((s, d) => s + d.ingresos, 0);
 
-  // ── Annual summary stats ──
+  // Annual stats for quick pills
   const annualStats = useMemo(() => {
     if (viewMode !== 'anio') return null;
-    const bestMonth = [...chartData].sort((a, b) => b.sacos - a.sacos)[0];
-    const activeMonths = chartData.filter(m => m.sacos > 0).length;
-    const avg = activeMonths > 0 ? Math.round(totalSacos / activeMonths) : 0;
-    const prevMonth = chartData.length >= 2 ? chartData[chartData.length - 2] : null;
-    const lastMonth = chartData.length >= 1 ? chartData[chartData.length - 1] : null;
-    const trend = prevMonth && lastMonth
-      ? ((lastMonth.sacos - prevMonth.sacos) / Math.max(prevMonth.sacos, 1)) * 100
-      : 0;
-    return { bestMonth, activeMonths, avg, trend };
-  }, [chartData, viewMode, totalSacos]);
+    const withData = chartData.filter(m => m.sacos > 0);
+    const bestMonth = [...withData].sort((a, b) => b.sacos - a.sacos)[0];
+    const avg = withData.length > 0 ? Math.round(totalSacos / withData.length) : 0;
+    const now = new Date();
+    const curIdx = selectedYear === now.getFullYear() ? now.getMonth() : chartData.length - 1;
+    const prev = curIdx > 0 ? chartData[curIdx - 1]?.sacos || 0 : 0;
+    const cur = chartData[curIdx]?.sacos || 0;
+    const trend = prev > 0 ? ((cur - prev) / prev) * 100 : 0;
+    return { bestMonth, avg, trend, activeMonths: withData.length };
+  }, [chartData, viewMode, totalSacos, selectedYear]);
 
   const customTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
+    // For year view, get full month name
+    const fullLabel = payload[0]?.payload?.fullLabel || label;
     return (
-      <div className="bg-white p-3 shadow-xl rounded-2xl border border-slate-100 min-w-[130px]">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{label}</p>
+      <div className="bg-white p-3 shadow-xl rounded-2xl border border-slate-100 min-w-[140px]">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-50 pb-1">{fullLabel}</p>
         {payload.map((entry: any) => (
           <div key={entry.name} className="flex items-center justify-between gap-3 py-0.5">
-            <span className={`text-xs font-bold ${entry.name === 'sacos' ? 'text-indigo-600' : 'text-emerald-600'}`}>
-              {entry.name === 'sacos' ? '⚙ Producción' : '📦 Ingreso'}
+            <span className={`text-[11px] font-bold ${entry.name === 'sacos' ? 'text-indigo-600' : 'text-emerald-600'}`}>
+              {entry.name === 'sacos' ? '⚙ Prod.' : '📦 Ing.'}
             </span>
-            <span className="text-xs font-black text-slate-900">{(entry.value || 0).toLocaleString()}</span>
+            <span className="text-[11px] font-black text-slate-900">{(entry.value || 0).toLocaleString()}</span>
           </div>
         ))}
       </div>
@@ -181,230 +191,172 @@ const ActivityChart: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+        <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-500" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full gap-4">
-
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-3 shrink-0">
-        <div>
-          <h2 className="text-base font-black text-slate-900">Actividad Reciente</h2>
-          <p className="text-[11px] text-slate-400 font-medium mt-0.5">Ingresos vs. Producción comparados</p>
-        </div>
-
-        {/* View mode tabs */}
-        <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0">
-          {([{ key: 'semana', label: '7D' }, { key: 'mes', label: 'Mes' }, { key: 'anio', label: 'Año' }] as { key: ViewMode; label: string }[]).map(v => (
-            <button
-              key={v.key}
-              onClick={() => setViewMode(v.key)}
-              className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${viewMode === v.key
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Filters row ── */}
-      <div className="flex flex-wrap gap-2 shrink-0">
-        {/* Mes / Año selectors */}
-        {viewMode === 'mes' && (
-          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5">
-            <Calendar size={12} className="text-slate-400" />
-            <select
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(Number(e.target.value))}
-              className="text-[11px] font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
-            >
-              {MONTH_NAMES.map((name, i) => (
-                <option key={i} value={i}>{name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-        {(viewMode === 'mes' || viewMode === 'anio') && (
-          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5">
-            <select
-              value={selectedYear}
-              onChange={e => setSelectedYear(Number(e.target.value))}
-              className="text-[11px] font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
-            >
-              {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
-        )}
-
-        {/* Cliente */}
-        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 flex-1 min-w-[120px]">
-          <Users size={12} className="text-slate-400 shrink-0" />
-          <select
-            value={selectedClient}
-            onChange={e => setSelectedClient(e.target.value)}
-            className="text-[11px] font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer w-full truncate"
-          >
-            <option value="all">Todos los clientes</option>
-            {clients.filter(c => c.is_active !== false).map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Zona */}
-        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5">
-          <Map size={12} className="text-slate-400 shrink-0" />
-          <select
-            value={selectedZone}
-            onChange={e => setSelectedZone(e.target.value)}
-            className="text-[11px] font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
-          >
-            <option value="all">Todas las zonas</option>
-            {zones.map(z => <option key={z.id} value={z.name}>{z.name}</option>)}
-          </select>
-        </div>
-      </div>
+    <div className="flex flex-col h-full gap-3">
 
       {/* ── KPI pills ── */}
-      <div className="flex gap-3 shrink-0">
+      <div className="flex gap-2 shrink-0">
         <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 flex-1">
-          <Factory size={14} className="text-indigo-500 shrink-0" />
+          <Factory size={13} className="text-indigo-500 shrink-0" />
           <div>
-            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Producción</p>
-            <p className="text-sm font-black text-indigo-700">{totalSacos.toLocaleString()} <span className="text-[10px] font-bold">sacos</span></p>
+            <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none">Producción</p>
+            <p className="text-sm font-black text-indigo-700 leading-tight">{totalSacos.toLocaleString()} <span className="text-[9px] font-bold">scs</span></p>
           </div>
         </div>
         <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 flex-1">
-          <Package size={14} className="text-emerald-500 shrink-0" />
+          <Package size={13} className="text-emerald-500 shrink-0" />
           <div>
-            <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Ingresos</p>
-            <p className="text-sm font-black text-emerald-700">{totalIngresos.toLocaleString()} <span className="text-[10px] font-bold">sacos</span></p>
+            <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none">Ingresos</p>
+            <p className="text-sm font-black text-emerald-700 leading-tight">{totalIngresos.toLocaleString()} <span className="text-[9px] font-bold">scs</span></p>
           </div>
         </div>
-      </div>
-
-      {/* ── Vista AÑO: tarjetas resumidas + gráfico de barras limpio ── */}
-      {viewMode === 'anio' ? (
-        <div className="flex flex-col gap-3 flex-1 overflow-hidden">
-
-          {/* Stats del año */}
-          {annualStats && (
-            <div className="grid grid-cols-3 gap-2 shrink-0">
-              <div className="bg-white border border-slate-100 rounded-2xl p-3 text-center">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Mejor mes</p>
-                <p className="text-sm font-black text-slate-900">{annualStats.bestMonth ? MONTH_SHORT[annualStats.bestMonth.monthIndex] : '—'}</p>
-                <p className="text-[10px] font-bold text-indigo-600">{(annualStats.bestMonth?.sacos || 0).toLocaleString()} scs</p>
-              </div>
-              <div className="bg-white border border-slate-100 rounded-2xl p-3 text-center">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Promedio</p>
-                <p className="text-sm font-black text-slate-900">{annualStats.avg.toLocaleString()}</p>
-                <p className="text-[10px] font-bold text-slate-500">sacos/mes</p>
-              </div>
-              <div className="bg-white border border-slate-100 rounded-2xl p-3 text-center">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tendencia</p>
-                <div className="flex items-center justify-center gap-1">
-                  {annualStats.trend > 0
-                    ? <TrendingUp size={14} className="text-emerald-500" />
-                    : annualStats.trend < 0
-                    ? <TrendingDown size={14} className="text-red-400" />
-                    : <Minus size={14} className="text-slate-400" />
-                  }
-                  <p className={`text-sm font-black ${annualStats.trend > 0 ? 'text-emerald-600' : annualStats.trend < 0 ? 'text-red-500' : 'text-slate-500'}`}>
-                    {Math.abs(annualStats.trend).toFixed(0)}%
-                  </p>
-                </div>
-                <p className="text-[10px] font-bold text-slate-400">vs. mes ant.</p>
+        {viewMode === 'anio' && annualStats && (
+          <>
+            <div className="flex items-center gap-2 bg-violet-50 border border-violet-100 rounded-xl px-3 py-2 flex-1">
+              <div>
+                <p className="text-[8px] font-black text-violet-400 uppercase tracking-widest leading-none">Mejor mes</p>
+                <p className="text-sm font-black text-violet-700 leading-tight">
+                  {annualStats.bestMonth ? MONTH_SHORT[annualStats.bestMonth.monthIndex] : '—'}
+                </p>
               </div>
             </div>
-          )}
-
-          {/* Barras mensuales compactas — lista */}
-          <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
-            {chartData.map((m, i) => {
-              const maxSacos = Math.max(...chartData.map(x => x.sacos), 1);
-              const pct = Math.round((m.sacos / maxSacos) * 100);
-              return (
-                <div key={i} className="flex items-center gap-3 group hover:bg-slate-50 rounded-xl px-2 py-1.5 transition-colors">
-                  <span className="text-[10px] font-black text-slate-500 uppercase w-8 shrink-0">{m.label}</span>
-                  <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${Math.max(pct, m.sacos > 0 ? 4 : 0)}%`,
-                        background: `linear-gradient(90deg, #6366f1, #8b5cf6)`
-                      }}
-                    />
-                  </div>
-                  <div className="text-right shrink-0 w-20">
-                    <span className="text-[11px] font-black text-slate-800">{m.sacos.toLocaleString()}</span>
-                    <span className="text-[9px] text-slate-400 font-bold ml-1">scs</span>
-                    {m.ingresos > 0 && (
-                      <span className="block text-[9px] text-emerald-600 font-bold">+{m.ingresos.toLocaleString()} ing</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            {chartData.every(m => m.sacos === 0) && (
-              <div className="text-center py-8 text-slate-400 text-sm font-medium">
-                Sin producción registrada en {selectedYear}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 flex-1">
+              <div className="flex items-center gap-1">
+                {annualStats.trend > 0
+                  ? <TrendingUp size={12} className="text-emerald-500" />
+                  : annualStats.trend < 0
+                  ? <TrendingDown size={12} className="text-red-400" />
+                  : <Minus size={12} className="text-slate-400" />}
               </div>
-            )}
+              <div>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Tendencia</p>
+                <p className={`text-sm font-black leading-tight ${annualStats.trend > 0 ? 'text-emerald-600' : annualStats.trend < 0 ? 'text-red-500' : 'text-slate-500'}`}>
+                  {Math.abs(annualStats.trend).toFixed(0)}%
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Filtros cliente/zona ── */}
+      {showFilters && (
+        <div className="flex gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 flex-1 min-w-0">
+            <Users size={11} className="text-slate-400 shrink-0" />
+            <select
+              value={selectedClient}
+              onChange={e => setSelectedClient(e.target.value)}
+              className="text-[10px] font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer w-full truncate"
+            >
+              <option value="all">Todos los clientes</option>
+              {clients.filter(c => c.is_active !== false).map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
-        </div>
-      ) : (
-        /* ── Vista SEMANA / MES: gráfico de área/barras ── */
-        <div className="flex-1 min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
-            {viewMode === 'semana' ? (
-              <AreaChart data={chartData} margin={{ top: 5, right: 8, left: -25, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gradSacos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradIngresos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.12} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} dy={8} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
-                <Tooltip content={customTooltip} />
-                <Area type="monotone" dataKey="sacos" name="sacos" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#gradSacos)" animationDuration={1000} />
-                <Area type="monotone" dataKey="ingresos" name="ingresos" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#gradIngresos)" animationDuration={1000} />
-              </AreaChart>
-            ) : (
-              <ComposedChart data={chartData} margin={{ top: 5, right: 8, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
-                <Tooltip content={customTooltip} />
-                <Bar dataKey="sacos" name="sacos" radius={[5, 5, 0, 0]} barSize={chartData.length > 20 ? 10 : 18} fill="#6366f1" fillOpacity={0.85} />
-                <Line type="monotone" dataKey="ingresos" name="ingresos" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, fill: '#10b981' }} activeDot={{ r: 5 }} />
-              </ComposedChart>
-            )}
-          </ResponsiveContainer>
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5">
+            <Map size={11} className="text-slate-400 shrink-0" />
+            <select
+              value={selectedZone}
+              onChange={e => setSelectedZone(e.target.value)}
+              className="text-[10px] font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
+            >
+              <option value="all">Todas las zonas</option>
+              {zones.map(z => <option key={z.id} value={z.name}>{z.name}</option>)}
+            </select>
+          </div>
         </div>
       )}
 
-      {/* ── Leyenda compacta ── */}
-      <div className="flex items-center gap-4 shrink-0 pb-1">
+      {/* ── Gráfico ── */}
+      <div className="flex-1 min-h-0">
+        {viewMode === 'anio' ? (
+          /* AÑO: BarChart compacto con todos los 12 meses sin scroll */
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 8, right: 4, left: -28, bottom: 0 }} barCategoryGap="20%">
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis
+                dataKey="label"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
+                interval={0}
+              />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} />
+              <Tooltip content={customTooltip} cursor={{ fill: '#f8fafc', radius: 4 }} />
+              <Bar dataKey="sacos" name="sacos" radius={[4, 4, 0, 0]} maxBarSize={28}>
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={entry.label}
+                    fill={entry.sacos > 0 ? MONTH_COLORS[index % MONTH_COLORS.length] : '#e2e8f0'}
+                    fillOpacity={entry.sacos > 0 ? 1 : 0.6}
+                  />
+                ))}
+              </Bar>
+              <Bar dataKey="ingresos" name="ingresos" radius={[3, 3, 0, 0]} maxBarSize={12} fill="#10b981" fillOpacity={0.5} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : viewMode === 'semana' ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -28, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gradSacos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.18} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradIngresos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.12} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} dy={6} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} />
+              <Tooltip content={customTooltip} />
+              <Area type="monotone" dataKey="sacos" name="sacos" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#gradSacos)" />
+              <Area type="monotone" dataKey="ingresos" name="ingresos" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#gradIngresos)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          /* MES: ComposedChart barras diarias */
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={chartData} margin={{ top: 8, right: 4, left: -28, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis
+                dataKey="label"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
+                interval={Math.ceil(chartData.length / 10) - 1}
+              />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} />
+              <Tooltip content={customTooltip} />
+              <Bar dataKey="sacos" name="sacos" radius={[4, 4, 0, 0]} barSize={chartData.length > 20 ? 8 : 14} fill="#6366f1" fillOpacity={0.85} />
+              <Line type="monotone" dataKey="ingresos" name="ingresos" stroke="#10b981" strokeWidth={2} dot={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* ── Leyenda mini ── */}
+      <div className="flex items-center gap-4 shrink-0">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-1.5 rounded-full bg-indigo-500" />
-          <span className="text-[10px] font-bold text-slate-500">Producción</span>
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Producción</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-1.5 rounded-full bg-emerald-500" />
-          <span className="text-[10px] font-bold text-slate-500">Ingresos stock</span>
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Ingresos</span>
         </div>
+        {viewMode === 'anio' && (
+          <span className="text-[9px] text-slate-300 font-bold ml-auto">Barras claras = meses sin producción</span>
+        )}
       </div>
     </div>
   );

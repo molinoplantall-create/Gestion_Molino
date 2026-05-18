@@ -21,9 +21,10 @@ import RecentSessions from '@/components/dashboard/RecentSessions';
 import ActivityChart from '@/components/dashboard/ActivityChart';
 import ClientComparisonChart from '@/components/dashboard/ClientComparisonChart';
 import { useSupabaseStore } from '@/store/supabaseStore';
-import { useToast } from '@/hooks/useToast';
 import { formatNumber } from '@/utils/formatters';
 import ClientStockPanel from '@/components/dashboard/ClientStockPanel';
+import { ChartViewMode } from '@/components/dashboard/ActivityChart';
+import { subDays, format } from 'date-fns';
 
 const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 const MINERAL_COLORS: Record<string, string> = { 'Óxido': '#6366f1', 'Sulfuro': '#facc15' };
@@ -54,9 +55,9 @@ const Dashboard: React.FC = () => {
   } = useSupabaseStore();
 
   const [showSinZonaModal, setShowSinZonaModal] = useState(false);
-  const [comparisonMonth, setComparisonMonth] = useState(new Date().getMonth());
-  const [comparisonYear, setComparisonYear] = useState(new Date().getFullYear());
-  const [comparisonMode, setComparisonMode] = useState<'mes' | 'anio'>('mes');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [viewMode, setViewMode] = useState<ChartViewMode>('semana');
   const [showRetry, setShowRetry] = useState(false);
 
   // Timeout de seguridad: si pasa más de 12 segundos en loading → mostrar botón Reintentar
@@ -104,10 +105,17 @@ const Dashboard: React.FC = () => {
   // Re-fetch data when period changes to ensure we have historical logs
   useEffect(() => {
     const fetchPeriodData = async () => {
-      if (comparisonMode === 'mes') {
-        const lastDay = new Date(comparisonYear, comparisonMonth + 1, 0).getDate();
-        const startDate = `${comparisonYear}-${(comparisonMonth + 1).toString().padStart(2, '0')}-01`;
-        const endDate = `${comparisonYear}-${(comparisonMonth + 1).toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      if (viewMode === 'semana') {
+        const last7Days = subDays(new Date(), 7);
+        await fetchMillingLogs({
+          startDate: format(last7Days, 'yyyy-MM-dd'),
+          endDate: format(new Date(), 'yyyy-MM-dd'),
+          pageSize: 1000
+        });
+      } else if (viewMode === 'mes') {
+        const lastDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        const startDate = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`;
+        const endDate = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
         
         await fetchMillingLogs({
           startDate,
@@ -116,15 +124,15 @@ const Dashboard: React.FC = () => {
         });
       } else {
         await fetchMillingLogs({
-          startDate: `${comparisonYear}-01-01`,
-          endDate: `${comparisonYear}-12-31`,
+          startDate: `${selectedYear}-01-01`,
+          endDate: `${selectedYear}-12-31`,
           pageSize: 5000
         });
       }
     };
     
     fetchPeriodData();
-  }, [comparisonMonth, comparisonYear, comparisonMode]);
+  }, [selectedMonth, selectedYear, viewMode]);
 
   // ═══════════════════════════════════════════════
   // CÁLCULOS OPERATIVOS
@@ -144,11 +152,27 @@ const Dashboard: React.FC = () => {
   // CÁLCULOS DE INTELIGENCIA GERENCIAL
   // ═══════════════════════════════════════════════
   const intelligence = useMemo(() => {
-    const currentYear = comparisonYear;
-    const currentMonth = now.getMonth();
+    const currentYear = selectedYear;
+    const currentMonth = viewMode === 'semana' ? now.getMonth() : selectedMonth;
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-    // 1. Producción Mensual (AreaChart)
+    // Filtro interactivo global de logs para todo el Dashboard
+    const filteredLogs = millingLogs.filter(log => {
+      if (!log.created_at) return false;
+      const d = new Date(log.created_at);
+      if (isNaN(d.getTime())) return false;
+      
+      if (viewMode === 'semana') {
+        const last7Days = subDays(now, 7);
+        return d >= last7Days && d <= now;
+      } else if (viewMode === 'mes') {
+        return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+      } else {
+        return d.getFullYear() === selectedYear;
+      }
+    });
+
+    // 1. Producción Mensual (AreaChart - Tendencia Evolutiva)
     const monthlyProd = months.map((month, i) => {
       const logsInMonth = millingLogs.filter(log => {
         const date = new Date(log.created_at);
@@ -160,7 +184,6 @@ const Dashboard: React.FC = () => {
         clientes: new Set(logsInMonth.map(l => l.client_id)).size
       };
     }).filter((_, i) => {
-      const now = new Date();
       if (currentYear === now.getFullYear()) {
         return i <= now.getMonth();
       }
@@ -175,9 +198,9 @@ const Dashboard: React.FC = () => {
       : '---';
     const tendenciaPositiva = Number(pctCambio) >= 0 || pctCambio === '---';
 
-    // 3. Productividad por Molino (BarChart)
+    // 3. Productividad por Molino (BarChart - Filtrado por periodo unificado)
     const millStats = mills.map(m => {
-      const prodTotal = millingLogs.reduce((sum, log) => {
+      const prodTotal = filteredLogs.reduce((sum, log) => {
         if (!Array.isArray(log.mills_used)) return sum;
         const millEntry = log.mills_used.find((mu: any) => (mu.mill_id === m.id || mu.id === m.id));
         return sum + (millEntry?.total || millEntry?.total_sacks || (Number(millEntry?.cuarzo || 0) + Number(millEntry?.llampo || 0)) || 0);
@@ -265,21 +288,9 @@ const Dashboard: React.FC = () => {
     const avgSacosReporte = millingLogs.length > 0 ? totalSacosReporte / millingLogs.length : 0;
     const millDisponibilidad = `${((mills.filter(m => m.status === 'LIBRE').length / mills.length) * 100).toFixed(0)}%`;
 
-    // 11. Comparativa de Clientes (Filtro interactivo)
-    const comparisonLogs = millingLogs.filter(log => {
-      if (!log.created_at) return false;
-      const d = new Date(log.created_at);
-      if (isNaN(d.getTime())) return false; // Fecha inválida
-      
-      if (comparisonMode === 'mes') {
-        return d.getMonth() === comparisonMonth && d.getFullYear() === comparisonYear;
-      } else {
-        return d.getFullYear() === comparisonYear;
-      }
-    });
-    
+    // 11. Comparativa de Clientes (Filtro interactivo global)
     const clientDataMap: Record<string, { name: string, total: number }> = {};
-    comparisonLogs.forEach(log => {
+    filteredLogs.forEach(log => {
       const clientName = log.clients?.name || 'Desconocido';
       if (!clientDataMap[clientName]) {
         clientDataMap[clientName] = { name: clientName, total: 0 };
@@ -304,7 +315,7 @@ const Dashboard: React.FC = () => {
       millStatsReport, totalSacosReporte, avgSacosReporte, millDisponibilidad,
       clientMonthlyProd, availableYears
     };
-  }, [millingLogs, mills, allClients, now]);
+  }, [millingLogs, mills, allClients, now, viewMode, selectedYear, selectedMonth]);
 
   // ═══════════════════════════════════════════════
   // EXPORTACIONES
@@ -466,6 +477,72 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════ */}
+      {/* FILTRO GLOBAL DE PERIODO                    */}
+      {/* ═══════════════════════════════════════════ */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in duration-500">
+        <div className="flex items-center gap-2">
+          <Calendar size={18} className="text-indigo-500" />
+          <h2 className="text-sm font-black text-slate-800 tracking-tight">Filtro Global del Dashboard</h2>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Tabs Periodo */}
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
+            <button
+              onClick={() => setViewMode('semana')}
+              className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
+                viewMode === 'semana' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              7 Días
+            </button>
+            <button
+              onClick={() => setViewMode('mes')}
+              className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
+                viewMode === 'mes' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Mes
+            </button>
+            <button
+              onClick={() => setViewMode('anio')}
+              className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
+                viewMode === 'anio' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Año
+            </button>
+          </div>
+
+          {/* Selectores de Fecha */}
+          {(viewMode === 'mes' || viewMode === 'anio') && (
+            <div className="flex items-center gap-2">
+              {viewMode === 'mes' && (
+                <select 
+                  value={selectedMonth}
+                  onChange={e => setSelectedMonth(Number(e.target.value))}
+                  className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {MONTH_NAMES.map((name, i) => (
+                    <option key={i} value={i}>{name}</option>
+                  ))}
+                </select>
+              )}
+              <select 
+                value={selectedYear}
+                onChange={e => setSelectedYear(Number(e.target.value))}
+                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                {intelligence.availableYears.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════ */}
       {/* UNIFIED DASHBOARD LAYOUT                    */}
       {/* ═══════════════════════════════════════════ */}
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -546,13 +623,18 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Actividad Reciente */}
           <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm flex flex-col h-[500px] overflow-hidden">
-            <ActivityChart />
+            <ActivityChart 
+              viewMode={viewMode}
+              selectedYear={selectedYear}
+              selectedMonth={selectedMonth}
+              showFilters={false}
+            />
           </div>
 
           {/* Tendencia Evolutiva */}
           <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col h-[500px]">
             <h3 className="text-base sm:text-xl font-black text-slate-900 mb-2 tracking-tight">Tendencia Evolutiva</h3>
-            <p className="text-xs text-slate-500 font-medium mb-6">Crecimiento mensual acumulado ({comparisonYear})</p>
+            <p className="text-xs text-slate-500 font-medium mb-6">Crecimiento mensual acumulado ({selectedYear})</p>
             <div className="flex-1 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={intelligence.monthlyProd}>
@@ -577,55 +659,12 @@ const Dashboard: React.FC = () => {
 
           {/* Comparativa de Producción */}
           <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[500px]">
-            <div className="flex flex-col gap-4 mb-6">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Users size={18} className="text-indigo-500" />
-                  <h2 className="text-base sm:text-lg font-black text-slate-900">Comparativa de Producción</h2>
-                </div>
-                <p className="text-[10px] text-slate-500 font-medium">Volumen por cliente en el periodo</p>
+            <div className="flex flex-col gap-1 mb-6">
+              <div className="flex items-center gap-2 mb-1">
+                <Users size={18} className="text-indigo-500" />
+                <h2 className="text-base sm:text-lg font-black text-slate-900">Comparativa de Producción</h2>
               </div>
-              
-              <div className="flex flex-wrap gap-2 items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
-                <div className="flex bg-white p-0.5 rounded-lg border border-slate-200 shadow-sm">
-                  <button 
-                    onClick={() => setComparisonMode('mes')}
-                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-md transition-all ${comparisonMode === 'mes' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                    Mes
-                  </button>
-                  <button 
-                    onClick={() => setComparisonMode('anio')}
-                    className={`px-2 py-1 text-[9px] font-black uppercase rounded-md transition-all ${comparisonMode === 'anio' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                    Año
-                  </button>
-                </div>
-
-                {comparisonMode === 'mes' && (
-                  <select 
-                    value={comparisonMonth}
-                    onChange={e => setComparisonMonth(Number(e.target.value))}
-                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-700 outline-none"
-                  >
-                    {MONTH_NAMES.map((name, i) => {
-                      const isFuture = comparisonYear === now.getFullYear() && i > now.getMonth();
-                      if (isFuture) return null;
-                      return <option key={i} value={i}>{name.slice(0, 3)}</option>;
-                    }).filter(Boolean)}
-                  </select>
-                )}
-
-                <select 
-                  value={comparisonYear}
-                  onChange={e => setComparisonYear(Number(e.target.value))}
-                  className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-700 outline-none"
-                >
-                  {intelligence.availableYears.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
+              <p className="text-[10px] text-slate-500 font-medium">Volumen por cliente en el periodo seleccionado</p>
             </div>
             
             <div className="flex-1 relative">
@@ -670,26 +709,7 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-1">
               <div>
                 <h3 className="text-base font-black text-slate-900 tracking-tight">Carga por Molino</h3>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Producción histórica acumulada</p>
-              </div>
-              {/* Tabs Año / Mes */}
-              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-                <button
-                  onClick={() => setComparisonMode('anio')}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                    comparisonMode === 'anio' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  Año
-                </button>
-                <button
-                  onClick={() => setComparisonMode('mes')}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                    comparisonMode === 'mes' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  Mes
-                </button>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Producción en el periodo seleccionado</p>
               </div>
             </div>
 

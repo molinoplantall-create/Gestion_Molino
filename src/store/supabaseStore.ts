@@ -50,12 +50,16 @@ interface SupabaseStore {
     search?: string;
     status?: string;
     millId?: string;
+    clientId?: string;
     mineralType?: string;
     startDate?: string;
     endDate?: string;
     zone?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
     limit?: number; // legacy support
   }) => Promise<void>;
+  updateMillingLog: (id: string, updates: Partial<MillingLog>) => Promise<boolean>;
   fetchMaintenanceLogs: (options?: {
     page?: number;
     pageSize?: number;
@@ -348,10 +352,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     let search = '';
     let status = 'all';
     let millId = '';
+    let clientId = '';
     let mineralType = '';
     let startDate = '';
     let endDate = '';
-    let zone = options.zone || '';
+    let zone = '';
+    let sortBy = 'created_at';
+    let sortOrder: 'asc' | 'desc' = 'desc';
 
     if (typeof options === 'number') {
       pageSize = options;
@@ -361,10 +368,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       search = options.search || '';
       status = options.status || 'all';
       millId = options.millId || '';
+      clientId = options.clientId || '';
       mineralType = options.mineralType || '';
       startDate = options.startDate || '';
       endDate = options.endDate || '';
       zone = options.zone || '';
+      sortBy = options.sortBy || 'created_at';
+      sortOrder = options.sortOrder || 'desc';
     }
 
     const currentFetchId = ++fetchMillingLogsId;
@@ -387,7 +397,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         .from('milling_logs')
         .select(`
           *,
-          clients (
+          clients!inner (
             name, contact_name, phone, zone
           )
         `, { count: 'exact' });
@@ -396,15 +406,17 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         query = query.eq('status', status);
       }
 
+      if (clientId && clientId !== 'all') {
+        query = query.eq('client_id', clientId);
+      }
+
       if (search) {
-        // Buscamos en observaciones, tipo de mineral y datos del cliente (nombre y contacto)
-        // Eliminamos el cast a ::text de mills_used que causaba errores 400 en Supabase/PostgREST
-        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%,clients.name.ilike.%${search}%,clients.contact_name.ilike.%${search}%`);
+        // Buscamos en observaciones y tipo de mineral
+        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%`);
       }
 
       if (zone && zone !== 'all') {
         // Filtrar por la zona de la tabla relacionada 'clients'
-        // En Supabase, para filtrar por tabla relacionada: 'tabla(columna)'
         query = query.filter('clients.zone', 'eq', zone);
       }
 
@@ -429,7 +441,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const to = from + pageSize - 1;
 
       const { data, count, error } = await query
-        .order('created_at', { ascending: false })
+        .order(sortBy, { ascending: sortOrder === 'asc' })
         .range(from, to);
 
       if (currentFetchId !== fetchMillingLogsId) return;
@@ -1954,6 +1966,33 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return true;
     } catch (error: any) {
       logger.error('❌ Error updateStockBatch:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  updateMillingLog: async (id: string, updates: Partial<MillingLog>) => {
+    set({ loading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('milling_logs')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Update local state directly instead of fetching
+      const currentLogs = get().millingLogs;
+      const updatedLogs = currentLogs.map(log => 
+        log.id === id ? { ...log, ...updates } : log
+      );
+      set({ millingLogs: updatedLogs });
+      
+      return true;
+    } catch (error: any) {
+      logger.error('❌ Error updateMillingLog:', error);
       set({ error: error.message });
       return false;
     } finally {

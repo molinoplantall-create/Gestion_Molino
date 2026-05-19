@@ -222,42 +222,42 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
       />
 
       {/* ── KPI pills ── */}
-      <div className="flex gap-2 shrink-0">
-        <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 flex-1">
+      <div className="flex gap-1.5 sm:gap-2 shrink-0 overflow-hidden">
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-2 sm:px-3 py-2 flex-1 min-w-0">
           <Factory size={13} className="text-indigo-500 shrink-0" />
-          <div>
-            <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none">Producción</p>
-            <p className="text-sm font-black text-indigo-700 leading-tight">{totalSacos.toLocaleString()} <span className="text-[9px] font-bold">scs</span></p>
+          <div className="min-w-0">
+            <p className="text-[7px] sm:text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none truncate" title="Producción">Producción</p>
+            <p className="text-xs sm:text-sm font-black text-indigo-700 leading-tight truncate">{totalSacos.toLocaleString()} <span className="text-[8px] sm:text-[9px] font-bold">scs</span></p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 flex-1">
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-2 sm:px-3 py-2 flex-1 min-w-0">
           <Package size={13} className="text-emerald-500 shrink-0" />
-          <div>
-            <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none">Ingresos</p>
-            <p className="text-sm font-black text-emerald-700 leading-tight">{totalIngresos.toLocaleString()} <span className="text-[9px] font-bold">scs</span></p>
+          <div className="min-w-0">
+            <p className="text-[7px] sm:text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none truncate" title="Ingresos">Ingresos</p>
+            <p className="text-xs sm:text-sm font-black text-emerald-700 leading-tight truncate">{totalIngresos.toLocaleString()} <span className="text-[8px] sm:text-[9px] font-bold">scs</span></p>
           </div>
         </div>
         {viewMode === 'anio' && annualStats && (
           <>
-            <div className="flex items-center gap-2 bg-violet-50 border border-violet-100 rounded-xl px-3 py-2 flex-1">
-              <div>
-                <p className="text-[8px] font-black text-violet-400 uppercase tracking-widest leading-none">Mejor mes</p>
-                <p className="text-sm font-black text-violet-700 leading-tight">
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-violet-50 border border-violet-100 rounded-xl px-2 sm:px-3 py-2 flex-1 min-w-0">
+              <div className="min-w-0">
+                <p className="text-[7px] sm:text-[8px] font-black text-violet-400 uppercase tracking-widest leading-none truncate" title="Mejor mes">Mejor mes</p>
+                <p className="text-xs sm:text-sm font-black text-violet-700 leading-tight truncate">
                   {annualStats.bestMonth ? MONTH_SHORT[annualStats.bestMonth.monthIndex] : '—'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 flex-1">
-              <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2 sm:px-3 py-2 flex-1 min-w-0">
+              <div className="flex items-center gap-1 shrink-0">
                 {annualStats.trend > 0
                   ? <TrendingUp size={12} className="text-emerald-500" />
                   : annualStats.trend < 0
                   ? <TrendingDown size={12} className="text-red-400" />
                   : <Minus size={12} className="text-slate-400" />}
               </div>
-              <div>
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Tendencia</p>
-                <p className={`text-sm font-black leading-tight ${annualStats.trend > 0 ? 'text-emerald-600' : annualStats.trend < 0 ? 'text-red-500' : 'text-slate-500'}`}>
+              <div className="min-w-0">
+                <p className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none truncate" title="Tendencia">Tendencia</p>
+                <p className={`text-xs sm:text-sm font-black leading-tight truncate ${annualStats.trend > 0 ? 'text-emerald-600' : annualStats.trend < 0 ? 'text-red-500' : 'text-slate-500'}`}>
                   {Math.abs(annualStats.trend).toFixed(0)}%
                 </p>
               </div>

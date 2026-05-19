@@ -524,20 +524,20 @@ const Stock: React.FC = () => {
           { label: 'MINERAL LLAMPO', value: formatNumber(totalLlampo), icon: ArrowDownWideNarrow, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-100', trend: 'Sacos', trendUp: true },
           { label: 'CLIENTES ACTIVOS', value: formatNumber(clients.filter(c => (c.stock_cuarzo || 0) + (c.stock_llampo || 0) > 0).length), icon: User, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100', trend: 'Con Saldo', trendUp: true },
         ].map((kpi) => (
-          <div key={kpi.label} className="group kpi-card flex flex-col justify-between">
-            <div className="flex items-start justify-between mb-2">
-              <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <kpi.icon className={`${kpi.color} w-4 h-4 sm:w-7 sm:h-7`} strokeWidth={2.5} />
+          <div key={kpi.label} className="group kpi-card flex flex-col justify-between p-3 sm:p-4 min-w-0">
+            <div className="flex items-start justify-between mb-2 shrink-0">
+              <div className={`p-2 sm:p-3 ${kpi.bg} ${kpi.border} rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                <kpi.icon className={`${kpi.color} w-4 h-4 sm:w-6 sm:h-6`} strokeWidth={2.5} />
               </div>
-              <div className="hidden sm:flex items-center px-2 py-1 rounded-lg text-[10px] font-black text-slate-400 bg-slate-50">
+              <div className="hidden sm:flex items-center px-2 py-1 rounded-lg text-[9px] font-black text-slate-400 bg-slate-50 shrink-0">
                 {kpi.trend}
               </div>
             </div>
-            <div>
-              <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate" title={kpi.label}>{kpi.label}</p>
-              <div className="flex items-baseline gap-1 sm:gap-2 truncate">
-                <h3 className="text-lg sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
-                <span className="text-[8px] sm:text-xs font-bold text-slate-400">sacos</span>
+            <div className="min-w-0">
+              <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate line-clamp-1" title={kpi.label}>{kpi.label}</p>
+              <div className="flex items-baseline gap-1 sm:gap-1.5 truncate">
+                <h3 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 shrink-0">sacos</span>
               </div>
             </div>
           </div>

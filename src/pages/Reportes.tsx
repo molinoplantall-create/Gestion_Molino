@@ -430,19 +430,19 @@ const Reportes: React.FC = () => {
           { label: 'PROMEDIO POR CARGA', value: stats.avgSacos.toFixed(1), icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', trend: 'Sacos/Log', trendUp: true },
           { label: 'DISPONIBILIDAD', value: `${((mills.filter(m => m.status === 'LIBRE').length / mills.length) * 100).toFixed(0)}%`, icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', trend: 'Equipo', trendUp: true },
         ].map((kpi) => (
-          <div key={kpi.label} className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-100 shadow-sm transition-all duration-300 print:border-slate-300 print:shadow-none flex flex-col justify-between">
+          <div key={kpi.label} className="group bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 border border-slate-100 shadow-sm transition-all duration-300 print:border-slate-300 print:shadow-none flex flex-col justify-between">
             <div className="flex items-start justify-between mb-2 sm:mb-4 print:hidden">
-              <div className={`p-2 sm:p-4 ${kpi.bg} ${kpi.border} rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-7 sm:h-7`} strokeWidth={2.5} />
+              <div className={`p-2 sm:p-3 ${kpi.bg} ${kpi.border} rounded-xl sm:rounded-2xl border flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-6 sm:h-6`} strokeWidth={2.5} />
               </div>
               <div className={`hidden sm:flex items-center px-2 py-1 rounded-lg text-[10px] font-black ${kpi.trendUp ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
                 {kpi.trend}
               </div>
             </div>
-            <div>
-              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate" title={kpi.label}>{kpi.label}</p>
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 sm:mb-1 truncate line-clamp-1" title={kpi.label}>{kpi.label}</p>
               <div className="flex items-baseline gap-1 sm:gap-2 truncate">
-                <h3 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
                 <span className="text-[10px] sm:text-xs font-bold text-slate-400">unidades</span>
               </div>
             </div>

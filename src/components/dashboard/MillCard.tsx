@@ -217,15 +217,15 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
       <div className="flex flex-row sm:flex-col h-full gap-3 sm:gap-0">
         
         {/* LADO IZQUIERDO / SUPERIOR: Header e Icono */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between mb-0 sm:mb-4 w-1/3 sm:w-full">
-          <div className="flex flex-col sm:flex-row items-center">
-            <div className={`p-2 sm:p-2.5 rounded-lg ${config.badge} mb-2 sm:mb-0 sm:mr-3 group-hover:scale-110 transition-transform`}>
+        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between mb-0 sm:mb-4 w-1/3 sm:w-full min-w-0">
+          <div className="flex flex-col sm:flex-row items-center min-w-0 flex-1 pr-2">
+            <div className={`p-2 sm:p-2.5 rounded-lg ${config.badge} mb-2 sm:mb-0 sm:mr-3 group-hover:scale-110 transition-transform shrink-0`}>
               {React.cloneElement(config.icon as React.ReactElement, { size: 18, strokeWidth: 1.5 })}
             </div>
-            <div className="text-center sm:text-left">
-              <h3 className="font-black text-slate-900 text-xs sm:text-lg leading-tight">{normalizedMill.nombre}</h3>
+            <div className="text-center sm:text-left min-w-0 w-full">
+              <h3 className="font-black text-slate-900 text-xs sm:text-lg leading-tight truncate" title={normalizedMill.nombre}>{normalizedMill.nombre}</h3>
               <div className="flex items-center justify-center sm:justify-start mt-1">
-                <span className={`px-1.5 py-0.5 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest ${config.badge}`}>
+                <span className={`px-1.5 py-0.5 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest truncate ${config.badge}`}>
                   {config.label}
                 </span>
               </div>

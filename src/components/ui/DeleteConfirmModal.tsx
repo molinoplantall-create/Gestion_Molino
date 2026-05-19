@@ -47,7 +47,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
                 </h3>
 
                 {/* Mensaje descriptivo */}
-                <div className="text-slate-500 font-medium mb-8 text-sm leading-relaxed px-4">
+                <div className="text-slate-500 font-medium mb-8 text-sm leading-relaxed px-4 break-words">
                     {message || (
                         <>
                             ¿Estás seguro de que deseas eliminar{' '}

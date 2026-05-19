@@ -53,9 +53,9 @@ export const FormModal: React.FC<FormModalProps> = ({
                                 <Icon className="w-5 h-5 text-indigo-600" />
                             </div>
                         )}
-                        <div>
-                            <h2 className="text-base font-black text-slate-900 leading-tight">{title}</h2>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                        <div className="min-w-0 flex-1">
+                            <h2 className="text-base font-black text-slate-900 leading-tight truncate" title={title}>{title}</h2>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
                                 Complete los datos del formulario
                             </p>
                         </div>

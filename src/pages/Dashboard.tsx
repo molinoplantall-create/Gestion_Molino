@@ -67,25 +67,11 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (millsLoading) {
-        console.warn("⏰ Loading timeout - forzando finalización / mostrando reintento");
         setShowRetry(true);
       }
     }, 12000);
 
     return () => clearTimeout(timeout);
-  }, [millsLoading]);
-
-  // Force-reset de emergencia: si mills sigue cargando a los 8s, resetear y reintentar
-  useEffect(() => {
-    const forceReset = setTimeout(() => {
-      if (millsLoading) {
-        console.warn("🔄 Forzando reset de loading states");
-        resetLoadingStates();
-        fetchMills();
-      }
-    }, 8000);
-
-    return () => clearTimeout(forceReset);
   }, [millsLoading]);
 
   // InitFetch: Garantizar carga de Supabase al montar la vista
@@ -546,17 +532,17 @@ const Dashboard: React.FC = () => {
             border: string; 
             subtextColor?: string;
           }, idx) => (
-            <div key={idx} className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all group overflow-hidden">
-              <div className={`w-14 h-14 rounded-xl ${kpi.bg} border ${kpi.border} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300`}>
-                <kpi.icon className={`${kpi.color} w-6 h-6`} strokeWidth={2.5} />
+            <div key={idx} className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-all group overflow-hidden">
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl ${kpi.bg} border ${kpi.border} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-6 sm:h-6`} strokeWidth={2.5} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{kpi.label}</p>
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest truncate line-clamp-1">{kpi.label}</p>
                 <div className="flex items-baseline gap-1 mt-0.5 truncate">
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
-                  <span className="text-[10px] font-bold text-slate-500">{kpi.unit}</span>
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-slate-500">{kpi.unit}</span>
                 </div>
-                <span className={`text-[9px] font-black block truncate ${kpi.subtextColor || 'text-slate-500'}`}>
+                <span className={`text-[8px] sm:text-[9px] font-black block truncate ${kpi.subtextColor || 'text-slate-500'}`}>
                   {kpi.subtext}
                 </span>
               </div>

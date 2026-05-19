@@ -411,16 +411,16 @@ const Moliendas: React.FC = () => {
           { label: 'MOLIENDAS ÉXITO', value: formatNumber(stats.finalizadas), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', suffix: 'Logs' },
           { label: 'TIEMPO ESTIMADO', value: stats.tiempoPromedio, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', suffix: 'Horas/Prom' },
         ].map((kpi, idx) => (
-          <div key={kpi.label} className={`group kpi-card p-4 ${idx === 2 ? 'col-span-2 sm:col-span-1' : ''}`}>
+          <div key={kpi.label} className={`group kpi-card p-3 sm:p-4 ${idx === 2 ? 'col-span-2 sm:col-span-1' : ''}`}>
             <div className="flex items-center">
-              <div className={`p-3 ${kpi.bg} ${kpi.border} rounded-xl border mr-4`}>
-                <kpi.icon className={kpi.color} size={22} strokeWidth={2.5} />
+              <div className={`p-2 sm:p-3 ${kpi.bg} ${kpi.border} rounded-xl border mr-3 sm:mr-4 shrink-0`}>
+                <kpi.icon className={`${kpi.color} w-5 h-5 sm:w-[22px] sm:h-[22px]`} strokeWidth={2.5} />
               </div>
-              <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{kpi.label}</p>
-                <div className="flex items-baseline gap-1.5">
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{kpi.suffix}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5 truncate line-clamp-1" title={kpi.label}>{kpi.label}</p>
+                <div className="flex items-baseline gap-1 sm:gap-1.5 truncate">
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight truncate">{kpi.value}</h3>
+                  <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-tighter shrink-0">{kpi.suffix}</span>
                 </div>
               </div>
             </div>

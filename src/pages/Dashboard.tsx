@@ -241,13 +241,14 @@ const Dashboard: React.FC = () => {
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
 
-    // 7. Volumen por Zona
+    // 7. Volumen por Zona (RESPETA EL FILTRO GLOBAL)
     const zoneData: Record<string, number> = {};
-    allClients.forEach(c => {
-      const volume = (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0);
+    filteredLogs.forEach(log => {
+      const volume = log.total_sacks || 0;
       if (volume <= 0) return;
       
-      let rawZone = (c.zone || 'SIN ZONA').trim().toUpperCase();
+      const client = allClients.find(c => c.id === log.client_id);
+      let rawZone = (client?.zone || 'SIN ZONA').trim().toUpperCase();
       // Agrupar si existe en el mapeo, sino usar el nombre normalizado
       const zone = ZONES_MAPPING[rawZone] || rawZone;
       

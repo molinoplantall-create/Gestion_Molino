@@ -200,16 +200,20 @@ const Moliendas: React.FC = () => {
     const totalSacos = millingLogs.reduce((acc, log) => acc + (log.total_sacks || 0), 0);
     const finalizadas = millingLogs.filter(log => log.status === 'FINALIZADO' || log.status === 'COMPLETED').length;
 
-    // Estimate duration in hours per log
-    const durationHours = millingLogs.map(log => log.mineral_type === 'OXIDO' ? 1.67 : 2.25);
-    const avgDuration = durationHours.length > 0
-      ? (durationHours.reduce((a, b) => a + b, 0) / durationHours.length)
+    // Duración en minutos por tipo de mineral (defaults del sistema)
+    // ÓXIDO: 1h 40min (100min), SULFURO: 2h 30min (150min)
+    const durationMins = millingLogs.map(log => log.mineral_type === 'OXIDO' ? 100 : 150);
+    const avgDurationMin = durationMins.length > 0
+      ? (durationMins.reduce((a, b) => a + b, 0) / durationMins.length)
       : 0;
+    const avgDurH = Math.floor(avgDurationMin / 60);
+    const avgDurM = Math.round(avgDurationMin % 60);
+    const avgDurationLabel = avgDurationMin > 0 ? `${avgDurH}h ${avgDurM}min` : '0';
 
-    const totalHours = durationHours.reduce((a, b) => a + b, 0);
-    const avgRendimiento = totalHours > 0 ? (totalSacos / totalHours) : 0;
+    const totalHours = durationMins.reduce((a, b) => a + b, 0) / 60;
+    const avgRendimiento = totalHours > 0 ? Math.round(totalSacos / totalHours) : 0;
 
-    return { totalSacos, finalizadas, avgDuration, avgRendimiento };
+    return { totalSacos, finalizadas, avgDurationLabel, avgRendimiento };
   }, [millingLogs]);
 
   // ── Edit obs save ──────────────────────────────────────────────────────────
@@ -237,7 +241,7 @@ const Moliendas: React.FC = () => {
 
     const rows = millingLogs.map(log => {
       const date = new Date(log.created_at);
-      const durationMin = log.mineral_type === 'OXIDO' ? 100 : 135;
+      const durationMin = log.mineral_type === 'OXIDO' ? 100 : 150;
       const durationH = durationMin / 60;
       return {
         'Fecha': date.toLocaleDateString('es-PE'),
@@ -404,8 +408,8 @@ const Moliendas: React.FC = () => {
       label: 'Duración',
       className: 'text-center hidden xl:table-cell',
       render: (session: MillingLog) => {
-        // OXIDO = 100 min (1h 40min), SULFURO = 135 min (2h 15min)
-        const totalMin = session.mineral_type === 'OXIDO' ? 100 : 135;
+        // ÓXIDO = 100 min (1h 40min), SULFURO = 150 min (2h 30min)
+        const totalMin = session.mineral_type === 'OXIDO' ? 100 : 150;
         const horas = Math.floor(totalMin / 60);
         const mins = totalMin % 60;
         return (
@@ -421,7 +425,7 @@ const Moliendas: React.FC = () => {
       label: 'Rendimiento',
       className: 'text-center hidden xl:table-cell',
       render: (session: MillingLog) => {
-        const totalMin = session.mineral_type === 'OXIDO' ? 100 : 135;
+        const totalMin = session.mineral_type === 'OXIDO' ? 100 : 150;
         const h = totalMin / 60;
         const rate = h > 0 ? ((session.total_sacks || 0) / h) : 0;
         return (

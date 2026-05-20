@@ -237,7 +237,8 @@ const Moliendas: React.FC = () => {
 
     const rows = millingLogs.map(log => {
       const date = new Date(log.created_at);
-      const durationH = log.mineral_type === 'OXIDO' ? 1.67 : 2.25;
+      const durationMin = log.mineral_type === 'OXIDO' ? 100 : 135;
+      const durationH = durationMin / 60;
       return {
         'Fecha': date.toLocaleDateString('es-PE'),
         'Hora': date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false }),
@@ -247,9 +248,9 @@ const Moliendas: React.FC = () => {
         'Cuarzo': log.total_cuarzo || 0,
         'Llampo': log.total_llampo || 0,
         'Molinos': (log.mills_used || []).map((m: any) => m.name || m.id).join(', '),
-        'Duración (h)': durationH.toFixed(2),
-        'Sacos/Hora': log.total_sacks && durationH > 0
-          ? (log.total_sacks / durationH).toFixed(1) : '0',
+        'Duración': `${Math.floor(durationMin / 60)}h ${durationMin % 60}min`,
+        'Rendimiento (sacos/hora)': log.total_sacks && durationH > 0
+          ? Math.round(log.total_sacks / durationH) : 0,
         'Estado': log.status,
         'Observaciones': log.observations || '',
         'Operador': log.operator_name || 'N/A',
@@ -403,10 +404,13 @@ const Moliendas: React.FC = () => {
       label: 'Duración',
       className: 'text-center hidden xl:table-cell',
       render: (session: MillingLog) => {
-        const h = session.mineral_type === 'OXIDO' ? 1.67 : 2.25;
+        // OXIDO = 100 min (1h 40min), SULFURO = 135 min (2h 15min)
+        const totalMin = session.mineral_type === 'OXIDO' ? 100 : 135;
+        const horas = Math.floor(totalMin / 60);
+        const mins = totalMin % 60;
         return (
           <div className="flex flex-col items-center">
-            <span className="text-xs font-bold text-slate-700">{h.toFixed(1)}h</span>
+            <span className="text-xs font-bold text-slate-700">{horas}h {mins}min</span>
             <span className="text-[9px] text-slate-400">estimado</span>
           </div>
         );
@@ -414,17 +418,18 @@ const Moliendas: React.FC = () => {
     },
     {
       key: 'productivity',
-      label: 'Sac/Hora',
+      label: 'Rendimiento',
       className: 'text-center hidden xl:table-cell',
       render: (session: MillingLog) => {
-        const h = session.mineral_type === 'OXIDO' ? 1.67 : 2.25;
+        const totalMin = session.mineral_type === 'OXIDO' ? 100 : 135;
+        const h = totalMin / 60;
         const rate = h > 0 ? ((session.total_sacks || 0) / h) : 0;
         return (
           <div className="flex flex-col items-center">
             <span className={`text-xs font-black ${rate > 20 ? 'text-emerald-600' : rate > 10 ? 'text-amber-600' : 'text-slate-500'}`}>
-              {rate.toFixed(1)}
+              {rate.toFixed(0)}
             </span>
-            <span className="text-[9px] text-slate-400">s/h</span>
+            <span className="text-[9px] text-slate-400">sacos/hora</span>
           </div>
         );
       }
@@ -560,12 +565,12 @@ const Moliendas: React.FC = () => {
             icon: Package, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', suffix: 'sacos'
           },
           {
-            label: 'DURACIÓN PROM.', value: stats.avgDuration.toFixed(1),
-            icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', suffix: 'horas'
+            label: 'DURACIÓN PROM.', value: stats.avgDurationLabel,
+            icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', suffix: ''
           },
           {
-            label: 'RENDIMIENTO PROM.', value: stats.avgRendimiento.toFixed(1),
-            icon: BarChart2, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', suffix: 'sac/hora'
+            label: 'RENDIMIENTO PROM.', value: String(stats.avgRendimiento),
+            icon: BarChart2, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', suffix: 'sacos/hora'
           },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition-all">
@@ -595,14 +600,14 @@ const Moliendas: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 gap-2">
-          {/* Search */}
+          {/* Búsqueda por cliente / observaciones */}
           <div className="col-span-2 xl:col-span-2 space-y-1">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Buscar obs.</label>
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Buscar cliente</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" size={14} />
               <input
                 type="text"
-                placeholder="Observaciones..."
+                placeholder="Nombre de cliente u observación..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-indigo-500 focus:bg-white transition-all text-xs"

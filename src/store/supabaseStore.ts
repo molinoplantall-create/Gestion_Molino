@@ -411,8 +411,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       if (search) {
-        // Buscamos en observaciones y tipo de mineral
-        query = query.or(`observations.ilike.%${search}%,mineral_type.ilike.%${search}%`);
+        // Buscar clientes cuyo nombre coincide con el término de búsqueda
+        const matchingClientIds = get().allClients
+          .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+          .map(c => c.id);
+
+        if (matchingClientIds.length > 0) {
+          query = query.or(`observations.ilike.%${search}%,client_id.in.(${matchingClientIds.join(',')})`);
+        } else {
+          query = query.or(`observations.ilike.%${search}%`);
+        }
       }
 
       if (zone && zone !== 'all') {

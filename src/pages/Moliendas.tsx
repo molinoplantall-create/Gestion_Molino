@@ -503,16 +503,27 @@ const Moliendas: React.FC = () => {
               <FileText size={15} strokeWidth={1.5} />
             </button>
             {/* Eliminar */}
-            <button
-              onClick={() => deleteModal.open({
-                id: session.id,
-                name: `molienda de ${session.clients?.name || 'Cliente'} (${session.total_sacks} sacos)`
-              })}
-              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Eliminar"
-            >
-              <Trash2 size={15} strokeWidth={1.5} />
-            </button>
+            {(() => {
+              const logDate = new Date(session.created_at);
+              const daysOld = (Date.now() - logDate.getTime()) / (1000 * 60 * 60 * 24);
+              const isRecent = daysOld <= 30;
+              const isDeletableStatus = ['FINALIZADO', 'COMPLETED', 'IN_PROGRESS', 'EN_PROCESO'].includes(session.status);
+              
+              if (!isRecent || !isDeletableStatus) return null;
+
+              return (
+                <button
+                  onClick={() => deleteModal.open({
+                    id: session.id,
+                    name: `molienda de ${session.clients?.name || 'Cliente'} (${session.total_sacks} sacos)`
+                  })}
+                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Eliminar"
+                >
+                  <Trash2 size={15} strokeWidth={1.5} />
+                </button>
+              );
+            })()}
           </div>
         );
       }
@@ -710,7 +721,7 @@ const Moliendas: React.FC = () => {
         onConfirm={handleDeleteConfirm}
         itemName={deleteModal.data?.name || ''}
         title="¿Confirmar borrado de molienda?"
-        message="¿Estás seguro de borrar este registro? Los sacos se devolverán automáticamente al stock del cliente y se liberará el molino si estaba en proceso."
+        message="¿Estás seguro de eliminar esta molienda? Se devolverán los sacos al stock y se restarán las horas del molino."
         isLoading={loading}
       />
     </div>

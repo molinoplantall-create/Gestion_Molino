@@ -1188,7 +1188,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       logger.log(`🗑️ store: intentando borrar molienda ${logId}`);
 
-      // 1. Obtener detalles del log para revertir stock
+      // 1. Obtener detalles del log
       const { data: log, error: fetchError } = await supabase
         .from('milling_logs')
         .select('*')
@@ -1197,32 +1197,37 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (fetchError) throw fetchError;
 
-      // 2. Revertir stock del cliente
-      const { data: client, error: clientError } = await supabase
-        .from('clients')
-        .select('stock_cuarzo, stock_llampo')
-        .eq('id', log.client_id)
-        .single();
+      // 2. Revertir stock del cliente añadiendo lotes de vuelta
+      const now = new Date().toISOString();
+      if ((log.total_cuarzo || 0) > 0) {
+        await supabase.from('stock_batches').insert({
+          client_id: log.client_id,
+          mineral_type: log.mineral_type || 'OXIDO',
+          sub_mineral: 'CUARZO',
+          initial_quantity: log.total_cuarzo,
+          remaining_quantity: log.total_cuarzo,
+          created_at: now
+        });
+      }
+      if ((log.total_llampo || 0) > 0) {
+        await supabase.from('stock_batches').insert({
+          client_id: log.client_id,
+          mineral_type: log.mineral_type || 'OXIDO',
+          sub_mineral: 'LLAMPO',
+          initial_quantity: log.total_llampo,
+          remaining_quantity: log.total_llampo,
+          created_at: now
+        });
+      }
+      
+      // Recalcular el stock total del cliente desde los lotes
+      await get().recalcClientStock(log.client_id);
 
-      if (clientError) throw clientError;
-
-      const revertedCuarzo = (client.stock_cuarzo || 0) + (log.total_cuarzo || 0);
-      const revertedLlampo = (client.stock_llampo || 0) + (log.total_llampo || 0);
-
-      const { error: stockError } = await supabase
-        .from('clients')
-        .update({
-          stock_cuarzo: revertedCuarzo,
-          stock_llampo: revertedLlampo
-        })
-        .eq('id', log.client_id);
-
-      if (stockError) throw stockError;
-
-      // 3. Si estaba IN_PROGRESS, liberar los molinos asociados
+      // 3. Manejar los molinos asociados
+      const millsUsed = log.mills_used || [];
       if (log.status === 'IN_PROGRESS' || log.status === 'EN_PROCESO') {
-        const millsToLiberate = log.mills_used || [];
-        for (const m of millsToLiberate) {
+        // Liberar los molinos si estaba en proceso
+        for (const m of millsUsed) {
           await supabase
             .from('mills')
             .update({
@@ -1236,6 +1241,29 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
             })
             .eq('id', m.id);
         }
+      } else if (log.status === 'FINALIZADO' || log.status === 'COMPLETED') {
+        // Restar las horas estimadas si ya estaba finalizado
+        const hoursToSubtract = log.mineral_type === 'SULFURO' ? 2.5 : 1.67;
+        for (const m of millsUsed) {
+          const { data: millData } = await supabase
+            .from('mills')
+            .select('total_hours_worked, hours_to_oil_change')
+            .eq('id', m.id)
+            .single();
+
+          if (millData) {
+            const newHoursWorked = Math.max(0, Number(((millData.total_hours_worked || 0) - hoursToSubtract).toFixed(2)));
+            const newOilHours = Number(((millData.hours_to_oil_change || 150) + hoursToSubtract).toFixed(2));
+            
+            await supabase
+              .from('mills')
+              .update({
+                total_hours_worked: newHoursWorked,
+                hours_to_oil_change: newOilHours
+              })
+              .eq('id', m.id);
+          }
+        }
       }
 
       // 4. Borrar el log de forma definitiva
@@ -1246,7 +1274,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (deleteError) throw deleteError;
 
-      logger.log('✅ store: molienda borrada y stock revertido correctamente');
+      logger.log('✅ store: molienda borrada, stock revertido y horas ajustadas correctamente');
 
       await get().fetchMillingLogs();
       await get().fetchClients();

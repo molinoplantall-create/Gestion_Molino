@@ -62,6 +62,9 @@ interface MoliendaData {
   procesoId: string | null;
   estado_proceso: 'PROCESANDO' | 'COMPLETADO' | 'CANCELADO'; // Renamed to avoid confusion with mill status
   allowedMineralType: 'OXIDO' | 'SULFURO' | '';
+  isManualTime: boolean;
+  manualHours: number;
+  manualMinutes: number;
 }
 
 const RegistroMolienda: React.FC = () => {
@@ -97,7 +100,10 @@ const RegistroMolienda: React.FC = () => {
     procesoIniciado: false,
     procesoId: null,
     estado_proceso: 'PROCESANDO',
-    allowedMineralType: ''
+    allowedMineralType: '',
+    isManualTime: false,
+    manualHours: 0,
+    manualMinutes: 0
   });
 
   const [isRegistering, setIsRegistering] = useState(false);
@@ -123,6 +129,9 @@ const RegistroMolienda: React.FC = () => {
   };
 
   const getTiempoSeleccionado = (): number => {
+    if (molienda.isManualTime) {
+      return (molienda.manualHours || 0) * 60 + (molienda.manualMinutes || 0);
+    }
     if (molienda.mineral === 'OXIDO') {
       if (molienda.tiempos.oxido.hora40) return 100;
       if (molienda.tiempos.oxido.hora30) return 90;
@@ -171,7 +180,7 @@ const RegistroMolienda: React.FC = () => {
       tiempoPorMolino,
       horaFin: horaFinGlobal
     };
-  }, [molienda.molinos, molienda.stockTotal, molienda.stockCuarzo, molienda.stockLlampo, molienda.tiempos, molienda.mineral, molienda.horaInicio]);
+  }, [molienda.molinos, molienda.stockTotal, molienda.stockCuarzo, molienda.stockLlampo, molienda.tiempos, molienda.mineral, molienda.horaInicio, molienda.isManualTime, molienda.manualHours, molienda.manualMinutes]);
 
   // Update mill calculations (time and end hour) within the list when inputs change
   // This is handled in handleMolinoChange to avoid infinite loops
@@ -416,14 +425,21 @@ const RegistroMolienda: React.FC = () => {
     }
 
     // 2. Business Logic Validation
-    if (molienda.mineral === 'OXIDO' && !molienda.tiempos.oxido.hora40 && !molienda.tiempos.oxido.hora30 && !molienda.tiempos.oxido.hora00) {
-      toast.warning('Tiempo no seleccionado', 'Debe seleccionar al menos un tiempo para Óxido.');
-      return false;
-    }
+    if (!molienda.isManualTime) {
+      if (molienda.mineral === 'OXIDO' && !molienda.tiempos.oxido.hora40 && !molienda.tiempos.oxido.hora30 && !molienda.tiempos.oxido.hora00) {
+        toast.warning('Tiempo no seleccionado', 'Debe seleccionar al menos un tiempo para Óxido.');
+        return false;
+      }
 
-    if (molienda.mineral === 'SULFURO' && !molienda.tiempos.sulfuro.hora00 && !molienda.tiempos.sulfuro.hora30) {
-      toast.warning('Tiempo no seleccionado', 'Debe seleccionar al menos un tiempo para Sulfuro.');
-      return false;
+      if (molienda.mineral === 'SULFURO' && !molienda.tiempos.sulfuro.hora00 && !molienda.tiempos.sulfuro.hora30) {
+        toast.warning('Tiempo no seleccionado', 'Debe seleccionar al menos un tiempo para Sulfuro.');
+        return false;
+      }
+    } else {
+      if ((molienda.manualHours || 0) === 0 && (molienda.manualMinutes || 0) === 0) {
+        toast.warning('Tiempo inválido', 'Debe ingresar una duración válida mayor a 0.');
+        return false;
+      }
     }
 
     const molinosActivos = molienda.molinos.filter(m => m.activo);
@@ -585,7 +601,10 @@ const RegistroMolienda: React.FC = () => {
         horaFin: null
       })),
       observaciones: '',
-      procesoIniciado: false
+      procesoIniciado: false,
+      isManualTime: false,
+      manualHours: 0,
+      manualMinutes: 0
     }));
   };
 
@@ -780,6 +799,10 @@ const RegistroMolienda: React.FC = () => {
             onTiempoChange={handleTiempoChange}
             disabled={molienda.procesoIniciado}
             allowedType={molienda.allowedMineralType}
+            isManualTime={molienda.isManualTime}
+            manualHours={molienda.manualHours}
+            manualMinutes={molienda.manualMinutes}
+            onManualTimeChange={(field, value) => setMolienda(prev => ({ ...prev, [field]: value }))}
           />
         </div>
       </div>

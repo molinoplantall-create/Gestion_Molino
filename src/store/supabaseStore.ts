@@ -107,6 +107,7 @@ interface SupabaseStore {
   updateMaintenanceLog: (id: string, updateData: MaintenanceUpdateData) => Promise<{ error: any }>;
   deleteMaintenanceLog: (id: string) => Promise<boolean>;
   deleteMillingLog: (logId: string) => Promise<boolean>;
+  updateMillingDuration: (logId: string, newDuration: number, observations?: string) => Promise<boolean>;
   startPollingMills: () => void;
   stopPollingMills: () => void;
   isPolling: boolean;
@@ -1319,6 +1320,76 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return true;
     } catch (error: any) {
       logger.error('❌ Error deleteMillingLog:', error);
+      set({ error: error.message });
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  updateMillingDuration: async (logId: string, newDuration: number, observations?: string) => {
+    set({ loading: true, error: null });
+    try {
+      const { data: log, error: fetchError } = await supabase
+        .from('milling_logs')
+        .select('*')
+        .eq('id', logId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (log.status !== 'FINALIZADO' && log.status !== 'COMPLETED') {
+          throw new Error('Solo se puede editar la duración de moliendas finalizadas');
+      }
+
+      const oldDuration = log.duration_hours && log.duration_hours > 0 
+          ? log.duration_hours 
+          : (log.mineral_type === 'SULFURO' ? 2.5 : 1.67);
+          
+      const delta = newDuration - oldDuration;
+
+      const millsUsed = log.mills_used || [];
+
+      for (const m of millsUsed) {
+        const { data: millData } = await supabase
+          .from('mills')
+          .select('total_hours_worked, hours_to_oil_change')
+          .eq('id', m.id)
+          .single();
+
+        if (millData) {
+          const newHoursWorked = Math.max(0, Number(((millData.total_hours_worked || 0) + delta).toFixed(2)));
+          const newOilHours = Number(((millData.hours_to_oil_change || 150) - delta).toFixed(2));
+          
+          await supabase
+            .from('mills')
+            .update({
+              total_hours_worked: newHoursWorked,
+              hours_to_oil_change: newOilHours
+            })
+            .eq('id', m.id);
+        }
+      }
+
+      const updates: any = { duration_hours: newDuration };
+      if (observations !== undefined) {
+         updates.observations = observations;
+      }
+      
+      const { error: updateError } = await supabase
+        .from('milling_logs')
+        .update(updates)
+        .eq('id', logId);
+
+      if (updateError) throw updateError;
+
+      logger.log(`✅ store: Duración actualizada: ${oldDuration}h -> ${newDuration}h`);
+
+      await get().fetchMillingLogs();
+      await get().fetchMills();
+
+      return true;
+    } catch (error: any) {
+      logger.error('❌ Error updateMillingDuration:', error);
       set({ error: error.message });
       return false;
     } finally {

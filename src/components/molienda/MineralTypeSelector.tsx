@@ -20,6 +20,10 @@ interface MineralTypeSelectorProps {
     onTiempoChange: (mineral: string, opcion: string, checked: boolean) => void;
     disabled?: boolean;
     allowedType?: 'OXIDO' | 'SULFURO' | '';
+    isManualTime?: boolean;
+    manualHours?: number;
+    manualMinutes?: number;
+    onManualTimeChange?: (field: 'isManualTime' | 'manualHours' | 'manualMinutes', value: any) => void;
 }
 
 export const MineralTypeSelector: React.FC<MineralTypeSelectorProps> = ({
@@ -28,7 +32,11 @@ export const MineralTypeSelector: React.FC<MineralTypeSelectorProps> = ({
     tiempos,
     onTiempoChange,
     disabled = false,
-    allowedType = ''
+    allowedType = '',
+    isManualTime = false,
+    manualHours = 0,
+    manualMinutes = 0,
+    onManualTimeChange
 }) => {
     return (
         <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
@@ -78,11 +86,54 @@ export const MineralTypeSelector: React.FC<MineralTypeSelectorProps> = ({
 
                 {/* Tiempo de Proceso */}
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-3">
-                        Tiempo de Proceso
-                    </label>
+                    <div className="flex items-center justify-between mb-3">
+                        <label className="block text-sm font-medium text-slate-700">
+                            Tiempo de Proceso
+                        </label>
+                        {onManualTimeChange && mineralType && (
+                            <label className="flex items-center cursor-pointer">
+                                <span className="mr-2 text-xs font-bold text-slate-500">Manual</span>
+                                <input
+                                    type="checkbox"
+                                    checked={isManualTime}
+                                    onChange={(e) => onManualTimeChange('isManualTime', e.target.checked)}
+                                    disabled={disabled}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600 relative"></div>
+                            </label>
+                        )}
+                    </div>
 
-                    {mineralType === 'OXIDO' && (
+                    {isManualTime && mineralType ? (
+                        <div className="flex gap-4 p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
+                            <div className="flex-1">
+                                <label className="block text-[10px] font-bold text-indigo-800 uppercase mb-1">Horas</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={manualHours || ''}
+                                    onChange={(e) => onManualTimeChange && onManualTimeChange('manualHours', parseInt(e.target.value) || 0)}
+                                    disabled={disabled}
+                                    className="w-full px-3 py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold"
+                                    placeholder="0"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-[10px] font-bold text-indigo-800 uppercase mb-1">Minutos</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="59"
+                                    value={manualMinutes || ''}
+                                    onChange={(e) => onManualTimeChange && onManualTimeChange('manualMinutes', parseInt(e.target.value) || 0)}
+                                    disabled={disabled}
+                                    className="w-full px-3 py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold"
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+                    ) : mineralType === 'OXIDO' ? (
                         <div className="space-y-2 md:space-y-3">
                             <label className="flex items-center p-2 md:p-3 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors">
                                 <input
@@ -153,7 +204,7 @@ export const MineralTypeSelector: React.FC<MineralTypeSelectorProps> = ({
                                 </span>
                             </label>
                         </div>
-                    )}
+                    ) : null}
 
                     {!mineralType && (
                         <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">

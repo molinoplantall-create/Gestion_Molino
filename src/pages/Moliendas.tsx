@@ -98,13 +98,124 @@ const EditObsModal: React.FC<{
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
+// EDIT DURATION MODAL
+// ──────────────────────────────────────────────────────────────────────────────
+const EditDurationModal: React.FC<{
+  log: MillingLog | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (id: string, duration: number, obs: string) => Promise<void>;
+  isSaving: boolean;
+}> = ({ log, isOpen, onClose, onSave, isSaving }) => {
+  const [durationStr, setDurationStr] = useState('');
+  const [obs, setObs] = useState('');
+
+  useEffect(() => {
+    if (log) {
+      if (log.duration_hours && log.duration_hours > 0) {
+        setDurationStr(log.duration_hours.toString());
+      } else {
+        setDurationStr(log.mineral_type === 'SULFURO' ? '2.5' : '1.67');
+      }
+      setObs(log.observations || '');
+    }
+  }, [log]);
+
+  if (!isOpen || !log) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-md z-10">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 rounded-xl border border-indigo-100">
+              <Clock className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-slate-900 leading-tight">Editar Duración Real</h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
+                {log.clients?.name || 'Molienda'} · {new Date(log.created_at).toLocaleDateString('es-PE')}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isSaving}
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        {/* Body */}
+        <div className="px-6 py-4 space-y-4">
+          <div>
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">
+              Duración (Horas Decimales)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={durationStr}
+              onChange={(e) => setDurationStr(e.target.value)}
+              placeholder="Ej: 2.5 para 2h 30m"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold"
+            />
+            <p className="text-[10px] text-slate-500 mt-1 font-medium">Ejemplo: 1.67 = 1h 40min, 2.5 = 2h 30min</p>
+          </div>
+          <div>
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">
+              Observaciones / Justificación
+            </label>
+            <textarea
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+              rows={3}
+              placeholder="Escribe la justificación para editar el tiempo..."
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 resize-none"
+            />
+          </div>
+        </div>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/60">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSaving}
+            className="px-4 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 transition-all"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const dur = parseFloat(durationStr);
+              if (!isNaN(dur) && dur > 0) {
+                 onSave(log.id, dur, obs);
+              }
+            }}
+            disabled={isSaving || !durationStr || parseFloat(durationStr) <= 0}
+            className="px-5 py-2 text-sm font-black text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-40 transition-all flex items-center gap-2 shadow-sm shadow-indigo-200"
+          >
+            {isSaving && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+            <Save className="w-4 h-4" />
+            Guardar Cambios
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ──────────────────────────────────────────────────────────────────────────────
 const Moliendas: React.FC = () => {
   const {
     millingLogs, logsCount, logsLoading, fetchMillingLogs,
     mills, fetchMills, deleteMillingLog, updateMillingLog,
-    loading, zones, fetchZones, allClients, fetchAllClients
+    updateMillingDuration, loading, zones, fetchZones, allClients, fetchAllClients
   } = useSupabaseStore();
 
   const deleteModal = useModal<{ id: string; name: string; hours?: number; status?: string }>();
@@ -127,6 +238,7 @@ const Moliendas: React.FC = () => {
 
   // ── Edit obs modal ─────────────────────────────────────────────────────────
   const [editingLog, setEditingLog] = useState<MillingLog | null>(null);
+  const [editingDurationLog, setEditingDurationLog] = useState<MillingLog | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Debounce search
@@ -226,6 +338,13 @@ const Moliendas: React.FC = () => {
     await updateMillingLog(id, { observations } as any);
     setIsSaving(false);
     setEditingLog(null);
+  };
+
+  const handleSaveDuration = async (id: string, duration: number, observations: string) => {
+    setIsSaving(true);
+    await updateMillingDuration(id, duration, observations);
+    setIsSaving(false);
+    setEditingDurationLog(null);
   };
 
   // ── Delete ─────────────────────────────────────────────────────────────────
@@ -480,8 +599,19 @@ const Moliendas: React.FC = () => {
       className: 'text-right',
       render: (session: MillingLog) => {
         const isInProgress = session.status === 'IN_PROGRESS' || session.status === 'EN_PROCESO';
+        const isFinished = session.status === 'FINALIZADO' || session.status === 'COMPLETED';
         return (
           <div className="flex items-center gap-1 justify-end">
+            {/* Editar Duración (solo ADMIN y FINALIZADO) */}
+            {isFinished && user?.role === 'ADMIN' && (
+              <button
+                onClick={() => setEditingDurationLog(session)}
+                className="p-1.5 text-orange-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                title="Editar Duración Real"
+              >
+                <Clock size={15} strokeWidth={2} />
+              </button>
+            )}
             {/* Editar observaciones (solo EN PROCESO) */}
             {isInProgress && (
               <button
@@ -740,6 +870,13 @@ const Moliendas: React.FC = () => {
         isOpen={!!editingLog}
         onClose={() => setEditingLog(null)}
         onSave={handleSaveObs}
+        isSaving={isSaving}
+      />
+      <EditDurationModal
+        log={editingDurationLog}
+        isOpen={!!editingDurationLog}
+        onClose={() => setEditingDurationLog(null)}
+        onSave={handleSaveDuration}
         isSaving={isSaving}
       />
       <DeleteConfirmModal

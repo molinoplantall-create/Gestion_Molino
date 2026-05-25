@@ -195,23 +195,32 @@ const RegistroMolienda: React.FC = () => {
 
         // If we haven't initialized mills yet
         if (prev.molinos.length === 0) {
-          const initialMolinos = mills.map(m => ({
-            id: m.id,
-            name: m.name || m.id,
-            activo: false,
-            cuarzo: 0,
-            llampo: 0,
-            total: 0,
-            capacidadMaxima: m.capacity || 150,
-            disponible: m.status && m.status.toUpperCase() === 'LIBRE',
-            status: m.status,
-            tiempoEstimado: 0,
-            horaFin: null,
-            current_client: m.current_client,
-            current_sacks: m.current_sacks,
-            start_time: m.start_time,
-            estimated_end: m.estimated_end
-          }));
+          let hasAutoSelected = false;
+          const initialMolinos = mills.map(m => {
+            const isLibre = m.status && m.status.toUpperCase() === 'LIBRE';
+            let autoActivo = false;
+            if (isLibre && !hasAutoSelected) {
+              autoActivo = true;
+              hasAutoSelected = true;
+            }
+            return {
+              id: m.id,
+              name: m.name || m.id,
+              activo: autoActivo,
+              cuarzo: 0,
+              llampo: 0,
+              total: 0,
+              capacidadMaxima: m.capacity || 150,
+              disponible: isLibre,
+              status: m.status,
+              tiempoEstimado: 0,
+              horaFin: null,
+              current_client: m.current_client,
+              current_sacks: m.current_sacks,
+              start_time: m.start_time,
+              estimated_end: m.estimated_end
+            };
+          });
           console.log('✅ RegistroMolienda: Initialized molinos:', initialMolinos);
           return {
             ...prev,
@@ -479,7 +488,7 @@ const RegistroMolienda: React.FC = () => {
   };
 
   // Register milling
-  const registrarMolienda = async () => {
+  const registrarMolienda = async (resetAfter: boolean = false) => {
     if (isRegistering) return;
 
     const isValid = await validarRegistro();
@@ -565,7 +574,11 @@ const RegistroMolienda: React.FC = () => {
           `La molienda ha sido guardada correctamente.\n\nFecha: ${fechaFormateada}\nHora inicio: ${horaInicio}\nHora fin estimada: ${horaFinCalculada}\n\nDETALLE:\n${detalleMolinos}`
         );
 
-        setMolienda(prev => ({ ...prev, procesoIniciado: true }));
+        if (resetAfter) {
+          resetFormulario();
+        } else {
+          setMolienda(prev => ({ ...prev, procesoIniciado: true }));
+        }
       } else {
         toast.error('Error', 'Hubo un error al registrar la molienda. Inténtelo de nuevo.');
       }
@@ -698,7 +711,7 @@ const RegistroMolienda: React.FC = () => {
       </div>
 
       {/* SECCIÓN 1: IDENTIFICACIÓN DE CARGA */}
-      <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-[2.5rem] blur opacity-5 group-hover:opacity-10 transition duration-1000"></div>
           <div className="relative">
@@ -718,11 +731,11 @@ const RegistroMolienda: React.FC = () => {
       </div>
 
       {/* SECCIÓN 2: PARÁMETROS TÉCNICOS */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4">
         {/* Horario con Estética Dashboard */}
         <div className="lg:col-span-7">
-          <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm h-full flex flex-col">
-            <div className="flex items-center justify-between mb-8">
+          <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100">
                   <Clock className="text-amber-600" size={24} strokeWidth={2.5} />
@@ -738,23 +751,23 @@ const RegistroMolienda: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 flex-grow">
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">FECHA DEL PROCESO</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">FECHA DEL PROCESO</label>
                   <input
                     type="date"
                     value={molienda.fechaInicio || ''}
                     onChange={(e) => setMolienda(prev => ({ ...prev, fechaInicio: e.target.value }))}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-[1.25rem] focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-black text-slate-700 transition-all shadow-inner"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-black text-slate-700 transition-all shadow-inner"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">HORA DE ENCENDIDO (INICIO)</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">HORA INICIO</label>
                   <input
                     type="time"
                     value={molienda.horaInicio || ''}
                     onChange={(e) => setMolienda(prev => ({ ...prev, horaInicio: e.target.value }))}
-                    className="w-full px-5 py-5 bg-slate-50 border border-slate-200 rounded-[1.25rem] focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-black text-slate-900 text-3xl transition-all shadow-inner"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-black text-slate-900 text-2xl transition-all shadow-inner"
                   />
                   <div className="flex items-center gap-2 mt-3 ml-1 text-amber-600">
                     <AlertTriangle size={12} />
@@ -763,19 +776,19 @@ const RegistroMolienda: React.FC = () => {
                 </div>
               </div>
 
-              <div className="relative group overflow-hidden">
+              <div className="relative group overflow-hidden rounded-xl">
                 <div className="absolute inset-0 bg-indigo-900 transition-transform duration-500 group-hover:scale-105"></div>
-                <div className="relative p-8 h-full flex flex-col justify-between text-white z-10">
+                <div className="relative p-5 h-full flex flex-col justify-between text-white z-10">
                   <div className="flex justify-between items-start">
                     <div className="p-2 bg-indigo-800/50 rounded-lg backdrop-blur-sm">
-                      <Clock size={20} />
+                      <Clock size={16} />
                     </div>
-                    <span className="text-[10px] font-black tracking-widest bg-white/10 px-2 py-1 rounded-md backdrop-blur-sm">CÁLCULO AUTO</span>
+                    <span className="text-[10px] font-black tracking-widest bg-white/10 px-2 py-1 rounded-md backdrop-blur-sm">AUTO</span>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] mb-2">HORA FIN ESTIMADA</label>
-                    <div className="text-5xl font-black tracking-tighter mb-2">
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] mb-1">HORA FIN ESTIMADA</label>
+                    <div className="text-4xl font-black tracking-tighter mb-2">
                       {totalCalculado.horaFin || '00:00'}
                     </div>
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-800/50 rounded-full w-fit backdrop-blur-sm">
@@ -809,32 +822,36 @@ const RegistroMolienda: React.FC = () => {
       </div>
 
       {/* Row 3: Mill Config */}
-      <MillSelector
-        molinos={molienda.molinos}
-        onMolinoChange={handleMolinoChange}
-        onReplicate={handleReplicate}
-        onSeed={handleSeed}
-        loading={useSupabaseStore.getState().millsLoading}
-        disabled={molienda.procesoIniciado}
-      />
+      <div className="mt-4">
+        <MillSelector
+          molinos={molienda.molinos}
+          onMolinoChange={handleMolinoChange}
+          onReplicate={handleReplicate}
+          onSeed={handleSeed}
+          loading={useSupabaseStore.getState().millsLoading}
+          disabled={molienda.procesoIniciado}
+        />
+      </div>
 
       {/* Row 4: Summary */}
-      <ProcessSummary
-        totalSacos={totalCalculado.totalSacos}
-        totalCuarzo={totalCalculado.totalCuarzo}
-        totalLlampo={totalCalculado.totalLlampo}
-        stockRestante={{
-          total: totalCalculado.stockRestanteTotal,
-          cuarzo: totalCalculado.stockRestanteCuarzo,
-          llampo: totalCalculado.stockRestanteLlampo
-        }}
-        tiempoPorMolino={totalCalculado.tiempoPorMolino}
-        horaInicio={molienda.horaInicio}
-        horaFin={totalCalculado.horaFin}
-        molinosActivos={molienda.molinos.filter(m => m.activo).length}
-        observaciones={molienda.observaciones}
-        onObservacionesChange={(value) => setMolienda(prev => ({ ...prev, observaciones: value }))}
-      />
+      <div className="mt-4">
+        <ProcessSummary
+          totalSacos={totalCalculado.totalSacos}
+          totalCuarzo={totalCalculado.totalCuarzo}
+          totalLlampo={totalCalculado.totalLlampo}
+          stockRestante={{
+            total: totalCalculado.stockRestanteTotal,
+            cuarzo: totalCalculado.stockRestanteCuarzo,
+            llampo: totalCalculado.stockRestanteLlampo
+          }}
+          tiempoPorMolino={totalCalculado.tiempoPorMolino}
+          horaInicio={molienda.horaInicio}
+          horaFin={totalCalculado.horaFin}
+          molinosActivos={molienda.molinos.filter(m => m.activo).length}
+          observaciones={molienda.observaciones}
+          onObservacionesChange={(value) => setMolienda(prev => ({ ...prev, observaciones: value }))}
+        />
+      </div>
 
       {/* Final Action */}
       <div className="flex flex-wrap justify-end gap-4 mt-8">
@@ -871,26 +888,39 @@ const RegistroMolienda: React.FC = () => {
             NUEVA MOLIENDA
           </button>
         ) : (
-          <button
-            onClick={registrarMolienda}
-            className={`flex items-center px-6 py-3 rounded-xl transition-all shadow-lg font-bold text-sm tracking-tight ${isRegistering
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
-              }`}
-            disabled={isRegistering}
-          >
-            {isRegistering ? (
-              <>
-                <RefreshCw size={18} className="mr-2 animate-spin" />
-                REGISTRANDO...
-              </>
-            ) : (
-              <>
-                <Save size={18} className="mr-2" />
-                REGISTRAR MOLIENDA
-              </>
-            )}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => registrarMolienda(true)}
+              className={`flex items-center px-6 py-3 rounded-xl transition-all font-bold text-sm tracking-tight ${isRegistering
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 active:scale-95'
+                }`}
+              disabled={isRegistering}
+            >
+              <Save size={18} className="mr-2" />
+              GUARDAR Y NUEVO
+            </button>
+            <button
+              onClick={() => registrarMolienda(false)}
+              className={`flex items-center px-6 py-3 rounded-xl transition-all shadow-lg font-bold text-sm tracking-tight ${isRegistering
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
+                }`}
+              disabled={isRegistering}
+            >
+              {isRegistering ? (
+                <>
+                  <RefreshCw size={18} className="mr-2 animate-spin" />
+                  REGISTRANDO...
+                </>
+              ) : (
+                <>
+                  <Save size={18} className="mr-2" />
+                  REGISTRAR MOLIENDA
+                </>
+              )}
+            </button>
+          </div>
         )}
       </div>
     </div>

@@ -45,13 +45,13 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
     }, [clients, searchTerm]);
 
     return (
-        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center">
-                <User size={20} strokeWidth={1.5} className="mr-2 text-indigo-600" />
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <h2 className="text-base font-bold text-slate-900 mb-4 flex items-center">
+                <User size={18} strokeWidth={2} className="mr-2 text-indigo-600" />
                 Información del Cliente
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
                 {/* Cliente Selector con Búsqueda */}
                 <div className="lg:col-span-5 relative">
                     <label className="block text-sm font-medium text-slate-700 mb-2">Cliente</label>
@@ -128,17 +128,17 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({
                             Stock Disponible
                         </label>
                         <div className="grid grid-cols-3 gap-2">
-                            <div className="px-2 py-2 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                                <div className="text-[10px] text-blue-600 font-bold uppercase tracking-tight">Total</div>
-                                <div className="text-base md:text-lg font-black text-blue-900 leading-tight">{stockInfo.total}</div>
+                            <div className="px-2 py-1 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                                <div className="text-[9px] text-blue-600 font-bold uppercase tracking-tight">Total</div>
+                                <div className="text-sm md:text-base font-black text-blue-900 leading-tight">{stockInfo.total}</div>
                             </div>
-                            <div className="px-2 py-2 bg-amber-50 border border-amber-200 rounded-lg text-center">
-                                <div className="text-[10px] text-amber-600 font-bold uppercase tracking-tight">Cuarzo</div>
-                                <div className="text-base md:text-lg font-black text-amber-900 leading-tight">{stockInfo.cuarzo}</div>
+                            <div className="px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg text-center">
+                                <div className="text-[9px] text-amber-600 font-bold uppercase tracking-tight">Cuarzo</div>
+                                <div className="text-sm md:text-base font-black text-amber-900 leading-tight">{stockInfo.cuarzo}</div>
                             </div>
-                            <div className="px-2 py-2 bg-purple-50 border border-purple-200 rounded-lg text-center">
-                                <div className="text-[10px] text-purple-600 font-bold uppercase tracking-tight">Llampo</div>
-                                <div className="text-base md:text-lg font-black text-purple-900 leading-tight">{stockInfo.llampo}</div>
+                            <div className="px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg text-center">
+                                <div className="text-[9px] text-purple-600 font-bold uppercase tracking-tight">Llampo</div>
+                                <div className="text-sm md:text-base font-black text-purple-900 leading-tight">{stockInfo.llampo}</div>
                             </div>
                         </div>
                     </div>

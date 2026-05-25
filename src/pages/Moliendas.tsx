@@ -107,7 +107,7 @@ const Moliendas: React.FC = () => {
     loading, zones, fetchZones, allClients, fetchAllClients
   } = useSupabaseStore();
 
-  const deleteModal = useModal<{ id: string; name: string }>();
+  const deleteModal = useModal<{ id: string; name: string; hours?: number; status?: string }>();
   const { user } = useAuthStore();
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -511,11 +511,15 @@ const Moliendas: React.FC = () => {
               
               if (!isRecent || !isDeletableStatus) return null;
 
+              const hours = session.mineral_type === 'SULFURO' ? 2.5 : 1.67;
+
               return (
                 <button
                   onClick={() => deleteModal.open({
                     id: session.id,
-                    name: `molienda de ${session.clients?.name || 'Cliente'} (${session.total_sacks} sacos)`
+                    name: `molienda de ${session.clients?.name || 'Cliente'} (${session.total_sacks} sacos)`,
+                    hours,
+                    status: session.status
                   })}
                   className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title="Eliminar"
@@ -721,7 +725,11 @@ const Moliendas: React.FC = () => {
         onConfirm={handleDeleteConfirm}
         itemName={deleteModal.data?.name || ''}
         title="¿Confirmar borrado de molienda?"
-        message="¿Estás seguro de eliminar esta molienda? Se devolverán los sacos al stock y se restarán las horas del molino."
+        message={
+          deleteModal.data?.status === 'FINALIZADO' || deleteModal.data?.status === 'COMPLETED'
+            ? `¿Estás seguro de eliminar esta molienda? Se devolverán los sacos al stock y se restarán ${deleteModal.data?.hours} horas del molino.`
+            : `¿Estás seguro de eliminar esta molienda? Se devolverán los sacos al stock y el molino quedará libre.`
+        }
         isLoading={loading}
       />
     </div>

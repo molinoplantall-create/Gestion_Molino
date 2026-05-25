@@ -1225,43 +1225,47 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // 3. Manejar los molinos asociados
       const millsUsed = log.mills_used || [];
-      if (log.status === 'IN_PROGRESS' || log.status === 'EN_PROCESO') {
-        // Liberar los molinos si estaba en proceso
-        for (const m of millsUsed) {
-          await supabase
-            .from('mills')
-            .update({
-              status: 'LIBRE',
-              current_client_id: null,
-              current_cuarzo: 0,
-              current_llampo: 0,
-              start_time: null,
-              estimated_end_time: null,
-              sacks_processing: 0
-            })
-            .eq('id', m.id);
-        }
-      } else if (log.status === 'FINALIZADO' || log.status === 'COMPLETED') {
-        // Restar las horas estimadas si ya estaba finalizado
-        const hoursToSubtract = log.mineral_type === 'SULFURO' ? 2.5 : 1.67;
-        for (const m of millsUsed) {
-          const { data: millData } = await supabase
-            .from('mills')
-            .select('total_hours_worked, hours_to_oil_change')
-            .eq('id', m.id)
-            .single();
+      const hoursToSubtract = log.mineral_type === 'SULFURO' ? 2.5 : 1.67;
 
-          if (millData) {
-            const newHoursWorked = Math.max(0, Number(((millData.total_hours_worked || 0) - hoursToSubtract).toFixed(2)));
-            const newOilHours = Number(((millData.hours_to_oil_change || 150) + hoursToSubtract).toFixed(2));
-            
-            await supabase
+      for (const m of millsUsed) {
+        const { data: millData } = await supabase
+          .from('mills')
+          .select('total_hours_worked, hours_to_oil_change, status, current_client_id')
+          .eq('id', m.id)
+          .single();
+
+        if (millData) {
+          const updateData: any = {};
+          
+          // Revertir horas solo si la molienda ya había sumado horas (FINALIZADO)
+          if (log.status === 'FINALIZADO' || log.status === 'COMPLETED') {
+            updateData.total_hours_worked = Math.max(0, Number(((millData.total_hours_worked || 0) - hoursToSubtract).toFixed(2)));
+            updateData.hours_to_oil_change = Number(((millData.hours_to_oil_change || 150) + hoursToSubtract).toFixed(2));
+          }
+
+          // Liberar el molino si sigue ocupado por este cliente o si el log estaba en proceso
+          if (millData.current_client_id === log.client_id || log.status === 'IN_PROGRESS' || log.status === 'EN_PROCESO') {
+            updateData.status = 'LIBRE';
+            updateData.current_client_id = null;
+            updateData.current_cuarzo = 0;
+            updateData.current_llampo = 0;
+            updateData.start_time = null;
+            updateData.estimated_end_time = null;
+            updateData.estimated_end = null;
+            updateData.sacks_processing = 0;
+          }
+
+          if (Object.keys(updateData).length > 0) {
+            let { error: millUpdateError } = await supabase
               .from('mills')
-              .update({
-                total_hours_worked: newHoursWorked,
-                hours_to_oil_change: newOilHours
-              })
+              .update(updateData)
               .eq('id', m.id);
+
+            // FALLBACK PGRST204: Si faltan columnas de tiempo, reintentar sin ellas
+            if (millUpdateError && millUpdateError.code === 'PGRST204') {
+              const { estimated_end_time, estimated_end, start_time, ...basicData } = updateData;
+              await supabase.from('mills').update(basicData).eq('id', m.id);
+            }
           }
         }
       }

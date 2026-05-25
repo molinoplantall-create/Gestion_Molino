@@ -552,7 +552,8 @@ const RegistroMolienda: React.FC = () => {
         fecha: horaInicioISO, // Persistimos el inicio real como created_at
         horaInicioISO: horaInicioISO,
         horaFinISO: horaFinISO,
-        operatorName: user?.nombre || user?.email || 'Desconocido'
+        operatorName: user?.nombre || user?.email || 'Desconocido',
+        duration: molienda.isManualTime ? (molienda.manualHours || 0) + ((molienda.manualMinutes || 0) / 60) : undefined
       });
 
       if (success) {

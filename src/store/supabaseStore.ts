@@ -642,6 +642,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         });
       }
 
+      // Priorizar duración manual
+      let finalDuration = data.duration ? parseFloat(data.duration) : 0;
+      if (finalDuration <= 0) {
+        finalDuration = data.mineralType === 'SULFURO' ? 2.5 : 1.67;
+      }
+
       let { data: millingData, error: millingError } = await supabase
         .from('milling_logs')
         .insert({
@@ -654,7 +660,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           status: isHistorical ? 'FINALIZADO' : 'IN_PROGRESS',
           observations: data.observations || '',
           operator_name: data.operatorName || null,
-          created_at: data.fecha || new Date().toISOString()
+          created_at: data.fecha || new Date().toISOString(),
+          duration_hours: finalDuration
         })
         .select()
         .single();
@@ -670,7 +677,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
             mills_used: data.mills,
             status: isHistorical ? 'FINALIZADO' : 'IN_PROGRESS',
             observations: data.observations || '',
-            created_at: data.fecha || new Date().toISOString()
+            created_at: data.fecha || new Date().toISOString(),
+            duration_hours: finalDuration
           })
           .select()
           .single();
@@ -1172,16 +1180,21 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       if (mill.current_client_id) {
         const { data: existingLog } = await supabase
           .from('milling_logs')
-          .select('id, mineral_type')
+          .select('id, mineral_type, duration_hours')
           .eq('client_id', mill.current_client_id)
           .eq('status', 'IN_PROGRESS')
           .contains('mills_used', [{ id: millId }])
           .maybeSingle();
 
         if (existingLog) {
-          let finalDuration = durationHours;
-          if (finalDuration <= 0) {
-             finalDuration = existingLog.mineral_type === 'SULFURO' ? 2.5 : 1.67;
+          // Si el log ya tiene un duration_hours asignado (ej. manual), mantenerlo.
+          let finalDuration = existingLog.duration_hours;
+          
+          if (!finalDuration || finalDuration <= 0) {
+             finalDuration = durationHours;
+             if (finalDuration <= 0) {
+                finalDuration = existingLog.mineral_type === 'SULFURO' ? 2.5 : 1.67;
+             }
           }
           
           const { error: logError } = await supabase

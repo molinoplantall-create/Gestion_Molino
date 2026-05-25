@@ -200,9 +200,13 @@ const Moliendas: React.FC = () => {
     const totalSacos = millingLogs.reduce((acc, log) => acc + (log.total_sacks || 0), 0);
     const finalizadas = millingLogs.filter(log => log.status === 'FINALIZADO' || log.status === 'COMPLETED').length;
 
-    // Duración en minutos por tipo de mineral (defaults del sistema)
-    // ÓXIDO: 1h 40min (100min), SULFURO: 2h 30min (150min)
-    const durationMins = millingLogs.map(log => log.mineral_type === 'OXIDO' ? 100 : 150);
+    // Duración en minutos por molienda
+    const durationMins = millingLogs.map(log => {
+      if (log.duration_hours && log.duration_hours > 0) {
+        return log.duration_hours * 60;
+      }
+      return log.mineral_type === 'OXIDO' ? 100 : 150;
+    });
     const avgDurationMin = durationMins.length > 0
       ? (durationMins.reduce((a, b) => a + b, 0) / durationMins.length)
       : 0;
@@ -242,17 +246,18 @@ const Moliendas: React.FC = () => {
     const rows = millingLogs.map(log => {
       const date = new Date(log.created_at);
       const durationMin = log.mineral_type === 'OXIDO' ? 100 : 150;
-      const durationH = durationMin / 60;
+      const durationH = log.duration_hours && log.duration_hours > 0 ? log.duration_hours : durationMin / 60;
       return {
         'Fecha': date.toLocaleDateString('es-PE'),
-        'Hora': date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        'Hora Inicio': date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        'Hora Fin': log.finish_time ? new Date(log.finish_time).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false }) : 'N/A',
         'Cliente': log.clients?.name || 'N/A',
         'Mineral': log.mineral_type,
         'Sacos Totales': log.total_sacks || 0,
         'Cuarzo': log.total_cuarzo || 0,
         'Llampo': log.total_llampo || 0,
         'Molinos': (log.mills_used || []).map((m: any) => m.name || m.id).join(', '),
-        'Duración': `${Math.floor(durationMin / 60)}h ${durationMin % 60}min`,
+        'Duración': log.duration_hours ? `${log.duration_hours.toFixed(2)}h (Real)` : `${Math.floor(durationMin / 60)}h ${durationMin % 60}min (Est)`,
         'Rendimiento (sacos/hora)': log.total_sacks && durationH > 0
           ? Math.round(log.total_sacks / durationH) : 0,
         'Estado': log.status,
@@ -333,8 +338,14 @@ const Moliendas: React.FC = () => {
             </div>
             <div className="flex items-center text-[10px] text-slate-400 font-medium mt-0.5">
               <Clock size={9} className="mr-1" />
-              {date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })}
+              Ini: {date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })}
             </div>
+            {session.finish_time && (
+              <div className="flex items-center text-[10px] text-slate-400 font-medium mt-0.5">
+                <Clock size={9} className="mr-1" />
+                Fin: {new Date(session.finish_time).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })}
+              </div>
+            )}
           </div>
         );
       }
@@ -408,14 +419,25 @@ const Moliendas: React.FC = () => {
       label: 'Duración',
       className: 'text-center hidden xl:table-cell',
       render: (session: MillingLog) => {
-        // ÓXIDO = 100 min (1h 40min), SULFURO = 150 min (2h 30min)
+        if (session.duration_hours && session.duration_hours > 0) {
+          const hours = Math.floor(session.duration_hours);
+          const mins = Math.round((session.duration_hours - hours) * 60);
+          return (
+            <div className="flex flex-col items-center">
+              <span className="text-xs font-bold text-slate-900">{hours}h {mins}min</span>
+              <span className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest">Real</span>
+            </div>
+          );
+        }
+
+        // Fallback: Estimado
         const totalMin = session.mineral_type === 'OXIDO' ? 100 : 150;
         const horas = Math.floor(totalMin / 60);
         const mins = totalMin % 60;
         return (
           <div className="flex flex-col items-center">
-            <span className="text-xs font-bold text-slate-700">{horas}h {mins}min</span>
-            <span className="text-[9px] text-slate-400">estimado</span>
+            <span className="text-xs font-bold text-slate-500">{horas}h {mins}min</span>
+            <span className="text-[9px] text-slate-400 uppercase tracking-widest">Est</span>
           </div>
         );
       }
@@ -425,8 +447,9 @@ const Moliendas: React.FC = () => {
       label: 'Rendimiento',
       className: 'text-center hidden xl:table-cell',
       render: (session: MillingLog) => {
-        const totalMin = session.mineral_type === 'OXIDO' ? 100 : 150;
-        const h = totalMin / 60;
+        const h = session.duration_hours && session.duration_hours > 0 
+          ? session.duration_hours 
+          : (session.mineral_type === 'OXIDO' ? 100 : 150) / 60;
         const rate = h > 0 ? ((session.total_sacks || 0) / h) : 0;
         return (
           <div className="flex flex-col items-center">

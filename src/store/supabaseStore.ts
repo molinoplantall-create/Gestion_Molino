@@ -1116,13 +1116,25 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const mill = get().mills.find(m => m.id === millId);
       if (!mill) return false;
 
-      // Calcular horas trabajadas antes de liberar
-      if (mill.start_time && mill.estimated_end) {
+      let durationHours = 0;
+      const nowISO = new Date().toISOString();
+
+      // Calcular horas reales trabajadas antes de liberar
+      if (mill.start_time) {
         const start = new Date(mill.start_time).getTime();
+        const end = new Date().getTime();
+        durationHours = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
+        
+        if (durationHours > 0) {
+          await get().updateMillHours(millId, durationHours);
+        }
+      } else if (mill.estimated_end) {
+        // Fallback original
+        const start = new Date(mill.estimated_end).getTime() - (1.67 * 1000 * 60 * 60); // Aprox
         const end = new Date(mill.estimated_end).getTime();
-        const hours = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
-        if (hours > 0) {
-          await get().updateMillHours(millId, hours);
+        durationHours = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
+        if (durationHours > 0) {
+          await get().updateMillHours(millId, durationHours);
         }
       }
 
@@ -1157,14 +1169,31 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // 2. Marcar el log como FINALIZADO si es el cliente actual
       if (mill.current_client_id) {
-        const { error: logError } = await supabase
+        const { data: existingLog } = await supabase
           .from('milling_logs')
-          .update({ status: 'FINALIZADO' })
+          .select('id, mineral_type')
           .eq('client_id', mill.current_client_id)
           .eq('status', 'IN_PROGRESS')
-          .contains('mills_used', [{ id: millId }]);
+          .contains('mills_used', [{ id: millId }])
+          .maybeSingle();
 
-        if (logError) logger.error('Error finalizing log:', logError);
+        if (existingLog) {
+          let finalDuration = durationHours;
+          if (finalDuration <= 0) {
+             finalDuration = existingLog.mineral_type === 'SULFURO' ? 2.5 : 1.67;
+          }
+          
+          const { error: logError } = await supabase
+            .from('milling_logs')
+            .update({ 
+              status: 'FINALIZADO',
+              finish_time: nowISO,
+              duration_hours: finalDuration
+            })
+            .eq('id', existingLog.id);
+
+          if (logError) logger.error('Error finalizing log:', logError);
+        }
       }
 
       await get().fetchMills();
@@ -1225,7 +1254,6 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       // 3. Manejar los molinos asociados
       const millsUsed = log.mills_used || [];
-      const hoursToSubtract = log.mineral_type === 'SULFURO' ? 2.5 : 1.67;
 
       for (const m of millsUsed) {
         const { data: millData } = await supabase
@@ -1239,8 +1267,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           
           // Revertir horas solo si la molienda ya había sumado horas (FINALIZADO)
           if (log.status === 'FINALIZADO' || log.status === 'COMPLETED') {
-            updateData.total_hours_worked = Math.max(0, Number(((millData.total_hours_worked || 0) - hoursToSubtract).toFixed(2)));
-            updateData.hours_to_oil_change = Number(((millData.hours_to_oil_change || 150) + hoursToSubtract).toFixed(2));
+            const actualHours = log.duration_hours && log.duration_hours > 0 
+                ? log.duration_hours 
+                : (log.mineral_type === 'SULFURO' ? 2.5 : 1.67);
+                
+            updateData.total_hours_worked = Math.max(0, Number(((millData.total_hours_worked || 0) - actualHours).toFixed(2)));
+            updateData.hours_to_oil_change = Number(((millData.hours_to_oil_change || 150) + actualHours).toFixed(2));
           }
 
           // Liberar el molino si sigue ocupado por este cliente o si el log estaba en proceso

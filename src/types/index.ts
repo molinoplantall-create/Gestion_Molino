@@ -77,6 +77,8 @@ export interface MillingLog {
   status: 'IN_PROGRESS' | 'EN_PROCESO' | 'FINALIZADO';
   operator_name?: string | null;
   observations?: string;
+  duration_hours?: number;
+  finish_time?: string;
   created_at: string;
   clients?: {
     name: string;

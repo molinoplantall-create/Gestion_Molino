@@ -43,6 +43,13 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions, mills = [] })
 
         const startTime = new Date(session.created_at || '');
         const horaStr = startTime.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+        let finishTimeStr = '';
+        if (session.finish_time) {
+          finishTimeStr = new Date(session.finish_time).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+        } else if (session.status === 'FINALIZADO') {
+          // Fallback just in case
+          finishTimeStr = 'Finalizado';
+        }
 
         return (
           <div
@@ -70,7 +77,8 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({ sessions, mills = [] })
                   <span className="mr-3 uppercase tracking-wider font-bold text-slate-700">{session.mineral_type}</span>
                   <span className="text-slate-400 flex items-center">
                     <span className="mr-1.5 font-bold text-slate-500">{startTime.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })}</span>
-                    <span>{horaStr}</span>
+                    <span>Inicio: {horaStr}</span>
+                    {finishTimeStr && <span className="ml-2">Fin: {finishTimeStr}</span>}
                   </span>
                 </div>
               </div>

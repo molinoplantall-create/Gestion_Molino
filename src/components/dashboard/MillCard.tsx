@@ -254,13 +254,17 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
             {estadoReal === 'ocupado' && (
               <div className="space-y-1.5">
                 <div className="flex flex-col px-2 py-1.5 bg-white/60 rounded-lg border border-orange-100 shadow-sm">
-                  <div className="flex items-center">
+                  <div className="flex items-center mb-1">
                     <User className="text-orange-400 mr-2 shrink-0" size={10} strokeWidth={2.5} />
                     <div className="text-[9px] sm:text-[11px] font-bold text-slate-800 truncate">
                       {normalizedMill.clienteActual || 'Cliente Anónimo'}
                     </div>
                   </div>
-                  <div className="text-[8px] sm:text-[9px] font-black text-orange-600/70 uppercase tracking-tighter pl-4">
+                  <div className="flex flex-col text-[8px] sm:text-[9px] font-bold text-slate-600 pl-4 space-y-0.5">
+                    <div>Inicio: {formatTime(normalizedMill.horaInicio)}</div>
+                    <div>Fin Est: {formatTime(normalizedMill.horaFinEstimada)}</div>
+                  </div>
+                  <div className="text-[8px] sm:text-[9px] font-black text-orange-600/70 uppercase tracking-tighter pl-4 mt-1">
                      {timeRemaining || '--:--'} restantes
                   </div>
                 </div>

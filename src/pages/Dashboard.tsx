@@ -229,6 +229,12 @@ const Dashboard: React.FC = () => {
     const avgSacos = millingLogs.length > 0 ? (millingLogs.reduce((sum, log) => sum + (log.total_sacks || 0), 0) / millingLogs.length) : 0;
     const totalOperaciones = millingLogs.length;
 
+    const avgDurationMins = millingLogs.length > 0 ? (millingLogs.reduce((sum, log) => {
+      const dur = log.duration_hours && log.duration_hours > 0 ? log.duration_hours : (log.mineral_type === 'OXIDO' ? 1.67 : 2.5);
+      return sum + (dur * 60);
+    }, 0) / millingLogs.length) : 0;
+    const avgDurationLabel = avgDurationMins > 0 ? `${Math.floor(avgDurationMins / 60)}h ${Math.round(avgDurationMins % 60)}m` : '0h 0m';
+
     // 6. Top 5 Clientes — basado en HISTORIAL ACUMULADO REAL (no en logs limitados)
     const topClients = [...allClients]
       .map(c => ({
@@ -311,7 +317,7 @@ const Dashboard: React.FC = () => {
       topClients, chartZoneData, clientesSinZona,
       tasaOcupacion, sacosEsteMes, chartTypeData,
       millStatsReport, totalSacosReporte, avgSacosReporte, millDisponibilidad,
-      clientMonthlyProd, availableYears
+      clientMonthlyProd, availableYears, avgDurationLabel
     };
   }, [millingLogs, mills, allClients, now, viewMode, selectedYear, selectedMonth, selectedClientFilter]);
 
@@ -480,7 +486,7 @@ const Dashboard: React.FC = () => {
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
         
         {/* ROW 1: KPIs Unificados */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 sm:gap-6">
           {[
             { 
               label: 'Producción Acumulada', 
@@ -521,6 +527,16 @@ const Dashboard: React.FC = () => {
               color: 'text-indigo-600', 
               bg: 'bg-indigo-50', 
               border: 'border-indigo-100' 
+            },
+            { 
+              label: 'Duración Prom.', 
+              value: intelligence.avgDurationLabel, 
+              unit: '', 
+              subtext: 'Moliendas recientes',
+              icon: Clock, 
+              color: 'text-purple-600', 
+              bg: 'bg-purple-50', 
+              border: 'border-purple-100' 
             },
           ].map((kpi: { 
             label: string; 

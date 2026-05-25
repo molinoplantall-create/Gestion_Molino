@@ -47,7 +47,7 @@ export const MaintenanceFilters: React.FC<MaintenanceFiltersProps> = ({
     onQuickDateFilter
 }) => {
     return (
-        <div className="bg-white rounded-2xl p-4 md:p-6 border">
+        <div className="space-y-4">
             {/* Filtros principales */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Búsqueda */}

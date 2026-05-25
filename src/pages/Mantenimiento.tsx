@@ -166,7 +166,7 @@ const Mantenimiento: React.FC = () => {
   // Efecto montado o dependiente del store para cargar datos base
   useEffect(() => {
     fetchMills();
-    handleApplyFilters(); // This already calls fetchMaintenanceLogs with current state
+    handleApplyFilters(false); // Do not show toast on initial load
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -573,7 +573,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
     window.open(`mailto:${email}?subject=${subject}&body=${body}`);
   };
 
-  const handleApplyFilters = () => {
+  const handleApplyFilters = (showToast = true) => {
     setCurrentPage(1);
     fetchMaintenanceLogs({
       page: 1,
@@ -585,7 +585,9 @@ _Enviado desde el sistema de Gestión de Molinos_`;
       startDate,
       endDate
     });
-    toast.success('Filtros Aplicados', 'Los filtros se han aplicado correctamente.');
+    if (showToast) {
+      toast.success('Filtros Aplicados', 'Los filtros se han aplicado correctamente.');
+    }
   };
 
   const handleClearFilters = () => {
@@ -685,7 +687,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Gestión de Mantenimiento</h1>
           </div>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-14">
-            Industrial Assets Management System v2.1
+            Sistema de Gestión Industrial v2.1
           </p>
         </div>
 
@@ -711,76 +713,71 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         </div>
       </div>
 
-      {/* Oil Change Alerts — Glassmorphism Premium */}
-      {oilAlertMills.length > 0 && (
-        <div className="bg-amber-500/5 backdrop-blur-md rounded-2xl p-6 border border-amber-500/20 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
-            <AlertOctagon size={120} className="text-amber-500" />
-          </div>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="p-2 bg-amber-500 text-white rounded-xl shadow-lg shadow-amber-200 animate-pulse">
-              <AlertOctagon size={20} />
+      {/* SECCIÓN 1: Monitoreo en Tiempo Real y Alertas */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 px-1">
+          <Activity size={20} className="text-indigo-600" />
+          Monitoreo en Tiempo Real
+        </h2>
+        
+        {oilAlertMills.length > 0 && (
+          <div className="bg-amber-500/5 backdrop-blur-md rounded-2xl p-6 border border-amber-500/20 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
+              <AlertOctagon size={120} className="text-amber-500" />
             </div>
-            <div>
-              <h3 className="text-sm font-black text-amber-900 uppercase tracking-widest leading-none">
-                Alertas Activas de Mantenimiento
-              </h3>
-              <p className="text-[10px] font-bold text-amber-700/60 mt-1 uppercase">Renovación de Aceite Requerida</p>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2 bg-amber-500 text-white rounded-xl shadow-lg shadow-amber-200 animate-pulse">
+                <AlertOctagon size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-amber-900 uppercase tracking-widest leading-none">
+                  Próximos Cambios de Aceite / Alertas
+                </h3>
+                <p className="text-[10px] font-bold text-amber-700/60 mt-1 uppercase">Mantenimiento preventivo urgente</p>
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {oilAlertMills.map(mill => {
-              const isCritical = (mill.hours_to_oil_change || 0) <= 20;
-              return (
-                <div 
-                  key={mill.id} 
-                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all hover:scale-[1.02] ${
-                    isCritical 
-                      ? 'bg-red-500/10 border-red-500/30 shadow-red-100' 
-                      : 'bg-amber-500/10 border-amber-500/30'
-                  } shadow-sm`}
-                >
-                  <div className="flex flex-col gap-1">
-                    <span className={`text-[10px] font-black uppercase tracking-tighter ${isCritical ? 'text-red-600' : 'text-amber-700'}`}>
-                      Uso Aceite {mill.name}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <div className={`w-2 h-2 rounded-full ${isCritical ? 'bg-red-500 animate-ping' : 'bg-amber-500'}`} />
-                      <span className={`text-lg font-black tracking-tight ${isCritical ? 'text-red-700' : 'text-amber-800'}`}>
-                        {Math.round(mill.hours_to_oil_change || 0)}h restantes
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleResetOil(mill.id, mill.name)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {oilAlertMills.map(mill => {
+                const isCritical = (mill.hours_to_oil_change || 0) <= 20;
+                return (
+                  <div 
+                    key={mill.id} 
+                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all hover:scale-[1.02] ${
                       isCritical 
-                        ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-200' 
-                        : 'bg-amber-600 text-white hover:bg-amber-700 shadow-amber-200'
-                    }`}
+                        ? 'bg-red-500/10 border-red-500/30 shadow-red-100' 
+                        : 'bg-amber-500/10 border-amber-500/30'
+                    } shadow-sm`}
                   >
-                    Renovar
-                  </button>
-                </div>
-              );
-            })}
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-[10px] font-black uppercase tracking-tighter ${isCritical ? 'text-red-600' : 'text-amber-700'}`}>
+                        {mill.name}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full ${isCritical ? 'bg-red-500 animate-ping' : 'bg-amber-500'}`} />
+                        <span className={`text-lg font-black tracking-tight ${isCritical ? 'text-red-700' : 'text-amber-800'}`}>
+                          {Math.round(mill.hours_to_oil_change || 0)}h restantes
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleResetOil(mill.id, mill.name)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
+                        isCritical 
+                          ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-200' 
+                          : 'bg-amber-600 text-white hover:bg-amber-700 shadow-amber-200'
+                      }`}
+                    >
+                      Renovar
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* KPI Section: MTBF, MTTR, Disponibilidad */}
-      <KpiIndicators maintenanceLogs={allMaintenanceLogs} mills={mills} />
-
-      {/* Molino Status Dashboard */}
-      <div className="bg-white rounded-2xl p-4 md:p-6 border">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Estado de Molinos</h3>
-            <p className="text-gray-600 text-sm">Dashboard operacional en tiempo real</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {mills.map((molino) => {
             const stat = millMaintenanceStats[molino.id] || { corrective: 0, preventive: 0, predictive: 0, emergency: 0, lastDate: null };
             const isCritical = (molino.hours_to_oil_change || 0) <= 20;
@@ -914,53 +911,71 @@ _Enviado desde el sistema de Gestión de Molinos_`;
               </div>
             );
           })}
+          </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <MaintenanceFilters
-        search={search}
-        setSearch={setSearch}
-        filterType={filterType}
-        setFilterType={setFilterType}
-        filterStatus={filterStatus}
-        setFilterStatus={setFilterStatus}
-        selectedMill={selectedMill}
-        setSelectedMill={setSelectedMill}
-        mills={mills}
-        onApplyFilters={handleApplyFilters}
-        onClearFilters={handleClearFilters}
-        onPrint={handlePrint}
-        onGeneratePDF={handleGeneratePDF}
-        onSendWhatsApp={handleSendWhatsApp}
-        onSendEmail={handleSendEmail}
-        startDate={startDate}
-        setStartDate={setStartDate}
-        endDate={endDate}
-        setEndDate={setEndDate}
-        onQuickDateFilter={handleQuickDateFilter}
-      />
+      {/* SECCIÓN 2: Historial y Órdenes de Mantenimiento */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 px-1 mt-4">
+          <History size={20} className="text-indigo-600" />
+          Historial y Órdenes de Trabajo
+        </h2>
+        
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
+          <MaintenanceFilters
+            search={search}
+            setSearch={setSearch}
+            filterType={filterType}
+            setFilterType={setFilterType}
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
+            selectedMill={selectedMill}
+            setSelectedMill={setSelectedMill}
+            mills={mills}
+            onApplyFilters={handleApplyFilters}
+            onClearFilters={handleClearFilters}
+            onPrint={handlePrint}
+            onGeneratePDF={handleGeneratePDF}
+            onSendWhatsApp={handleSendWhatsApp}
+            onSendEmail={handleSendEmail}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            onQuickDateFilter={handleQuickDateFilter}
+          />
 
-      {/* Maintenance Table */}
-      <MaintenanceTable
-        logs={paginatedLogs}
-        loading={loading}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        onView={(record) => detailModal.open(record)}
-        onEdit={(record) => handleEditClick(record)}
-        onDelete={(id) => {
-          const record = maintenanceLogs.find(l => l.id === id);
-          if (record) handleDeleteClick(record);
-        }}
-        onViewHistory={handleViewHistory}
-        onFinalize={handleFinalizeMaintenance}
-        onDuplicate={handleDuplicateOrder}
-      />
+          <MaintenanceTable
+            logs={paginatedLogs}
+            loading={loading}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            onView={(record) => detailModal.open(record)}
+            onEdit={(record) => handleEditClick(record)}
+            onDelete={(id) => {
+              const record = maintenanceLogs.find(l => l.id === id);
+              if (record) handleDeleteClick(record);
+            }}
+            onViewHistory={handleViewHistory}
+            onFinalize={handleFinalizeMaintenance}
+            onDuplicate={handleDuplicateOrder}
+          />
+        </div>
+      </div>
 
-      {/* Failure Ranking Analytics */}
-      <FailureRanking maintenanceLogs={allMaintenanceLogs} mills={mills} />
+      {/* SECCIÓN 3: Analítica y Rendimiento */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 px-1 mt-4">
+          <Activity size={20} className="text-indigo-600" />
+          Rendimiento y KPIs
+        </h2>
+        <div className="space-y-6">
+          <KpiIndicators maintenanceLogs={allMaintenanceLogs} mills={mills} />
+          <FailureRanking maintenanceLogs={allMaintenanceLogs} mills={mills} />
+        </div>
+      </div>
 
       {/* Create Maintenance Modal */}
       <MaintenanceForm

@@ -125,7 +125,7 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
 
   // Calcular progreso para cambio de aceite
   const calcularProgresoAceite = () => {
-    const maxHoras = 500; // Cambio de aceite cada 500 horas
+    const maxHoras = 100; // Cambio de aceite cada 100 horas
     // Usar directamente el valor de hours_to_oil_change de la BD
     const horasRestantes = normalizedMill.horasParaCambioAceite;
     const horasUsadas = maxHoras - horasRestantes;
@@ -134,7 +134,7 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
     return {
       progreso,
       horasRestantes,
-      necesitaCambio: horasRestantes < 50
+      necesitaCambio: horasRestantes < 15
     };
   };
 
@@ -290,18 +290,30 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
                 <span className="font-black text-slate-900">{normalizedMill.horasTrabajadas}h</span>
              </div>
 
-             <div className="space-y-1">
+             <div className="space-y-1 relative group cursor-pointer">
                 <div className="flex items-center justify-between text-[9px] sm:text-xs">
-                  <span className="text-slate-500 hidden sm:inline">Aceite:</span>
+                  <div className="flex items-center gap-1">
+                    <Droplets size={10} className={aceiteInfo.necesitaCambio ? 'text-red-500' : 'text-slate-500'} />
+                    <span className="text-slate-500 hidden sm:inline">Vida Útil Aceite:</span>
+                  </div>
                   <span className={`font-black ${aceiteInfo.necesitaCambio ? 'text-red-600' : 'text-slate-700'}`}>
-                    {aceiteInfo.horasRestantes}h
+                    {Math.round(aceiteInfo.horasRestantes)}h
                   </span>
                 </div>
-                <div className="w-full bg-slate-200 rounded-full h-1">
+                <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex items-center shadow-inner relative">
                   <div
-                    className={`h-1 rounded-full ${aceiteInfo.necesitaCambio ? 'bg-red-500' : 'bg-blue-500'}`}
-                    style={{ width: `${aceiteInfo.progreso}%` }}
-                  />
+                    className={`h-full transition-all duration-1000 relative ${aceiteInfo.horasRestantes > 30 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : aceiteInfo.horasRestantes > 15 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-red-500 to-red-600'}`}
+                    style={{ width: `${Math.min(100, (aceiteInfo.horasRestantes / 100) * 100)}%` }}
+                  >
+                     <div className="absolute inset-0 bg-white/20 w-full h-1/2 rounded-t-full"></div>
+                  </div>
+                </div>
+                
+                {/* Hover tooltip for Oil progress */}
+                <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none bg-slate-800 text-white text-[9px] sm:text-[10px] font-bold px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-xl whitespace-nowrap z-20 flex flex-col items-center">
+                   <span className="mb-0.5">Avance: <span className="font-black text-white">{Math.max(0, 100 - Math.round(aceiteInfo.horasRestantes))}h</span> / 100h</span>
+                   <span className={aceiteInfo.necesitaCambio ? 'text-red-300' : 'text-emerald-300'}>Quedan: <span className="font-black">{Math.round(aceiteInfo.horasRestantes)}h</span></span>
+                   <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                 </div>
              </div>
           </div>

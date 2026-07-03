@@ -1286,7 +1286,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
                 : (log.mineral_type === 'SULFURO' ? 2.5 : 1.67);
                 
             updateData.total_hours_worked = Math.max(0, Number(((millData.total_hours_worked || 0) - actualHours).toFixed(2)));
-            updateData.hours_to_oil_change = Number(((millData.hours_to_oil_change || 150) + actualHours).toFixed(2));
+            updateData.hours_to_oil_change = Number(((millData.hours_to_oil_change || 100) + actualHours).toFixed(2));
           }
 
           // Liberar el molino si sigue ocupado por este cliente o si el log estaba en proceso
@@ -1371,7 +1371,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
         if (millData) {
           const newHoursWorked = Math.max(0, Number(((millData.total_hours_worked || 0) + delta).toFixed(2)));
-          const newOilHours = Number(((millData.hours_to_oil_change || 150) - delta).toFixed(2));
+          const newOilHours = Number(((millData.hours_to_oil_change || 100) - delta).toFixed(2));
           
           await supabase
             .from('mills')
@@ -1848,7 +1848,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   checkOilChangeNotifications: (mills: Mill[]) => {
     const appStore = useAppStore.getState();
-    const UMBRAL_ACEITE = 150;
+    const UMBRAL_ACEITE = 100;
 
     mills.forEach(mill => {
       const horas = Number(mill.horas_trabajadas || mill.horasTrabajadas || 0);

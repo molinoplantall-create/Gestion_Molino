@@ -829,26 +829,45 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                 <div className="space-y-4 flex-1">
                   {/* Hours Management (Dual Meter) */}
                   <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 space-y-4">
-                    {/* Meter 1: Oil Cycle (Usage Progress) */}
-                    <div>
-                      <div className="flex justify-between items-end mb-1.5">
+                    {/* Vida Útil Aceite & Botón Renovar */}
+                    <div className="flex flex-col gap-2 relative">
+                      <div className="flex justify-between items-center mb-1">
                         <div className="flex items-center gap-1.5">
-                          <Droplets size={12} className={isCritical ? 'text-red-500' : 'text-indigo-500'} />
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vida Útil Aceite</span>
+                          <Droplets size={14} className={isCritical ? 'text-red-500' : 'text-indigo-500'} />
+                          <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Vida Útil Aceite</span>
                         </div>
-                        <span className={`text-[10px] font-black ${isCritical ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-slate-700'}`}>
-                          {Math.round(molino.hours_to_oil_change || 0)}h restantes
-                        </span>
+                        <button
+                          onClick={() => handleResetOil(molino.id, molino.name)}
+                          className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border transition-all shadow-sm active:scale-95 flex items-center gap-1 ${
+                               isCritical ? 'bg-red-600 text-white border-red-600 shadow-red-100' : 'bg-white text-indigo-600 border-indigo-100 hover:border-indigo-600 hover:bg-indigo-50'
+                          }`}
+                        >
+                          <Wrench size={10} />
+                          Renovar
+                        </button>
                       </div>
-                      <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
-                        <div
-                          className={`h-full transition-all duration-1000 ${molino.hours_to_oil_change! > 50 ? 'bg-emerald-500' : molino.hours_to_oil_change! > 20 ? 'bg-amber-500' : 'bg-red-500'}`}
-                          style={{ width: `${Math.min(100, ((molino.hours_to_oil_change || 0) / 150) * 100)}%` }}
-                        ></div>
+                      
+                      {/* Tooltip on hover with group */}
+                      <div className="relative group cursor-pointer w-full mt-1">
+                        <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner flex items-center border border-slate-200/50">
+                          <div
+                            className={`h-full transition-all duration-1000 relative ${molino.hours_to_oil_change! > 30 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : molino.hours_to_oil_change! > 15 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-red-500 to-red-600'}`}
+                            style={{ width: `${Math.min(100, ((molino.hours_to_oil_change || 0) / 100) * 100)}%` }}
+                          >
+                             <div className="absolute inset-0 bg-white/20 w-full h-1/2 rounded-t-full"></div>
+                          </div>
+                        </div>
+                        
+                        {/* Hover tooltip for Oil progress */}
+                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none bg-slate-800 text-white text-[10px] font-bold px-3 py-2 rounded-lg shadow-xl whitespace-nowrap z-20 flex flex-col items-center">
+                           <span className="mb-0.5">Avance: <span className="font-black text-white">{Math.max(0, 100 - Math.round(molino.hours_to_oil_change || 0))}h</span> / 100h</span>
+                           <span className={isCritical ? 'text-red-300' : 'text-emerald-300'}>Quedan: <span className="font-black">{Math.round(molino.hours_to_oil_change || 0)}h</span></span>
+                           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Meter 2: Master Horometer (Total Hours) */}
+                    {/* Horómetro Maestro (Total Hours) */}
                     <div className="pt-3 border-t border-slate-100">
                       <div className="flex justify-between items-center mb-1.5">
                         <div className="flex items-center gap-1.5">
@@ -859,19 +878,8 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                           {molino.horasTrabajadas || 0}h totales
                         </span>
                       </div>
-                      <div className="flex items-center justify-between gap-4">
-                         <div className="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden opacity-50">
-                            {/* Visual representation of total wear (e.g., toward a 2000h major service) */}
-                            <div className="h-full bg-indigo-400" style={{ width: `${Math.min(100, (molino.horasTrabajadas || 0) % 1000 / 10)}%` }}></div>
-                         </div>
-                         <button
-                           onClick={() => handleResetOil(molino.id, molino.name)}
-                           className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border transition-all shadow-sm active:scale-95 ${
-                                isCritical ? 'bg-red-600 text-white border-red-600 shadow-red-100' : 'bg-white text-indigo-600 border-indigo-100 hover:border-indigo-600 hover:bg-indigo-50'
-                           }`}
-                         >
-                           Renovar Aceite
-                         </button>
+                      <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden opacity-50">
+                         <div className="h-full bg-indigo-400" style={{ width: `${Math.min(100, (molino.horasTrabajadas || 0) % 1000 / 10)}%` }}></div>
                       </div>
                     </div>
                   </div>
@@ -1041,8 +1049,8 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         onClose={() => setResetOilModal(prev => ({ ...prev, isOpen: false }))}
         onConfirm={handleConfirmResetOil}
         title="Reiniciar Vida Útil"
-        message={`¿A cuántas horas deseas reiniciar la vida útil del aceite para el ${resetOilModal.millName}? (Estándar 150h)`}
-        defaultValue="150"
+        message={`¿A cuántas horas deseas reiniciar la vida útil del aceite para el ${resetOilModal.millName}? (Estándar 100h)`}
+        defaultValue="100"
         type="number"
         min={1}
         icon={Settings}

@@ -125,7 +125,8 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
 
   // Calcular progreso para cambio de aceite
   const calcularProgresoAceite = () => {
-    const maxHoras = 100; // Cambio de aceite cada 100 horas
+    const isSmallMill = normalizedMill.name === 'Molino I' || normalizedMill.name === 'Molino II' || normalizedMill.name === 'MOLINO I' || normalizedMill.name === 'MOLINO II';
+    const maxHoras = isSmallMill ? 100 : 500; // Cambio de aceite depende del tipo de molino
     // Usar directamente el valor de hours_to_oil_change de la BD
     const horasRestantes = normalizedMill.horasParaCambioAceite;
     const horasUsadas = maxHoras - horasRestantes;

@@ -1272,7 +1272,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       for (const m of millsUsed) {
         const { data: millData } = await supabase
           .from('mills')
-          .select('total_hours_worked, hours_to_oil_change, status, current_client_id')
+          .select('total_hours_worked, hours_to_oil_change, status, current_client_id, name')
           .eq('id', m.id)
           .single();
 
@@ -1285,8 +1285,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
                 ? log.duration_hours 
                 : (log.mineral_type === 'SULFURO' ? 2.5 : 1.67);
                 
+            const isSmallMill = millData.name === 'Molino I' || millData.name === 'Molino II' || millData.name === 'MOLINO I' || millData.name === 'MOLINO II';
+            const defaultOilCapacity = isSmallMill ? 100 : 500;
+                
             updateData.total_hours_worked = Math.max(0, Number(((millData.total_hours_worked || 0) - actualHours).toFixed(2)));
-            updateData.hours_to_oil_change = Number(((millData.hours_to_oil_change || 100) + actualHours).toFixed(2));
+            updateData.hours_to_oil_change = Number(((millData.hours_to_oil_change ?? defaultOilCapacity) + actualHours).toFixed(2));
           }
 
           // Liberar el molino si sigue ocupado por este cliente o si el log estaba en proceso
@@ -1365,13 +1368,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       for (const m of millsUsed) {
         const { data: millData } = await supabase
           .from('mills')
-          .select('total_hours_worked, hours_to_oil_change')
+          .select('total_hours_worked, hours_to_oil_change, name')
           .eq('id', m.id)
           .single();
 
         if (millData) {
+          const isSmallMill = millData.name === 'Molino I' || millData.name === 'Molino II' || millData.name === 'MOLINO I' || millData.name === 'MOLINO II';
+          const defaultOilCapacity = isSmallMill ? 100 : 500;
+          
           const newHoursWorked = Math.max(0, Number(((millData.total_hours_worked || 0) + delta).toFixed(2)));
-          const newOilHours = Number(((millData.hours_to_oil_change || 100) - delta).toFixed(2));
+          const newOilHours = Number(((millData.hours_to_oil_change ?? defaultOilCapacity) - delta).toFixed(2));
           
           await supabase
             .from('mills')
@@ -1733,14 +1739,17 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     try {
       const { data, error: fetchError } = await supabase
         .from('mills')
-        .select('total_hours_worked, hours_to_oil_change')
+        .select('total_hours_worked, hours_to_oil_change, name')
         .eq('id', millId)
         .single();
 
       if (fetchError) throw fetchError;
 
+      const isSmallMill = data?.name === 'Molino I' || data?.name === 'Molino II' || data?.name === 'MOLINO I' || data?.name === 'MOLINO II';
+      const defaultOilCapacity = isSmallMill ? 100 : 500;
+
       const newHoursWorked = Number(((data?.total_hours_worked || 0) + hoursToAdd).toFixed(2));
-      const currentOilHours = data?.hours_to_oil_change ?? 500;
+      const currentOilHours = data?.hours_to_oil_change ?? defaultOilCapacity;
       const newOilHours = Math.max(0, Number((currentOilHours - hoursToAdd).toFixed(2)));
 
       const { error: updateError } = await supabase

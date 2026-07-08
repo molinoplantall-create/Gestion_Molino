@@ -780,6 +780,10 @@ _Enviado desde el sistema de Gestión de Molinos_`;
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {mills.map((molino) => {
             const stat = millMaintenanceStats[molino.id] || { corrective: 0, preventive: 0, predictive: 0, emergency: 0, lastDate: null };
+            
+            const isSmallMill = molino.name === 'Molino I' || molino.name === 'Molino II' || molino.name === 'MOLINO I' || molino.name === 'MOLINO II';
+            const maxOilHours = isSmallMill ? 100 : 500;
+            
             const isCritical = (molino.hours_to_oil_change || 0) <= 20;
             const isWarning = (molino.hours_to_oil_change || 0) <= 50;
 
@@ -852,7 +856,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                         <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner flex items-center border border-slate-200/50">
                           <div
                             className={`h-full transition-all duration-1000 relative ${molino.hours_to_oil_change! > 30 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : molino.hours_to_oil_change! > 15 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-red-500 to-red-600'}`}
-                            style={{ width: `${Math.min(100, ((molino.hours_to_oil_change || 0) / 100) * 100)}%` }}
+                            style={{ width: `${Math.min(100, ((molino.hours_to_oil_change || 0) / maxOilHours) * 100)}%` }}
                           >
                              <div className="absolute inset-0 bg-white/20 w-full h-1/2 rounded-t-full"></div>
                           </div>
@@ -860,7 +864,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                         
                         {/* Hover tooltip for Oil progress */}
                         <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none bg-slate-800 text-white text-[10px] font-bold px-3 py-2 rounded-lg shadow-xl whitespace-nowrap z-20 flex flex-col items-center">
-                           <span className="mb-0.5">Avance: <span className="font-black text-white">{Math.max(0, 100 - Math.round(molino.hours_to_oil_change || 0))}h</span> / 100h</span>
+                           <span className="mb-0.5">Avance: <span className="font-black text-white">{Math.max(0, maxOilHours - Math.round(molino.hours_to_oil_change || 0))}h</span> / {maxOilHours}h</span>
                            <span className={isCritical ? 'text-red-300' : 'text-emerald-300'}>Quedan: <span className="font-black">{Math.round(molino.hours_to_oil_change || 0)}h</span></span>
                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                         </div>

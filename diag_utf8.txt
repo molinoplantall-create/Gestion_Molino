@@ -1,0 +1,69 @@
+﻿[dotenv@17.3.1] injecting env (2) from .env.local -- tip: ­ƒöÉ prevent building .env in docker: https://dotenvx.com/prebuild
+========================================
+DIAGN├ôSTICO COMPLETO DE DATOS
+========================================
+
+=== FILOMENA ===
+
+Cliente: Filomena (ID: 5938a980-41ed-4952-8aa7-7a21d7d37131)
+  zone=Zona Camargo, type=PALLAQUERO
+  stock_cuarzo=0, stock_llampo=0
+  cumulative_cuarzo=51, cumulative_llampo=6
+  last_intake_date=2026-07-04T15:03:33.107+00:00
+  last_intake_zone=Ni├▒o Jes├║s
+  is_active=true
+  created_at=2026-02-24T00:22:51.502493+00:00
+
+  STOCK BATCHES (13):
+    [2026-01-22T10:00:00+00:00] CUARZO initial=4 remaining=0 zone=Zona Ni├▒o Jes├║s mineral=OXIDO (id=25937859-2cbf-43f5-aedd-b8cf9ebd98f6)
+    [2026-01-30T10:00:00+00:00] CUARZO initial=2 remaining=0 zone=Zona Camargo mineral=OXIDO (id=6e38d348-3100-454b-8116-0b5ab50c9398)
+    [2026-02-07T10:00:00+00:00] CUARZO initial=4 remaining=0 zone=Zona Joro mineral=OXIDO (id=74d898ec-6501-4f33-9f3d-43dcae0a7368)
+    [2026-02-17T10:00:00+00:00] CUARZO initial=4 remaining=0 zone=Ni├▒o Jes├║s mineral=OXIDO (id=3dbca952-2f5f-49e4-8140-ec63db68179b)
+    [2026-05-05T12:00:00+00:00] CUARZO initial=10 remaining=0 zone=Zona Camargo mineral=OXIDO (id=1ca47af7-cf1e-4b12-a871-c38026756fba)
+    [2026-05-05T12:00:00+00:00] CUARZO initial=7 remaining=0 zone=Ni├▒o Jes├║s mineral=SULFURO (id=320e4a68-1e0c-4c46-bb9d-fc8d79e27f83)
+    [2026-05-05T12:00:00+00:00] CUARZO initial=5 remaining=0 zone=Cortada mineral=OXIDO (id=de619508-7059-459b-92c7-ebaad05d0b06)
+    [2026-05-05T12:00:00+00:00] CUARZO initial=6 remaining=0 zone=Zona joro mineral=OXIDO (id=83618d10-24ab-4a70-865c-8589ae07a5a2)
+    [2026-05-06T12:00:00+00:00] CUARZO initial=2 remaining=0 zone=Ni├▒o Jes├║s mineral=OXIDO (id=c711be01-9cf6-4ba6-a969-1b1ba1cda8ce)
+    [2026-05-30T12:00:00+00:00] CUARZO initial=1 remaining=0 zone=Chorriadero mineral=OXIDO (id=1389e13b-fa70-41b4-a622-522e12890fe8)
+    [2026-06-05T12:00:00+00:00] CUARZO initial=4 remaining=0 zone=Ni├▒o Jes├║s mineral=OXIDO (id=2beb92ea-48ae-4ad9-9a59-328907da5d2c)
+    [2026-06-05T12:00:00+00:00] LLAMPO initial=6 remaining=0 zone=Ni├▒o Jes├║s mineral=OXIDO (id=67826017-86eb-43a7-b165-53dbc6a95dbf)
+    [2026-07-04T12:00:00+00:00] CUARZO initial=2 remaining=0 zone=Ni├▒o Jes├║s mineral=OXIDO (id=137a439a-7c00-4b41-a8ea-f76140f566fc)
+
+  MILLING LOGS (0):
+
+
+========================================
+=== RESUMEN DE TODOS LOS CLIENTES ===
+========================================
+
+Aleja: stock=0 cum=33 batches=8 logs=0 zone=Ni├▒o Jes├║s
+Alejos: stock=0 cum=25 batches=1 logs=0 zone=Caracol
+Alicia: stock=6 cum=6 batches=2 logs=0 zone=Ni├▒o Jes├║s
+Andrecito Alfaro : stock=0 cum=161 batches=4 logs=0 zone=Zona Charito
+Andr├®s Rojas : stock=0 cum=16 batches=1 logs=0 zone=Santa Rosa
+Angelina: stock=0 cum=6 batches=1 logs=0 zone=Ni├▒o Jes├║s
+Baca : stock=0 cum=5 batches=1 logs=0 zone=Zona Camargo
+Cahuantico: stock=0 cum=19 batches=3 logs=0 zone=Canoso
+Chango: stock=0 cum=28 batches=1 logs=0 zone=Zona Copacabana
+Charito: stock=100 cum=1795 batches=43 logs=0 zone=Zona Charito
+Chavo Berri : stock=0 cum=6 batches=1 logs=0 zone=Ni├▒o Jes├║s
+Cheche: stock=0 cum=23 batches=1 logs=0 zone=Zona Esperanza
+Chemo: stock=0 cum=194 batches=5 logs=0 zone=Puntajasa
+Chinucha : stock=0 cum=45 batches=3 logs=0 zone=Zona Chinucha
+Cinthia Champe: stock=0 cum=9 batches=1 logs=0 zone=Santa Rosa
+Cliente de prueba: stock=0 cum=0 batches=0 logs=0 zone=Zona joro
+Cristian Sosaya: stock=0 cum=8 batches=1 logs=0 zone=Zona Camargo
+Dolores : stock=5 cum=5 batches=2 logs=0 zone=Ni├▒o Jes├║s
+Domitila : stock=0 cum=21 batches=3 logs=0 zone=Zona Copacabana
+Erison Le├│n : stock=10 cum=22 batches=3 logs=0 zone=Ni├▒o Jes├║s
+Filomena: stock=0 cum=57 batches=13 logs=0 zone=Zona Camargo
+Francisca Fern├índez : stock=0 cum=2 batches=2 logs=0 zone=Ni├▒o Jes├║s
+Fredy Sancahuaya: stock=0 cum=10 batches=1 logs=0 zone=Zona Chinucha
+Govel: stock=0 cum=17 batches=3 logs=0 zone=Ni├▒o Jes├║s
+Gustavo Garayar : stock=0 cum=0 batches=0 logs=0 zone=Zona Puntajasa
+Gustavo Garayar : stock=0 cum=19 batches=2 logs=0 zone=Zona Puntajasa
+Heber: stock=0 cum=16 batches=2 logs=0 zone=Chorriadero
+Irma (Volvo): stock=5 cum=5 batches=2 logs=0 zone=Ni├▒o Jes├║s
+Isabel (gringa): stock=0 cum=9 batches=1 logs=0 zone=Zona joro
+Jes├║s Mendoza : stock=6 cum=24 batches=4 logs=0 zone=Ni├▒o Jes├║s
+Jorge Huamani : stock=0 cum=5 batches=1 logs=0 zone=Zona Camargo

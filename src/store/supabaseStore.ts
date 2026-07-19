@@ -588,7 +588,9 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         status: (log.status || log.estado || 'PENDIENTE').toUpperCase(),
         failure_start_time: log.failure_start_time || null,
         completed_at: log.completed_at || null,
-        created_at: log.created_at || log.fecha_registro || new Date().toISOString()
+        created_at: log.created_at || log.fecha_registro || new Date().toISOString(),
+        currency: ((log.cost_usd && log.cost_usd > 0) || (log.labor_cost_usd && log.labor_cost_usd > 0) || (log.costo_usd && log.costo_usd > 0)) ? 'USD' : 'PEN',
+        labor_cost: (log.labor_cost_usd && log.labor_cost_usd > 0) ? log.labor_cost_usd : (log.labor_cost_pen || 0)
       }));
 
       set({ maintenanceLogs: normalizedLogs, maintenanceLogsCount: count || normalizedLogs.length });
@@ -905,6 +907,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         status: data.status || 'PENDIENTE',
         cost_pen: data.cost_pen || 0,
         cost_usd: data.cost_usd || 0,
+        labor_cost_pen: data.currency === 'PEN' ? (data.labor_cost || 0) : 0,
+        labor_cost_usd: data.currency === 'USD' ? (data.labor_cost || 0) : 0,
         tasks_checklist: data.tasks_checklist || [],
         action_taken: data.action_taken || null,
         created_at: data.fechaProgramada ? `${data.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
@@ -982,9 +986,22 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   updateMaintenanceLog: async (id: string, updateData: MaintenanceUpdateData) => {
     try {
+      const payload: any = { ...updateData };
+      if (payload.currency !== undefined || payload.labor_cost !== undefined) {
+        if (payload.currency === 'PEN') {
+          payload.labor_cost_pen = payload.labor_cost || 0;
+          payload.labor_cost_usd = 0;
+        } else if (payload.currency === 'USD') {
+          payload.labor_cost_pen = 0;
+          payload.labor_cost_usd = payload.labor_cost || 0;
+        }
+        delete payload.currency;
+        delete payload.labor_cost;
+      }
+      
       const { error } = await supabase
         .from('maintenance_logs')
-        .update(updateData)
+        .update(payload)
         .eq('id', id);
 
       return { error };

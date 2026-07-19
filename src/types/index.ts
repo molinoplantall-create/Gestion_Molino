@@ -98,6 +98,8 @@ export interface MaintenanceLog {
   category?: string;
   cost_pen?: number;
   cost_usd?: number;
+  labor_cost_pen?: number;
+  labor_cost_usd?: number;
   tasks_checklist?: any[];
   failure_start_time?: string;
   completed_at?: string;

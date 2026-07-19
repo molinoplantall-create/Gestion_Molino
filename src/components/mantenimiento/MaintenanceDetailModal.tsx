@@ -61,23 +61,43 @@ export const MaintenanceDetailModal: React.FC<MaintenanceDetailModalProps> = ({
       </div>
 
       {/* Financial Summary */}
-      {((record as any).cost_pen > 0 || (record as any).cost_usd > 0) && (
+      {((record as any).cost_pen > 0 || (record as any).cost_usd > 0 || (record as any).labor_cost_pen > 0 || (record as any).labor_cost_usd > 0) && (
         <div className="mb-6">
           <div className="flex items-center gap-1.5 mb-2">
             <DollarSign size={14} className="text-slate-400" />
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Resumen Financiero</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {(record as any).cost_pen > 0 && (
-              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
-                <span className="text-xs font-medium text-emerald-700">Costo Soles</span>
-                <span className="text-sm font-black text-emerald-800">S/ {(record as any).cost_pen.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+            {((record as any).cost_pen > 0 || (record as any).labor_cost_pen > 0) && (
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex flex-col justify-center">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-medium text-emerald-700">Materiales</span>
+                  <span className="text-xs font-bold text-emerald-800">S/ {((record as any).cost_pen || 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between items-center mb-1 border-b border-emerald-100 pb-1">
+                  <span className="text-[10px] font-medium text-emerald-700">Mano de Obra</span>
+                  <span className="text-xs font-bold text-emerald-800">S/ {((record as any).labor_cost_pen || 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs font-black text-emerald-900">TOTAL</span>
+                  <span className="text-sm font-black text-emerald-900">S/ {(((record as any).cost_pen || 0) + ((record as any).labor_cost_pen || 0)).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                </div>
               </div>
             )}
-            {(record as any).cost_usd > 0 && (
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center justify-between">
-                <span className="text-xs font-medium text-blue-700">Costo Dólares</span>
-                <span className="text-sm font-black text-blue-800">$ {(record as any).cost_usd.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+            {((record as any).cost_usd > 0 || (record as any).labor_cost_usd > 0) && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex flex-col justify-center">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-medium text-blue-700">Materiales</span>
+                  <span className="text-xs font-bold text-blue-800">$ {((record as any).cost_usd || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between items-center mb-1 border-b border-blue-100 pb-1">
+                  <span className="text-[10px] font-medium text-blue-700">Mano de Obra</span>
+                  <span className="text-xs font-bold text-blue-800">$ {((record as any).labor_cost_usd || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs font-black text-blue-900">TOTAL</span>
+                  <span className="text-sm font-black text-blue-900">$ {(((record as any).cost_usd || 0) + ((record as any).labor_cost_usd || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                </div>
               </div>
             )}
           </div>

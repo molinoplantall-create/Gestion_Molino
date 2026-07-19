@@ -72,6 +72,14 @@ const RegistroMolienda: React.FC = () => {
   const { mills, clients, fetchMills, fetchClients, registerMilling } = useSupabaseStore();
   const toast = useToast();
 
+  // Solo clientes activos: evita que un cliente eliminado (soft-delete) o
+  // duplicado desactivado aparezca como opción al registrar un ingreso,
+  // eliminando el riesgo de asignar mineral a la cuenta equivocada.
+  const activeClients = React.useMemo(
+    () => clients.filter((c: any) => c.is_active !== false),
+    [clients]
+  );
+
   // Estado principal
   const [molienda, setMolienda] = useState<MoliendaData>({
     clienteId: '',
@@ -330,13 +338,18 @@ const RegistroMolienda: React.FC = () => {
   };
 
   const handleTiempoChange = (mineral: string, opcion: string, checked: boolean) => {
+    // Selección única (tipo radio): al marcar una opción, se desmarcan las demás
+    // del mismo mineral para evitar que queden dos tiempos activos a la vez
+    // (bug histórico: 2h -> se registraba 2:30, 1:30 -> se registraba 1:40).
     setMolienda(prev => {
       if (mineral === 'OXIDO') {
         return {
           ...prev,
           tiempos: {
             ...prev.tiempos,
-            oxido: { ...prev.tiempos.oxido, [opcion]: checked }
+            oxido: checked
+              ? { hora40: false, hora30: false, hora00: false, [opcion]: true }
+              : { ...prev.tiempos.oxido, [opcion]: false }
           }
         };
       } else if (mineral === 'SULFURO') {
@@ -344,7 +357,9 @@ const RegistroMolienda: React.FC = () => {
           ...prev,
           tiempos: {
             ...prev.tiempos,
-            sulfuro: { ...prev.tiempos.sulfuro, [opcion]: checked }
+            sulfuro: checked
+              ? { hora00: false, hora30: false, [opcion]: true }
+              : { ...prev.tiempos.sulfuro, [opcion]: false }
           }
         };
       }
@@ -716,7 +731,7 @@ const RegistroMolienda: React.FC = () => {
           <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-[2.5rem] blur opacity-5 group-hover:opacity-10 transition duration-1000"></div>
           <div className="relative">
             <ClientSelector
-              clients={clients}
+              clients={activeClients}
               selectedClientId={molienda.clienteId}
               onClientChange={handleClienteChange}
               stockInfo={molienda.clienteId ? {

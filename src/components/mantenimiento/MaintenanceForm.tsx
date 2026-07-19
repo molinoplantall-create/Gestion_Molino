@@ -1,3 +1,4 @@
+import React from 'react';
 import { FormModal } from '../ui/FormModal';
 import { Wrench, Plus, X } from 'lucide-react';
 
@@ -13,6 +14,8 @@ export interface MaintenanceFormData {
     asignadoA: string;
     cost_pen?: number;
     cost_usd?: number;
+    labor_cost?: number;
+    currency?: 'PEN' | 'USD';
     tasks_checklist?: { id: string, text: string, completed: boolean }[];
     action_taken?: string;
 }
@@ -42,6 +45,8 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 }) => {
     const isValid = formData.molinoId && formData.descripcion && formData.asignadoA;
     const isIncidentMode = formData.tipo === 'CORRECTIVO' || formData.estado === 'COMPLETADO';
+    const currency = formData.currency || 'PEN';
+    const currencySymbol = currency === 'PEN' ? 'S/' : '$';
 
     const handleAddTask = () => {
         const newTask = { id: crypto.randomUUID(), text: '', completed: false };
@@ -53,13 +58,13 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     };
 
     const handleUpdateTask = (id: string, text: string) => {
-        onChange('tasks_checklist', (formData.tasks_checklist || []).map(t => 
+        onChange('tasks_checklist', (formData.tasks_checklist || []).map(t =>
             t.id === id ? { ...t, text } : t
         ));
     };
 
     const handleToggleTask = (id: string) => {
-        onChange('tasks_checklist', (formData.tasks_checklist || []).map(t => 
+        onChange('tasks_checklist', (formData.tasks_checklist || []).map(t =>
             t.id === id ? { ...t, completed: !t.completed } : t
         ));
     };
@@ -76,9 +81,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             isLoading={isLoading}
             isValid={!!isValid}
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Molino */}
-                <div>
+                <div className="sm:col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Molino <span className="text-red-500">*</span>
                     </label>
@@ -99,7 +104,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </div>
 
                 {/* Tipo */}
-                <div>
+                <div className="sm:col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Tipo de Mantenimiento <span className="text-red-500">*</span>
                     </label>
@@ -116,7 +121,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </div>
 
                 {/* Prioridad */}
-                <div>
+                <div className="sm:col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Prioridad
                     </label>
@@ -133,7 +138,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </div>
 
                 {/* Estado */}
-                <div>
+                <div className="sm:col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Estado
                     </label>
@@ -150,7 +155,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </div>
 
                 {/* Horas Estimadas / Inoperativas */}
-                <div>
+                <div className="sm:col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         {isIncidentMode ? 'Tiempo Inoperativo (Horas)' : 'Horas Estimadas'}
                     </label>
@@ -165,7 +170,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </div>
 
                 {/* Fecha */}
-                <div>
+                <div className="sm:col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         {isIncidentMode ? 'Fecha del Incidente / Intervención' : 'Fecha'} <span className="text-red-500">*</span>
                     </label>
@@ -180,7 +185,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </div>
 
                 {/* Técnico Asignado */}
-                <div className="md:col-span-2 lg:col-span-2">
+                <div className="sm:col-span-2 lg:col-span-3">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Técnico Asignado <span className="text-red-500">*</span>
                     </label>
@@ -196,7 +201,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </div>
 
                 {/* Descripción */}
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2 lg:col-span-3">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Descripción del Problema <span className="text-red-500">*</span>
                     </label>
@@ -213,9 +218,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
                 {/* Evidencia / Diagnóstico (Solo en modo incidente) */}
                 {isIncidentMode && (
-                    <div className="md:col-span-2 lg:col-span-3 pt-4 border-t border-gray-100">
+                    <div className="sm:col-span-2 lg:col-span-3 pt-4 border-t border-gray-100">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Diagnóstico Acertado y Evidencia (Causa Raíz)
+                            Solución, Diagnóstico Acertado
                         </label>
                         <textarea
                             value={formData.action_taken || ''}
@@ -228,39 +233,77 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 )}
 
                 {/* Sección de Costos */}
-                <div className="md:col-span-2 lg:col-span-3 grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-100">
-                    <div className="md:col-span-2 lg:col-span-4">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Presupuesto y Costos (Opcional)</h4>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Costo (S/)</label>
-                        <input
-                            type="number"
-                            value={formData.cost_pen || ''}
-                            onChange={(e) => onChange('cost_pen', parseFloat(e.target.value))}
-                            placeholder="0.00"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Costo ($)</label>
-                        <input
-                            type="number"
-                            value={formData.cost_usd || ''}
-                            onChange={(e) => onChange('cost_usd', parseFloat(e.target.value))}
-                            placeholder="0.00"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
+                <div className="sm:col-span-2 lg:col-span-3 pt-4 border-t border-gray-100">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Presupuesto y Costos (Opcional)</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                        {/* Selector de moneda */}
+                        <div className="sm:col-span-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Moneda</label>
+                            <select
+                                value={currency}
+                                onChange={(e) => onChange('currency', e.target.value as 'PEN' | 'USD')}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                            >
+                                <option value="PEN">S/ — Soles (PEN)</option>
+                                <option value="USD">$ — Dólares (USD)</option>
+                            </select>
+                        </div>
+
+                        {/* Costo de materiales / insumos */}
+                        <div className="sm:col-span-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Costo ({currencySymbol})</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold pointer-events-none">
+                                    {currencySymbol}
+                                </span>
+                                <input
+                                    type="number"
+                                    value={currency === 'PEN' ? (formData.cost_pen || '') : (formData.cost_usd || '')}
+                                    onChange={(e) => {
+                                        const val = parseFloat(e.target.value);
+                                        if (currency === 'PEN') {
+                                            onChange('cost_pen', val);
+                                        } else {
+                                            onChange('cost_usd', val);
+                                        }
+                                    }}
+                                    placeholder="0.00"
+                                    min="0"
+                                    step="0.01"
+                                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Mano de Obra */}
+                        <div className="sm:col-span-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Mano de Obra ({currencySymbol})</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold pointer-events-none">
+                                    {currencySymbol}
+                                </span>
+                                <input
+                                    type="number"
+                                    value={formData.labor_cost || ''}
+                                    onChange={(e) => onChange('labor_cost', parseFloat(e.target.value))}
+                                    placeholder="0.00"
+                                    min="0"
+                                    step="0.01"
+                                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Checklist de Tareas */}
-                <div className="md:col-span-2 lg:col-span-3 pt-4 border-t border-gray-100">
-                    <div className="flex items-center justify-between mb-2">
+                <div className="sm:col-span-2 lg:col-span-3 pt-4 border-t border-gray-100">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                             {isIncidentMode ? 'Procedimiento / Repuestos Cambiados' : 'Procedimiento / Checklist'}
                         </h4>
-                        <span className="text-[10px] text-indigo-500 font-medium italic">
+                        <span className="text-[10px] text-indigo-500 font-medium italic hidden sm:inline">
                             (Ej: Cambio de rodamientos, Engrase, Inspección de motor...)
                         </span>
                         <button
@@ -271,7 +314,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             <Plus size={14} /> Agregar Tarea
                         </button>
                     </div>
-                    
+
                     <div className="space-y-2">
                         {(formData.tasks_checklist || []).length === 0 && (
                             <p className="text-xs text-gray-400 italic py-2 text-center bg-gray-50 rounded-lg border border-dashed">
@@ -284,19 +327,19 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                                     type="checkbox"
                                     checked={task.completed}
                                     onChange={() => handleToggleTask(task.id)}
-                                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 flex-shrink-0"
                                 />
                                 <input
                                     type="text"
                                     value={task.text}
                                     onChange={(e) => handleUpdateTask(task.id, e.target.value)}
                                     placeholder="Nombre de la tarea..."
-                                    className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    className="flex-1 min-w-0 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => handleRemoveTask(task.id)}
-                                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
                                 >
                                     <X size={14} />
                                 </button>

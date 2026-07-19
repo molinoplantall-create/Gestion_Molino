@@ -202,7 +202,16 @@ const Dashboard: React.FC = () => {
         const millEntry = log.mills_used.find((mu: any) => (mu.mill_id === m.id || mu.id === m.id));
         return sum + (millEntry?.total || millEntry?.total_sacks || (Number(millEntry?.cuarzo || 0) + Number(millEntry?.llampo || 0)) || 0);
       }, 0);
-      return { name: m.name, total: prodTotal, status: m.status };
+      const hoursTotal = filteredLogs.reduce((sum, log) => {
+        if (!Array.isArray(log.mills_used)) return sum;
+        const usedThisMill = log.mills_used.some((mu: any) => (mu.mill_id === m.id || mu.id === m.id));
+        if (!usedThisMill) return sum;
+        const logHours = log.duration_hours && log.duration_hours > 0
+          ? log.duration_hours
+          : (log.mineral_type === 'SULFURO' ? 2.5 : 1.67);
+        return sum + logHours;
+      }, 0);
+      return { name: m.name, total: prodTotal, hours: Number(hoursTotal.toFixed(1)), status: m.status };
     }).sort((a, b) => b.total - a.total);
 
     // 4. Distribución Mineral (PieChart)
@@ -732,9 +741,10 @@ const Dashboard: React.FC = () => {
                           style={{ width: `${Math.max(pct, mill.total > 0 ? 3 : 0)}%` }}
                         />
                       </div>
-                      <div className="w-16 text-right">
+                      <div className="w-24 text-right">
                         <span className="text-[11px] font-black text-slate-900">{formatNumber(mill.total)}</span>
                         <span className="text-[9px] font-bold text-slate-400 ml-1">scs</span>
+                        <div className="text-[9px] font-bold text-indigo-400">{mill.hours}h</div>
                       </div>
                     </div>
                   );

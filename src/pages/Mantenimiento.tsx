@@ -116,6 +116,8 @@ const Mantenimiento: React.FC = () => {
     asignadoA: '',
     cost_pen: 0,
     cost_usd: 0,
+    labor_cost: 0,
+    currency: 'PEN',
     tasks_checklist: [],
     action_taken: ''
   });
@@ -277,6 +279,8 @@ const Mantenimiento: React.FC = () => {
       asignadoA: '',
       cost_pen: 0,
       cost_usd: 0,
+      labor_cost: 0,
+      currency: 'PEN',
       tasks_checklist: [],
       action_taken: ''
     });
@@ -302,6 +306,8 @@ const Mantenimiento: React.FC = () => {
       status: formData.estado as any,
       cost_pen: formData.cost_pen || 0,
       cost_usd: formData.cost_usd || 0,
+      labor_cost: formData.labor_cost || 0,
+      currency: formData.currency || 'PEN',
       tasks_checklist: formData.tasks_checklist,
       action_taken: formData.action_taken
     });
@@ -330,6 +336,8 @@ const Mantenimiento: React.FC = () => {
       asignadoA: record.technician_name || '',
       cost_pen: record.cost_pen || 0,
       cost_usd: record.cost_usd || 0,
+      labor_cost: (record as any).labor_cost || 0,
+      currency: ((record as any).currency as 'PEN' | 'USD') || 'PEN',
       tasks_checklist: record.tasks_checklist || [],
       action_taken: record.action_taken || ''
     });
@@ -358,6 +366,8 @@ const Mantenimiento: React.FC = () => {
       technician_name: formData.asignadoA,
       cost_pen: formData.cost_pen,
       cost_usd: formData.cost_usd,
+      labor_cost: formData.labor_cost,
+      currency: formData.currency,
       tasks_checklist: formData.tasks_checklist,
       action_taken: formData.action_taken,
       created_at: formData.fechaProgramada ? `${formData.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
@@ -413,6 +423,8 @@ const Mantenimiento: React.FC = () => {
       asignadoA: record.technician_name || '',
       cost_pen: (record as any).cost_pen || 0,
       cost_usd: (record as any).cost_usd || 0,
+      labor_cost: (record as any).labor_cost || 0,
+      currency: ((record as any).currency as 'PEN' | 'USD') || 'PEN',
       tasks_checklist: (record as any).tasks_checklist || [],
       action_taken: record.action_taken || ''
     });
@@ -648,6 +660,14 @@ _Enviado desde el sistema de Gestión de Molinos_`;
     }
   };
 
+  const getMillOilConfig = (millName: string) => {
+    const isSmallMill = millName === 'Molino I' || millName === 'Molino II' || millName === 'MOLINO I' || millName === 'MOLINO II';
+    return {
+      maxOilHours: isSmallMill ? 100 : 500,
+      label: isSmallMill ? 'aceite' : 'aceite de caja'
+    };
+  };
+
   const handleResetOil = (millId: string, millName: string) => {
     setResetOilModal({ isOpen: true, millId, millName });
   };
@@ -783,6 +803,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
             
             const isSmallMill = molino.name === 'Molino I' || molino.name === 'Molino II' || molino.name === 'MOLINO I' || molino.name === 'MOLINO II';
             const maxOilHours = isSmallMill ? 100 : 500;
+            const oilLabel = isSmallMill ? 'Vida Útil Aceite' : 'Aceite de Caja';
             
             const isCritical = (molino.hours_to_oil_change || 0) <= 20;
             const isWarning = (molino.hours_to_oil_change || 0) <= 50;
@@ -838,7 +859,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                       <div className="flex justify-between items-center mb-1">
                         <div className="flex items-center gap-1.5">
                           <Droplets size={14} className={isCritical ? 'text-red-500' : 'text-indigo-500'} />
-                          <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Vida Útil Aceite</span>
+                          <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">{oilLabel}</span>
                         </div>
                         <button
                           onClick={() => handleResetOil(molino.id, molino.name)}
@@ -1052,9 +1073,9 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         isOpen={resetOilModal.isOpen}
         onClose={() => setResetOilModal(prev => ({ ...prev, isOpen: false }))}
         onConfirm={handleConfirmResetOil}
-        title="Reiniciar Vida Útil"
-        message={`¿A cuántas horas deseas reiniciar la vida útil del aceite para el ${resetOilModal.millName}? (Estándar 100h)`}
-        defaultValue="100"
+        title={getMillOilConfig(resetOilModal.millName).label === 'aceite de caja' ? 'Reiniciar Aceite de Caja' : 'Reiniciar Vida Útil'}
+        message={`¿A cuántas horas deseas reiniciar el ${getMillOilConfig(resetOilModal.millName).label} para el ${resetOilModal.millName}? (Estándar ${getMillOilConfig(resetOilModal.millName).maxOilHours}h)`}
+        defaultValue={String(getMillOilConfig(resetOilModal.millName).maxOilHours)}
         type="number"
         min={1}
         icon={Settings}

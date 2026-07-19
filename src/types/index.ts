@@ -146,6 +146,8 @@ export interface MaintenanceRegisterData {
   technician_name: string;
   cost_pen?: number;
   cost_usd?: number;
+  labor_cost?: number;
+  currency?: 'PEN' | 'USD';
   tasks_checklist?: { id: string, text: string, completed: boolean }[];
   action_taken?: string;
 }
@@ -161,6 +163,8 @@ export interface MaintenanceUpdateData {
   technician_name?: string;
   cost_pen?: number;
   cost_usd?: number;
+  labor_cost?: number;
+  currency?: 'PEN' | 'USD';
   tasks_checklist?: any[];
   action_taken?: string;
   created_at?: string;

@@ -14,6 +14,7 @@ import {
 
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useToast } from '@/hooks/useToast';
+import { getMaxOilHours } from '@/utils/oilConfig';
 
 interface MillCardProps {
   mill: any;
@@ -125,8 +126,7 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
 
   // Calcular progreso para cambio de aceite
   const calcularProgresoAceite = () => {
-    const isSmallMill = normalizedMill.name === 'Molino I' || normalizedMill.name === 'Molino II' || normalizedMill.name === 'MOLINO I' || normalizedMill.name === 'MOLINO II';
-    const maxHoras = isSmallMill ? 100 : 500; // Cambio de aceite depende del tipo de molino
+    const maxHoras = getMaxOilHours(normalizedMill.nombre);
     // Usar directamente el valor de hours_to_oil_change de la BD
     const horasRestantes = normalizedMill.horasParaCambioAceite;
     const horasUsadas = maxHoras - horasRestantes;
@@ -135,7 +135,8 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
     return {
       progreso,
       horasRestantes,
-      necesitaCambio: horasRestantes < 15
+      maxHoras,
+      necesitaCambio: horasRestantes < (maxHoras * 0.15)
     };
   };
 
@@ -303,8 +304,8 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex items-center shadow-inner relative">
                   <div
-                    className={`h-full transition-all duration-1000 relative ${aceiteInfo.horasRestantes > 30 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : aceiteInfo.horasRestantes > 15 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-red-500 to-red-600'}`}
-                    style={{ width: `${Math.min(100, (aceiteInfo.horasRestantes / 100) * 100)}%` }}
+                    className={`h-full transition-all duration-1000 relative ${aceiteInfo.horasRestantes > (aceiteInfo.maxHoras * 0.3) ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : aceiteInfo.horasRestantes > (aceiteInfo.maxHoras * 0.15) ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-red-500 to-red-600'}`}
+                    style={{ width: `${Math.min(100, Math.max(0, (aceiteInfo.horasRestantes / aceiteInfo.maxHoras) * 100))}%` }}
                   >
                      <div className="absolute inset-0 bg-white/20 w-full h-1/2 rounded-t-full"></div>
                   </div>
@@ -312,7 +313,7 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
                 
                 {/* Hover tooltip for Oil progress */}
                 <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none bg-slate-800 text-white text-[9px] sm:text-[10px] font-bold px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-xl whitespace-nowrap z-20 flex flex-col items-center">
-                   <span className="mb-0.5">Avance: <span className="font-black text-white">{Math.max(0, 100 - Math.round(aceiteInfo.horasRestantes))}h</span> / 100h</span>
+                   <span className="mb-0.5">Avance: <span className="font-black text-white">{Math.max(0, Math.round(aceiteInfo.maxHoras - aceiteInfo.horasRestantes))}h</span> / {aceiteInfo.maxHoras}h</span>
                    <span className={aceiteInfo.necesitaCambio ? 'text-red-300' : 'text-emerald-300'}>Quedan: <span className="font-black">{Math.round(aceiteInfo.horasRestantes)}h</span></span>
                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                 </div>

@@ -1302,8 +1302,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
                 ? log.duration_hours 
                 : (log.mineral_type === 'SULFURO' ? 2.5 : 1.67);
                 
-            const isSmallMill = millData.name === 'Molino I' || millData.name === 'Molino II' || millData.name === 'MOLINO I' || millData.name === 'MOLINO II';
-            const defaultOilCapacity = isSmallMill ? 100 : 500;
+            const { getMaxOilHours } = await import('@/utils/oilConfig');
+            const defaultOilCapacity = getMaxOilHours(millData.name);
                 
             updateData.total_hours_worked = Math.max(0, Number(((millData.total_hours_worked || 0) - actualHours).toFixed(2)));
             updateData.hours_to_oil_change = Number(((millData.hours_to_oil_change ?? defaultOilCapacity) + actualHours).toFixed(2));
@@ -1390,8 +1390,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
           .single();
 
         if (millData) {
-          const isSmallMill = millData.name === 'Molino I' || millData.name === 'Molino II' || millData.name === 'MOLINO I' || millData.name === 'MOLINO II';
-          const defaultOilCapacity = isSmallMill ? 100 : 500;
+          const { getMaxOilHours } = await import('@/utils/oilConfig');
+          const defaultOilCapacity = getMaxOilHours(millData.name);
           
           const newHoursWorked = Math.max(0, Number(((millData.total_hours_worked || 0) + delta).toFixed(2)));
           const newOilHours = Number(((millData.hours_to_oil_change ?? defaultOilCapacity) - delta).toFixed(2));
@@ -1762,8 +1762,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (fetchError) throw fetchError;
 
-      const isSmallMill = data?.name === 'Molino I' || data?.name === 'Molino II' || data?.name === 'MOLINO I' || data?.name === 'MOLINO II';
-      const defaultOilCapacity = isSmallMill ? 100 : 500;
+      const { getMaxOilHours } = await import('@/utils/oilConfig');
+      const defaultOilCapacity = data?.name ? getMaxOilHours(data.name) : 100;
 
       const newHoursWorked = Number(((data?.total_hours_worked || 0) + hoursToAdd).toFixed(2));
       const currentOilHours = data?.hours_to_oil_change ?? defaultOilCapacity;

@@ -24,6 +24,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { MaintenanceSkeleton } from '@/components/mantenimiento/MaintenanceSkeleton';
+import { getMaxOilHours } from '@/utils/oilConfig';
 
 interface MaintenanceRecord {
   id: string;
@@ -661,9 +662,10 @@ _Enviado desde el sistema de Gestión de Molinos_`;
   };
 
   const getMillOilConfig = (millName: string) => {
-    const isSmallMill = millName === 'Molino I' || millName === 'Molino II' || millName === 'MOLINO I' || millName === 'MOLINO II';
+    const maxOilHours = getMaxOilHours(millName);
+    const isSmallMill = maxOilHours === 100;
     return {
-      maxOilHours: isSmallMill ? 100 : 500,
+      maxOilHours,
       label: isSmallMill ? 'aceite' : 'aceite de caja'
     };
   };
@@ -801,8 +803,8 @@ _Enviado desde el sistema de Gestión de Molinos_`;
           {mills.map((molino) => {
             const stat = millMaintenanceStats[molino.id] || { corrective: 0, preventive: 0, predictive: 0, emergency: 0, lastDate: null };
             
-            const isSmallMill = molino.name === 'Molino I' || molino.name === 'Molino II' || molino.name === 'MOLINO I' || molino.name === 'MOLINO II';
-            const maxOilHours = isSmallMill ? 100 : 500;
+            const maxOilHours = getMaxOilHours(molino.name);
+            const isSmallMill = maxOilHours === 100;
             const oilLabel = isSmallMill ? 'Vida Útil Aceite' : 'Aceite de Caja';
             
             const isCritical = (molino.hours_to_oil_change || 0) <= 20;

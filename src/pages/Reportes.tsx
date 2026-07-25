@@ -35,6 +35,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { useSupabaseStore } from '../store/supabaseStore';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '../hooks/useToast';
 
 const Reportes: React.FC = () => {
@@ -49,6 +50,13 @@ const Reportes: React.FC = () => {
   };
   const [dateRange, setDateRange] = useState('month');
   const [reportType, setReportType] = useState('general');
+
+  // Rango de fechas para "Ingresos por Rango" — por defecto, lo que va del año en curso
+  const currentYearStart = `${new Date().getFullYear()}-01-01`;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [rangoInicio, setRangoInicio] = useState(currentYearStart);
+  const [rangoFin, setRangoFin] = useState(todayStr);
+  const [exportandoRango, setExportandoRango] = useState(false);
 
   useEffect(() => {
     fetchMillingLogs({ pageSize: 200 });
@@ -209,6 +217,101 @@ const Reportes: React.FC = () => {
     doc.save(`Balance_Gerencial_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const handleExportIngresosRango = async () => {
+    if (!rangoInicio || !rangoFin) {
+      toast.warning('Rango incompleto', 'Selecciona fecha de inicio y fecha de fin.');
+      return;
+    }
+    if (rangoInicio > rangoFin) {
+      toast.warning('Rango inválido', 'La fecha de inicio no puede ser posterior a la fecha de fin.');
+      return;
+    }
+
+    setExportandoRango(true);
+    toast.info('Generando Excel...', 'Procesando ingresos del rango seleccionado');
+
+    try {
+      // Consulta directa (no toca el estado global de la página, así los
+      // gráficos y demás reportes no se ven afectados por este filtro)
+      const { data: logsRango, error } = await supabase
+        .from('milling_logs')
+        .select('client_id, mineral_type, total_sacks, total_cuarzo, total_llampo, created_at, status, clients!inner(name, client_type, zone)')
+        .gte('created_at', `${rangoInicio}T00:00:00`)
+        .lte('created_at', `${rangoFin}T23:59:59`)
+        .in('status', ['FINALIZADO', 'COMPLETED'])
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (!logsRango || logsRango.length === 0) {
+        toast.warning('Sin Datos', 'No hay ingresos registrados en ese rango de fechas.');
+        setExportandoRango(false);
+        return;
+      }
+
+      // Agrupado por cliente (con su tipo: Minero / Pallaquero)
+      const porCliente: Record<string, { cliente: string; tipo: string; zona: string; cuarzo: number; llampo: number; total: number; operaciones: number }> = {};
+      logsRango.forEach((log: any) => {
+        const cId = log.client_id;
+        if (!porCliente[cId]) {
+          porCliente[cId] = {
+            cliente: log.clients?.name || 'Cliente Desconocido',
+            tipo: log.clients?.client_type || 'N/A',
+            zona: log.clients?.zone || 'N/A',
+            cuarzo: 0, llampo: 0, total: 0, operaciones: 0
+          };
+        }
+        porCliente[cId].cuarzo += Number(log.total_cuarzo || 0);
+        porCliente[cId].llampo += Number(log.total_llampo || 0);
+        porCliente[cId].total += Number(log.total_sacks || 0);
+        porCliente[cId].operaciones += 1;
+      });
+
+      const dataPorCliente = Object.values(porCliente)
+        .sort((a, b) => b.total - a.total)
+        .map(c => ({
+          Cliente: c.cliente,
+          'Tipo Cliente': c.tipo,
+          Zona: c.zona,
+          'Cuarzo (Sacos)': c.cuarzo,
+          'Llampo (Sacos)': c.llampo,
+          'Total Sacos': c.total,
+          'N° Ingresos': c.operaciones
+        }));
+
+      // Resumen por Tipo (Minero vs Pallaquero)
+      const porTipo: Record<string, { sacos: number; clientes: Set<string>; operaciones: number }> = {};
+      logsRango.forEach((log: any) => {
+        const tipo = log.clients?.client_type || 'N/A';
+        if (!porTipo[tipo]) porTipo[tipo] = { sacos: 0, clientes: new Set(), operaciones: 0 };
+        porTipo[tipo].sacos += Number(log.total_sacks || 0);
+        porTipo[tipo].clientes.add(log.client_id);
+        porTipo[tipo].operaciones += 1;
+      });
+
+      const dataResumenTipo = Object.entries(porTipo).map(([tipo, v]) => ({
+        'Tipo Cliente': tipo,
+        'Total Sacos': v.sacos,
+        'N° Clientes': v.clientes.size,
+        'N° Ingresos': v.operaciones
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const wsCliente = XLSX.utils.json_to_sheet(dataPorCliente);
+      XLSX.utils.book_append_sheet(wb, wsCliente, 'Por Cliente');
+      const wsTipo = XLSX.utils.json_to_sheet(dataResumenTipo);
+      XLSX.utils.book_append_sheet(wb, wsTipo, 'Resumen por Tipo');
+
+      XLSX.writeFile(wb, `Ingresos_${rangoInicio}_a_${rangoFin}.xlsx`);
+      toast.success('Listo', 'Reporte de ingresos por rango generado correctamente.');
+    } catch (err: any) {
+      console.error('Error exportando ingresos por rango:', err);
+      toast.error('Error', 'No se pudo generar el reporte. Intenta de nuevo.');
+    } finally {
+      setExportandoRango(false);
+    }
+  };
+
   const handleExportIngresosExcel = () => {
     if (!allClients || allClients.length === 0) {
       toast.warning('Sin Datos', 'No hay clientes para generar el reporte de ingresos.');
@@ -336,6 +439,39 @@ const Reportes: React.FC = () => {
               >
                 <FileText size={16} className="mr-2" />
                 PDF INGRESOS
+              </button>
+            </div>
+          </div>
+
+          <div className="w-px h-12 bg-slate-200 mx-2 hidden lg:block"></div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Ingresos por Rango (por Cliente / Tipo)</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="date"
+                value={rangoInicio}
+                onChange={(e) => setRangoInicio(e.target.value)}
+                max={rangoFin}
+                className="px-3 py-2 border-2 border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-400"
+              />
+              <span className="text-slate-400 text-xs font-bold">a</span>
+              <input
+                type="date"
+                value={rangoFin}
+                onChange={(e) => setRangoFin(e.target.value)}
+                min={rangoInicio}
+                max={todayStr}
+                className="px-3 py-2 border-2 border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-400"
+              />
+              <button
+                onClick={handleExportIngresosRango}
+                disabled={exportandoRango}
+                className="group flex items-center px-4 py-2.5 bg-amber-50 border-2 border-amber-100 text-amber-700 rounded-xl hover:bg-amber-100 transition-all font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Excel de ingresos del rango elegido, por cliente y por tipo (Minero/Pallaquero)"
+              >
+                <Download size={16} className="mr-2" />
+                {exportandoRango ? 'GENERANDO...' : 'EXCEL POR RANGO'}
               </button>
             </div>
           </div>

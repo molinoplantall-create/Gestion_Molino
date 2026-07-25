@@ -7,10 +7,8 @@ import {
   Calendar,
   TrendingUp,
   TrendingDown,
-  MessageSquare,
   FileText,
   Printer,
-  ChevronRight,
   Zap,
   Activity,
   Box,
@@ -49,7 +47,10 @@ const Reportes: React.FC = () => {
     'CAMARGO': 'CAMARGO'
   };
   const [dateRange, setDateRange] = useState('month');
-  const [reportType, setReportType] = useState('general');
+  // Fechas para cuando dateRange === 'custom' (filtra los KPIs y gráficos de arriba)
+  const [statsCustomStart, setStatsCustomStart] = useState(`${new Date().getFullYear()}-01-01`);
+  const [statsCustomEnd, setStatsCustomEnd] = useState(new Date().toISOString().split('T')[0]);
+  const [refrescando, setRefrescando] = useState(false);
 
   // Rango de fechas para "Ingresos por Rango" — por defecto, lo que va del año en curso
   const currentYearStart = `${new Date().getFullYear()}-01-01`;
@@ -59,7 +60,7 @@ const Reportes: React.FC = () => {
   const [exportandoRango, setExportandoRango] = useState(false);
 
   useEffect(() => {
-    fetchMillingLogs({ pageSize: 200 });
+    fetchMillingLogs({ pageSize: 3000 });
     fetchMills();
     fetchAllClients();
     fetchClients();
@@ -73,6 +74,23 @@ const Reportes: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleRefrescar = async () => {
+    setRefrescando(true);
+    try {
+      await Promise.all([
+        fetchMillingLogs({ pageSize: 3000 }),
+        fetchMills(),
+        fetchAllClients(),
+        fetchClients()
+      ]);
+      toast.success('Actualizado', 'Datos actualizados con la información más reciente.');
+    } catch (err) {
+      toast.error('Error', 'No se pudo actualizar. Intenta de nuevo.');
+    } finally {
+      setRefrescando(false);
+    }
+  };
   
   // Helper para formatear fechas sin desfase de zona horaria
   const formatDateSafe = (dateStr: string) => {
@@ -88,10 +106,32 @@ const Reportes: React.FC = () => {
 
   // Cálculos dinámicos procesados para Recharts
   const stats = useMemo(() => {
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    const currentYear = now.getFullYear();
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-    // 1. Datos para AreaChart (Producción Mensual)
+    // Filtro real según "Rango de Datos" — antes este selector no filtraba nada
+    let periodStart: Date;
+    let periodEnd: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    if (dateRange === 'month') {
+      periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (dateRange === 'quarter') {
+      const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+      periodStart = new Date(now.getFullYear(), quarterStartMonth, 1);
+    } else if (dateRange === 'year') {
+      periodStart = new Date(now.getFullYear(), 0, 1);
+    } else {
+      // custom
+      periodStart = statsCustomStart ? new Date(`${statsCustomStart}T00:00:00`) : new Date(now.getFullYear(), 0, 1);
+      periodEnd = statsCustomEnd ? new Date(`${statsCustomEnd}T23:59:59`) : periodEnd;
+    }
+
+    const logsPeriodo = millingLogs.filter(log => {
+      const d = new Date(log.created_at);
+      return d >= periodStart && d <= periodEnd;
+    });
+
+    // 1. Datos para AreaChart (Producción Mensual) — siempre muestra la tendencia del año en curso
     const monthlyProd = months.map((month, i) => {
       const logsInMonth = millingLogs.filter(log => {
         const date = new Date(log.created_at);
@@ -104,9 +144,9 @@ const Reportes: React.FC = () => {
       };
     }).filter((_, i) => i <= new Date().getMonth());
 
-    // 2. Datos para BarChart (Eficiencia por Molino)
+    // 2. Datos para BarChart (Eficiencia por Molino) — filtrado por el periodo elegido
     const millStats = mills.map(m => {
-      const prodTotal = millingLogs.reduce((sum, log) => {
+      const prodTotal = logsPeriodo.reduce((sum, log) => {
         if (!Array.isArray(log.mills_used)) return sum;
         // Soportar tanto mill_id como id por compatibilidad
         const millEntry = log.mills_used.find(mu => (mu.mill_id === m.id || mu.id === m.id));
@@ -119,8 +159,8 @@ const Reportes: React.FC = () => {
       };
     }).sort((a, b) => b.total - a.total);
 
-    // 3. Datos para PieChart (Distribución Mineral)
-    const rawMineralData = millingLogs.reduce((acc, log) => {
+    // 3. Datos para PieChart (Distribución Mineral) — filtrado por el periodo elegido
+    const rawMineralData = logsPeriodo.reduce((acc, log) => {
       acc[log.mineral_type] = (acc[log.mineral_type] || 0) + (log.total_sacks || 0);
       return acc;
     }, {} as Record<string, number>);
@@ -130,12 +170,13 @@ const Reportes: React.FC = () => {
       value
     }));
 
-    // 4. KPIs y Top Clientes
-    const totalSacos = millingLogs.reduce((sum, log) => sum + (log.total_sacks || 0), 0);
-    const avgSacos = millingLogs.length > 0 ? totalSacos / millingLogs.length : 0;
+    // 4. KPIs y Top Clientes — filtrado por el periodo elegido
+    const totalSacos = logsPeriodo.reduce((sum, log) => sum + (log.total_sacks || 0), 0);
+    const avgSacos = logsPeriodo.length > 0 ? totalSacos / logsPeriodo.length : 0;
+    const clientesAtendidos = new Set(logsPeriodo.map(l => l.client_id)).size;
 
     const clientPerformance: Record<string, { name: string; total: number; logs: number }> = {};
-    millingLogs.forEach(log => {
+    logsPeriodo.forEach(log => {
       const cId = log.client_id;
       if (!clientPerformance[cId]) {
         clientPerformance[cId] = { name: log.clients?.name || 'Cliente Desconocido', total: 0, logs: 0 };
@@ -154,9 +195,10 @@ const Reportes: React.FC = () => {
       mineralData,
       totalSacos,
       avgSacos,
+      clientesAtendidos,
       topClientsList
     };
-  }, [millingLogs, mills]);
+  }, [millingLogs, mills, dateRange, statsCustomStart, statsCustomEnd]);
 
   // Estilos de colores industriales
   const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
@@ -502,7 +544,7 @@ const Reportes: React.FC = () => {
 
       {/* FILTROS MASTER */}
       <div className="bg-slate-50 rounded-[2rem] p-6 lg:p-8 border border-white shadow-xl shadow-slate-200/50 print:hidden">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className={`grid grid-cols-2 ${dateRange === 'custom' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-3 sm:gap-6`}>
           <div className="col-span-2 sm:col-span-1 space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rango de Datos</label>
             <div className="relative">
@@ -520,32 +562,45 @@ const Reportes: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Métrica Principal</label>
-            <select
-              className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none appearance-none cursor-pointer shadow-sm"
-            >
-              <option>Volumen de Molienda (Sacos)</option>
-              <option>Consumo de Mineral</option>
-              <option>Disponibilidad de Molinos</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unidad de Análisis</label>
-            <select className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm">
-              <option>Todos los Molinos Activos</option>
-              {mills.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-          </div>
+          {dateRange === 'custom' && (
+            <>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Desde</label>
+                <input
+                  type="date"
+                  value={statsCustomStart}
+                  onChange={(e) => setStatsCustomStart(e.target.value)}
+                  max={statsCustomEnd}
+                  className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none shadow-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hasta</label>
+                <input
+                  type="date"
+                  value={statsCustomEnd}
+                  onChange={(e) => setStatsCustomEnd(e.target.value)}
+                  min={statsCustomStart}
+                  max={todayStr}
+                  className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none shadow-sm"
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex items-end gap-3">
-            <button className="flex-1 px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-tighter hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center">
-              <Filter size={16} className="mr-2" /> ACTUALIZAR
+            <button
+              onClick={handleRefrescar}
+              disabled={refrescando}
+              className="flex-1 px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-tighter hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Trae los datos más recientes desde el servidor"
+            >
+              <Filter size={16} className="mr-2" /> {refrescando ? 'ACTUALIZANDO...' : 'ACTUALIZAR'}
             </button>
             <button
               onClick={handlePrint}
               className="p-3.5 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm"
+              title="Imprimir / Exportar como PDF"
             >
               <Printer size={20} />
             </button>
@@ -561,8 +616,8 @@ const Reportes: React.FC = () => {
       {/* KPI CARDS - DISEÑO INDUSTRIAL */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6 mt-4">
         {[
-          { label: 'PRODUCCIÓN HISTÓRICA', value: stats.totalSacos.toLocaleString(), icon: Box, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', trend: 'Total', trendUp: true },
-          { label: 'CLIENTES ATENDIDOS', value: clients.length, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', trend: 'Activos', trendUp: true },
+          { label: 'PRODUCCIÓN DEL PERIODO', value: stats.totalSacos.toLocaleString(), icon: Box, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', trend: 'Sacos', trendUp: true },
+          { label: 'CLIENTES ATENDIDOS', value: stats.clientesAtendidos, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', trend: 'En el periodo', trendUp: true },
           { label: 'PROMEDIO POR CARGA', value: stats.avgSacos.toFixed(1), icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', trend: 'Sacos/Log', trendUp: true },
           { label: 'DISPONIBILIDAD', value: `${((mills.filter(m => m.status === 'LIBRE').length / mills.length) * 100).toFixed(0)}%`, icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', trend: 'Equipo', trendUp: true },
         ].map((kpi) => (
@@ -755,40 +810,6 @@ const Reportes: React.FC = () => {
         </div>
       </div>
 
-      {/* SECCIÓN ENVÍO MASIVO - ESTILO NOTIFICACIÓN INDUSTRIAL */}
-      <div className="relative overflow-hidden bg-slate-900 rounded-[3rem] p-8 lg:p-12 text-white print:hidden">
-        <div className="absolute right-0 top-0 w-1/3 h-full opacity-10 pointer-events-none">
-          <Activity size={300} strokeWidth={1} />
-        </div>
-
-        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
-          <div className="max-w-xl text-center lg:text-left">
-            <div className="inline-flex items-center px-4 py-2 bg-indigo-500/20 border border-indigo-500/30 rounded-full text-indigo-400 text-xs font-black uppercase tracking-[0.2em] mb-6">
-              <MessageSquare size={14} className="mr-2" /> Comunicación en Red
-            </div>
-            <h2 className="text-3xl lg:text-5xl font-black mb-4 tracking-tighter">Exportación de Reportes a Clientes</h2>
-            <p className="text-slate-400 text-lg font-medium leading-relaxed">
-              Active el canal de envío automático para que sus clientes reciban el balance de producción directamente en sus dispositivos móviles.
-            </p>
-          </div>
-
-          <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-4">
-            <div className="min-w-[240px] px-6 py-5 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl">
-              <span className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">DESTINATARIOS</span>
-              <div className="flex items-center justify-between gap-4">
-                <span className="font-bold">Clientes con Saldo</span>
-                <ChevronRight size={20} className="text-indigo-500" />
-              </div>
-            </div>
-            <button
-              onClick={() => toast.success('Enviando...', 'Iniciando canal masivo de WhatsApp')}
-              className="px-10 py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-3xl font-black text-base uppercase tracking-widest shadow-2xl shadow-indigo-600/20 transition-all flex items-center justify-center"
-            >
-              INICIAR ENVÍO <Zap size={20} className="ml-3" />
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

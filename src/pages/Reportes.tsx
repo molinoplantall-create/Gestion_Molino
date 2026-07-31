@@ -259,6 +259,194 @@ const Reportes: React.FC = () => {
     doc.save(`Balance_Gerencial_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const handleExportIngresoPorDia = async () => {
+    if (!rangoInicio || !rangoFin) {
+      toast.warning('Rango incompleto', 'Selecciona fecha de inicio y fecha de fin.');
+      return;
+    }
+    if (rangoInicio > rangoFin) {
+      toast.warning('Rango inválido', 'La fecha de inicio no puede ser posterior a la fecha de fin.');
+      return;
+    }
+
+    setExportandoRango(true);
+    toast.info('Generando Excel...', 'Procesando ingresos por día (stock)');
+
+    try {
+      const { data: batches, error } = await supabase
+        .from('stock_batches')
+        .select('*, clients!inner(name, client_type, zone)')
+        .gte('created_at', `${rangoInicio}T00:00:00`)
+        .lte('created_at', `${rangoFin}T23:59:59`)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (!batches || batches.length === 0) {
+        toast.warning('Sin Datos', 'No hay ingresos registrados en ese rango de fechas.');
+        setExportandoRango(false);
+        return;
+      }
+
+      // 1. Agrupar por día
+      const porDia: Record<string, { 
+        fecha: string; 
+        cuarzo: number; 
+        llampo: number; 
+        total: number; 
+        minero: number; 
+        pallaquero: number; 
+        ingresos: number;
+      }> = {};
+
+      // 2. Detalle fila por fila
+      const detalle = batches.map((b: any) => {
+        const dateStr = b.created_at.split('T')[0];
+        
+        if (!porDia[dateStr]) {
+          porDia[dateStr] = {
+            fecha: formatDateSafe(b.created_at),
+            cuarzo: 0, llampo: 0, total: 0, minero: 0, pallaquero: 0, ingresos: 0
+          };
+        }
+        
+        const q = Number(b.initial_quantity || 0);
+        if (b.sub_mineral === 'CUARZO') porDia[dateStr].cuarzo += q;
+        if (b.sub_mineral === 'LLAMPO') porDia[dateStr].llampo += q;
+        porDia[dateStr].total += q;
+        
+        const tipo = b.clients?.client_type || 'N/A';
+        if (tipo === 'MINERO') porDia[dateStr].minero += q;
+        else if (tipo === 'PALLAQUERO') porDia[dateStr].pallaquero += q;
+        
+        porDia[dateStr].ingresos += 1;
+
+        return {
+          Fecha: formatDateSafe(b.created_at),
+          Cliente: b.clients?.name || 'Cliente Desconocido',
+          'Tipo Cliente': tipo,
+          Zona: b.clients?.zone || 'N/A',
+          Mineral: b.mineral_type || 'N/A',
+          'Sub Mineral': b.sub_mineral || 'N/A',
+          'Cantidad (Sacos)': q
+        };
+      });
+
+      const dataPorDia = Object.values(porDia).sort((a, b) => a.fecha.localeCompare(b.fecha)).map(d => ({
+        Fecha: d.fecha,
+        'Cuarzo (Sacos)': d.cuarzo,
+        'Llampo (Sacos)': d.llampo,
+        'Total Sacos': d.total,
+        'Aporte Mineros': d.minero,
+        'Aporte Pallaqueros': d.pallaquero,
+        'N° Ingresos': d.ingresos
+      }));
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataPorDia), 'Por Día');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalle), 'Detalle');
+
+      XLSX.writeFile(wb, `Ingresos_Por_Dia_${rangoInicio}_a_${rangoFin}.xlsx`);
+      toast.success('Listo', 'Reporte de Ingresos por Día generado.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Error', 'No se pudo generar el reporte.');
+    } finally {
+      setExportandoRango(false);
+    }
+  };
+
+  const handleExportMoliendaPorDia = async () => {
+    if (!rangoInicio || !rangoFin) {
+      toast.warning('Rango incompleto', 'Selecciona fecha de inicio y fecha de fin.');
+      return;
+    }
+    if (rangoInicio > rangoFin) {
+      toast.warning('Rango inválido', 'La fecha de inicio no puede ser posterior a la fecha de fin.');
+      return;
+    }
+
+    setExportandoRango(true);
+    toast.info('Generando Excel...', 'Procesando moliendas por día');
+
+    try {
+      const { data: logs, error } = await supabase
+        .from('milling_logs')
+        .select('*')
+        .gte('created_at', `${rangoInicio}T00:00:00`)
+        .lte('created_at', `${rangoFin}T23:59:59`)
+        .in('status', ['FINALIZADO', 'COMPLETED'])
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (!logs || logs.length === 0) {
+        toast.warning('Sin Datos', 'No hay moliendas en ese rango.');
+        setExportandoRango(false);
+        return;
+      }
+
+      const porDia: Record<string, {
+        fecha: string;
+        total: number;
+        cuarzo: number;
+        llampo: number;
+        oxido: number;
+        sulfuro: number;
+        moliendas: number;
+        horas: number;
+      }> = {};
+
+      logs.forEach((log: any) => {
+        const dateStr = log.created_at.split('T')[0];
+        if (!porDia[dateStr]) {
+          porDia[dateStr] = {
+            fecha: formatDateSafe(log.created_at),
+            total: 0, cuarzo: 0, llampo: 0, oxido: 0, sulfuro: 0, moliendas: 0, horas: 0
+          };
+        }
+        
+        const sacs = Number(log.total_sacks || 0);
+        const qz = Number(log.total_cuarzo || 0);
+        const ll = Number(log.total_llampo || 0);
+        const hrs = Number(log.duration_hours || 0);
+
+        porDia[dateStr].total += sacs;
+        porDia[dateStr].cuarzo += qz;
+        porDia[dateStr].llampo += ll;
+        
+        if (log.mineral_type === 'OXIDO') porDia[dateStr].oxido += sacs;
+        if (log.mineral_type === 'SULFURO') porDia[dateStr].sulfuro += sacs;
+        
+        porDia[dateStr].moliendas += 1;
+        porDia[dateStr].horas += hrs;
+      });
+
+      const dataPorDia = Object.values(porDia).sort((a, b) => a.fecha.localeCompare(b.fecha)).map(d => ({
+        Fecha: d.fecha,
+        'Total Sacos Molidos': d.total,
+        'Cuarzo (Sacos)': d.cuarzo,
+        'Llampo (Sacos)': d.llampo,
+        'Óxido (Sacos)': d.oxido,
+        'Sulfuro (Sacos)': d.sulfuro,
+        'N° Moliendas': d.moliendas,
+        'Horas Trabajadas': Number(d.horas.toFixed(2)),
+        'Rendimiento (Sacos/Hora)': d.horas > 0 ? Number((d.total / d.horas).toFixed(2)) : 0
+      }));
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataPorDia), 'Molienda Por Día');
+
+      XLSX.writeFile(wb, `Molienda_Por_Dia_${rangoInicio}_a_${rangoFin}.xlsx`);
+      toast.success('Listo', 'Reporte de Molienda por Día generado.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Error', 'No se pudo generar el reporte.');
+    } finally {
+      setExportandoRango(false);
+    }
+  };
+
   const handleExportIngresosRango = async () => {
     if (!rangoInicio || !rangoFin) {
       toast.warning('Rango incompleto', 'Selecciona fecha de inicio y fecha de fin.');
@@ -514,6 +702,24 @@ const Reportes: React.FC = () => {
               >
                 <Download size={16} className="mr-2" />
                 {exportandoRango ? 'GENERANDO...' : 'EXCEL POR RANGO'}
+              </button>
+              <button
+                onClick={handleExportIngresoPorDia}
+                disabled={exportandoRango}
+                className="group flex items-center px-4 py-2.5 bg-cyan-50 border-2 border-cyan-100 text-cyan-700 rounded-xl hover:bg-cyan-100 transition-all font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Excel de ingresos agrupados por día"
+              >
+                <Download size={16} className="mr-2" />
+                INGRESO POR DÍA
+              </button>
+              <button
+                onClick={handleExportMoliendaPorDia}
+                disabled={exportandoRango}
+                className="group flex items-center px-4 py-2.5 bg-rose-50 border-2 border-rose-100 text-rose-700 rounded-xl hover:bg-rose-100 transition-all font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Excel de molienda agrupada por día"
+              >
+                <Download size={16} className="mr-2" />
+                MOLIENDA POR DÍA
               </button>
             </div>
           </div>

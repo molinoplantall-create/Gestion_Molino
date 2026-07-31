@@ -577,7 +577,7 @@ const RegistroMolienda: React.FC = () => {
         horaInicioISO: horaInicioISO,
         horaFinISO: horaFinISO,
         operatorName: user?.nombre || user?.email || 'Desconocido',
-        duration: molienda.isManualTime ? (molienda.manualHours || 0) + ((molienda.manualMinutes || 0) / 60) : undefined
+        duration: tiempoPorMolino / 60
       });
 
       if (success) {

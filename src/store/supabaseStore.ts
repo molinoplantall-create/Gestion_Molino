@@ -88,6 +88,7 @@ interface SupabaseStore {
       horaInicioISO?: string;
       horaFinISO?: string;
       operatorName?: string;
+      duration?: number;
     }
   ) => Promise<boolean>;
   registerMaintenance: (data: MaintenanceRegisterData) => Promise<boolean>;
@@ -645,7 +646,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       }
 
       // Priorizar duración manual
-      let finalDuration = data.duration ? parseFloat(data.duration) : 0;
+      let finalDuration = data.duration ? Number(data.duration) : 0;
       if (finalDuration <= 0) {
         finalDuration = data.mineralType === 'SULFURO' ? 2.5 : 1.67;
       }

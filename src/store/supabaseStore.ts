@@ -749,6 +749,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       // -------------------------------
 
       const millUpdates = data.mills.map(async (m) => {
+        // FIX CRÍTICO: si el molino ya estaba OCUPADO por un proceso anterior
+        // que nunca se cerró (quedó huérfano en IN_PROGRESS), cerrarlo primero
+        // -calculando sus horas reales- antes de sobreescribirlo con el
+        // proceso nuevo. Antes, esto dejaba el registro viejo huérfano para
+        // siempre: nunca sumaba horas al molino ni se marcaba FINALIZADO,
+        // porque el sistema de auto-liberación solo revisa el estado ACTUAL
+        // del molino, y ese estado se perdía al sobreescribirlo.
+        const currentMillState = get().mills.find(x => x.id === m.id);
+        if (currentMillState && currentMillState.status === 'OCUPADO') {
+          logger.warn(`⚠️ registerMilling: Molino ${m.id} ya estaba OCUPADO por un proceso sin cerrar. Cerrándolo antes de continuar...`);
+          await get().finalizeMilling(m.id);
+        }
+
         // Calcular duración en horas
         let hoursToAdd = 0;
         if (data.horaInicioISO && data.horaFinISO) {
@@ -862,14 +875,35 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         if (millError) logger.error(`Error liberando molino ${mill.name}:`, millError);
 
         // 2. Marcar la molienda como FINALIZADO si sigue IN_PROGRESS
-        const { error: logError } = await supabase
+        // FIX: antes solo se actualizaba el status, sin guardar duration_hours
+        // en el registro — el acumulado del molino quedaba correcto, pero el
+        // registro individual de la molienda se quedaba con el valor viejo
+        // (0 o el de respaldo fijo), afectando reportes y recálculos futuros.
+        const hoursForLog = (mill.start_time && mill.estimated_end)
+          ? Number(((new Date(mill.estimated_end).getTime() - new Date(mill.start_time).getTime()) / (1000 * 60 * 60)).toFixed(2))
+          : 0;
+
+        const { data: orphanLogs, error: findError } = await supabase
           .from('milling_logs')
-          .update({ status: 'FINALIZADO' })
+          .select('id, duration_hours')
           .eq('client_id', mill.current_client_id)
           .eq('status', 'IN_PROGRESS')
           .contains('mills_used', [{ id: mill.id }]);
 
-        if (logError) logger.error(`Error finalizando log para molino ${mill.name}:`, logError);
+        if (!findError && orphanLogs) {
+          for (const orphanLog of orphanLogs) {
+            const finalDurationForLog = (orphanLog.duration_hours && orphanLog.duration_hours > 0)
+              ? orphanLog.duration_hours
+              : (hoursForLog > 0 ? hoursForLog : 1.67);
+
+            const { error: logError } = await supabase
+              .from('milling_logs')
+              .update({ status: 'FINALIZADO', duration_hours: finalDurationForLog })
+              .eq('id', orphanLog.id);
+
+            if (logError) logger.error(`Error finalizando log para molino ${mill.name}:`, logError);
+          }
+        }
       }
 
       // Volver a cargar para reflejar cambios

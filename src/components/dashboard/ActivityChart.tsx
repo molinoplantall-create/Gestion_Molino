@@ -24,6 +24,9 @@ export interface ActivityChartProps {
   selectedMonth: number;
   /** Filtros opcionales de cliente/zona internos al chart */
   showFilters?: boolean;
+  /** Cliente controlado externamente (ej. desde el selector del Dashboard).
+   *  Si se pasa, tiene prioridad sobre el filtro interno del chart. */
+  clientId?: string;
 }
 
 const MONTH_NAMES_FULL = [
@@ -43,10 +46,18 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
   selectedYear,
   selectedMonth,
   showFilters = true,
+  clientId,
 }) => {
   const { clients, zones } = useSupabaseStore();
 
-  const [selectedClient, setSelectedClient] = useState<string>('all');
+  const [selectedClientInternal, setSelectedClientInternal] = useState<string>('all');
+  // FIX: antes este chart tenía su propio filtro de cliente, totalmente
+  // desconectado del selector de cliente de arriba del Dashboard — por eso
+  // "Actividad Reciente" y "Tendencia Evolutiva" nunca cambiaban al filtrar.
+  // Si el Dashboard pasa un clientId, este tiene prioridad sobre el filtro
+  // interno del propio chart.
+  const selectedClient = clientId !== undefined ? (clientId || 'all') : selectedClientInternal;
+  const setSelectedClient = setSelectedClientInternal;
   const [selectedZone, setSelectedZone] = useState<string>('all');
   const [allLogs, setAllLogs] = useState<any[]>([]);
   const [allInputs, setAllInputs] = useState<any[]>([]);
@@ -237,6 +248,17 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
             <p className="text-xs sm:text-sm font-black text-emerald-700 leading-tight truncate">{totalIngresos.toLocaleString()} <span className="text-[8px] sm:text-[9px] font-bold">scs</span></p>
           </div>
         </div>
+        {selectedClient !== 'all' && (
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-cyan-50 border border-cyan-100 rounded-xl px-2 sm:px-3 py-2 flex-1 min-w-0">
+            <Map size={13} className="text-cyan-500 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[7px] sm:text-[8px] font-black text-cyan-400 uppercase tracking-widest leading-none truncate" title="Zona">Zona</p>
+              <p className="text-xs sm:text-sm font-black text-cyan-700 leading-tight truncate">
+                {clients.find(c => c.id === selectedClient)?.zone || '—'}
+              </p>
+            </div>
+          </div>
+        )}
         {viewMode === 'anio' && annualStats && (
           <>
             <div className="flex items-center gap-1.5 sm:gap-2 bg-violet-50 border border-violet-100 rounded-xl px-2 sm:px-3 py-2 flex-1 min-w-0">

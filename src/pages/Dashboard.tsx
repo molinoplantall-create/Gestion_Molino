@@ -170,10 +170,13 @@ const Dashboard: React.FC = () => {
     });
 
     // 1. Producción Mensual (AreaChart - Tendencia Evolutiva)
+    // FIX: antes ignoraba selectedClientFilter (usaba millingLogs completo),
+    // por eso al filtrar por cliente este gráfico no cambiaba.
     const monthlyProd = months.map((month, i) => {
       const logsInMonth = millingLogs.filter(log => {
         const date = new Date(log.created_at);
-        return date.getFullYear() === currentYear && date.getMonth() === i;
+        const matchesClient = selectedClientFilter === 'ALL' || log.client_id === selectedClientFilter;
+        return date.getFullYear() === currentYear && date.getMonth() === i && matchesClient;
       });
       return {
         name: month,
@@ -211,7 +214,7 @@ const Dashboard: React.FC = () => {
           : (log.mineral_type === 'SULFURO' ? 2.5 : 1.67);
         return sum + logHours;
       }, 0);
-      return { name: m.name, total: prodTotal, hours: Number(hoursTotal.toFixed(1)), status: m.status };
+      return { name: m.name, total: prodTotal, hours: Math.round(hoursTotal), status: m.status };
     }).sort((a, b) => b.total - a.total);
 
     // 4. Distribución Mineral (PieChart)
@@ -674,6 +677,7 @@ const Dashboard: React.FC = () => {
               selectedYear={selectedYear}
               selectedMonth={selectedMonth}
               showFilters={false}
+              clientId={selectedClientFilter === 'ALL' ? 'all' : selectedClientFilter}
             />
           </div>
 

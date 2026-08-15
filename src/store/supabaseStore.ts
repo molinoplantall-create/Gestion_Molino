@@ -749,17 +749,36 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       // -------------------------------
 
       const millUpdates = data.mills.map(async (m) => {
-        // FIX CRÍTICO: si el molino ya estaba OCUPADO por un proceso anterior
-        // que nunca se cerró (quedó huérfano en IN_PROGRESS), cerrarlo primero
-        // -calculando sus horas reales- antes de sobreescribirlo con el
-        // proceso nuevo. Antes, esto dejaba el registro viejo huérfano para
-        // siempre: nunca sumaba horas al molino ni se marcaba FINALIZADO,
-        // porque el sistema de auto-liberación solo revisa el estado ACTUAL
-        // del molino, y ese estado se perdía al sobreescribirlo.
-        const currentMillState = get().mills.find(x => x.id === m.id);
-        if (currentMillState && currentMillState.status === 'OCUPADO') {
-          logger.warn(`⚠️ registerMilling: Molino ${m.id} ya estaba OCUPADO por un proceso sin cerrar. Cerrándolo antes de continuar...`);
-          await get().finalizeMilling(m.id);
+        // FIX ROBUSTO: en vez de confiar en el estado en caché del store
+        // (get().mills, que puede estar desactualizado en el navegador) o en
+        // que coincida el client_id, se consulta DIRECTO a la base de datos
+        // por cualquier molienda que haya quedado huérfana en IN_PROGRESS
+        // para este molino específico, y se cierra ANTES de continuar. Esto
+        // es a prueba de caché desactualizada y de client_id no coincidente
+        // -causas confirmadas de que el cierre automático fallara antes.
+        try {
+          const { data: orphanLogsForMill, error: orphanFindError } = await supabase
+            .from('milling_logs')
+            .select('id, duration_hours, mineral_type, mills_used')
+            .eq('status', 'IN_PROGRESS')
+            .contains('mills_used', [{ id: m.id }]);
+
+          if (!orphanFindError && orphanLogsForMill && orphanLogsForMill.length > 0) {
+            logger.warn(`⚠️ registerMilling: ${orphanLogsForMill.length} molienda(s) huérfana(s) encontradas para el molino ${m.id}. Cerrando antes de continuar...`);
+            for (const orphanLog of orphanLogsForMill) {
+              const fallbackDuration = orphanLog.mineral_type === 'SULFURO' ? 2.5 : 1.67;
+              const finalDurationForOrphan = (orphanLog.duration_hours && orphanLog.duration_hours > 0)
+                ? orphanLog.duration_hours
+                : fallbackDuration;
+              await supabase
+                .from('milling_logs')
+                .update({ status: 'FINALIZADO', duration_hours: finalDurationForOrphan })
+                .eq('id', orphanLog.id);
+              await get().updateMillHours(m.id, finalDurationForOrphan);
+            }
+          }
+        } catch (orphanErr) {
+          logger.error(`Error cerrando moliendas huérfanas del molino ${m.id}:`, orphanErr);
         }
 
         // Calcular duración en horas
@@ -886,7 +905,6 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         const { data: orphanLogs, error: findError } = await supabase
           .from('milling_logs')
           .select('id, duration_hours')
-          .eq('client_id', mill.current_client_id)
           .eq('status', 'IN_PROGRESS')
           .contains('mills_used', [{ id: mill.id }]);
 

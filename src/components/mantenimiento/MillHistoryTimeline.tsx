@@ -45,18 +45,11 @@ export const MillHistoryTimeline: React.FC<MillHistoryTimelineProps> = ({
     const fetchHistory = async () => {
       setLoading(true);
       const data = await fetchMillMaintenanceHistory(millId);
-      
-      // Filter out 'ACEITE' type logs and legacy oil change logs to avoid polluting counts and view
-      const visibleLogs = data.filter((l: any) => {
-        const type = (l.type || '').toUpperCase();
-        const desc = (l.description || '').toLowerCase();
-        const action = (l.action_taken || '').toLowerCase();
-        return type !== 'ACEITE' && 
-               !desc.includes('cambio de aceite') && 
-               !desc.includes('vida útil') && 
-               !desc.includes('aceite') &&
-               !action.includes('cambio de aceite');
-      });
+
+      // Antes se excluían los registros de tipo 'ACEITE' de esta vista.
+      // Ahora se muestran todos — el historial de cada molino debe incluir
+      // sus cambios de aceite, no solo mantenimiento preventivo/correctivo.
+      const visibleLogs = data;
       
       setLogs(visibleLogs);
       setStats({
@@ -144,7 +137,9 @@ export const MillHistoryTimeline: React.FC<MillHistoryTimelineProps> = ({
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-xs font-bold text-slate-500">{fmtDate(log.created_at)}</span>
                           <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            log.type === 'CORRECTIVO' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                            log.type === 'CORRECTIVO' ? 'bg-red-100 text-red-700' :
+                            log.type === 'ACEITE' ? 'bg-amber-100 text-amber-700' :
+                            'bg-blue-100 text-blue-700'
                           }`}>{log.type}</span>
                           <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full flex items-center gap-1 ${config.color} bg-opacity-10`}
                             style={{ backgroundColor: `${config.bg.replace('bg-', '')}10` }}>

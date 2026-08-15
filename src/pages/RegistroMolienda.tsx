@@ -30,6 +30,7 @@ interface MolinoProceso {
   current_sacks?: number;
   start_time?: string;
   estimated_end?: string;
+  hours_to_oil_change?: number;
 }
 
 interface TiemposProceso {
@@ -226,7 +227,8 @@ const RegistroMolienda: React.FC = () => {
               current_client: m.current_client,
               current_sacks: m.current_sacks,
               start_time: m.start_time,
-              estimated_end: m.estimated_end
+              estimated_end: m.estimated_end,
+              hours_to_oil_change: m.hours_to_oil_change
             };
           });
           console.log('✅ RegistroMolienda: Initialized molinos:', initialMolinos);
@@ -249,7 +251,8 @@ const RegistroMolienda: React.FC = () => {
               current_client: storeM.current_client || localM.current_client,
               current_sacks: storeM.current_sacks || localM.current_sacks,
               start_time: storeM.start_time || localM.start_time,
-              estimated_end: storeM.estimated_end || localM.estimated_end
+              estimated_end: storeM.estimated_end || localM.estimated_end,
+              hours_to_oil_change: storeM.hours_to_oil_change
             };
           }
           return localM;
@@ -274,7 +277,8 @@ const RegistroMolienda: React.FC = () => {
             tiempoEstimado: 0,
             horaFin: null,
             current_client: m.current_client,
-            current_sacks: m.current_sacks
+            current_sacks: m.current_sacks,
+            hours_to_oil_change: m.hours_to_oil_change
           }));
           return { ...prev, molinos: [...updatedMolinos, ...extraMolinos] };
         }

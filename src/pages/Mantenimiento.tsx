@@ -259,7 +259,7 @@ const Mantenimiento: React.FC = () => {
   const paginatedLogs = maintenanceLogs; // Store already paginates
 
   // Oil change alerts
-  const oilAlertMills = mills.filter(m => (m.hours_to_oil_change || 0) <= 50 && (m.hours_to_oil_change || 0) > 0);
+  const oilAlertMills = mills.filter(m => (m.hours_to_oil_change ?? 999) <= 50);
 
   // Handlers
   const handleFormChange = (field: string, value: any) => {
@@ -777,7 +777,9 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                       <div className="flex items-center gap-1.5">
                         <div className={`w-2 h-2 rounded-full ${isCritical ? 'bg-red-500 animate-ping' : 'bg-amber-500'}`} />
                         <span className={`text-lg font-black tracking-tight ${isCritical ? 'text-red-700' : 'text-amber-800'}`}>
-                          {Math.round(mill.hours_to_oil_change || 0)}h restantes
+                          {(mill.hours_to_oil_change ?? 0) < 0
+                            ? `Excedido ${Math.round(Math.abs(mill.hours_to_oil_change ?? 0))}h`
+                            : `${Math.round(mill.hours_to_oil_change ?? 0)}h restantes`}
                         </span>
                       </div>
                     </div>
@@ -879,7 +881,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                         <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner flex items-center border border-slate-200/50">
                           <div
                             className={`h-full transition-all duration-1000 relative ${molino.hours_to_oil_change! > 30 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : molino.hours_to_oil_change! > 15 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-red-500 to-red-600'}`}
-                            style={{ width: `${Math.min(100, ((molino.hours_to_oil_change || 0) / maxOilHours) * 100)}%` }}
+                            style={{ width: `${Math.max(0, Math.min(100, ((molino.hours_to_oil_change || 0) / maxOilHours) * 100))}%` }}
                           >
                              <div className="absolute inset-0 bg-white/20 w-full h-1/2 rounded-t-full"></div>
                           </div>
@@ -887,8 +889,12 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                         
                         {/* Hover tooltip for Oil progress */}
                         <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none bg-slate-800 text-white text-[10px] font-bold px-3 py-2 rounded-lg shadow-xl whitespace-nowrap z-20 flex flex-col items-center">
-                           <span className="mb-0.5">Avance: <span className="font-black text-white">{Math.max(0, maxOilHours - Math.round(molino.hours_to_oil_change || 0))}h</span> / {maxOilHours}h</span>
-                           <span className={isCritical ? 'text-red-300' : 'text-emerald-300'}>Quedan: <span className="font-black">{Math.round(molino.hours_to_oil_change || 0)}h</span></span>
+                           <span className="mb-0.5">Avance: <span className="font-black text-white">{Math.min(maxOilHours, Math.max(0, maxOilHours - Math.round(molino.hours_to_oil_change || 0)))}h</span> / {maxOilHours}h</span>
+                           {(molino.hours_to_oil_change ?? 0) < 0 ? (
+                             <span className="text-red-300">Excedido: <span className="font-black">{Math.round(Math.abs(molino.hours_to_oil_change ?? 0))}h</span></span>
+                           ) : (
+                             <span className={isCritical ? 'text-red-300' : 'text-emerald-300'}>Quedan: <span className="font-black">{Math.round(molino.hours_to_oil_change || 0)}h</span></span>
+                           )}
                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                         </div>
                       </div>
@@ -902,7 +908,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Horómetro Maestro</span>
                         </div>
                         <span className="text-xs font-black text-slate-600">
-                          {molino.horasTrabajadas || 0}h totales
+                          {Math.round(molino.horasTrabajadas || 0)}h totales
                         </span>
                       </div>
                       <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden opacity-50">

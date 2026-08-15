@@ -289,7 +289,7 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
                   <Clock size={12} className="mr-1" />
                   <span className="hidden sm:inline">Horas:</span>
                 </div>
-                <span className="font-black text-slate-900">{normalizedMill.horasTrabajadas}h</span>
+                <span className="font-black text-slate-900">{Math.round(normalizedMill.horasTrabajadas || 0)}h</span>
              </div>
 
              <div className="space-y-1 relative group cursor-pointer">
@@ -299,7 +299,9 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
                     <span className="text-slate-500 hidden sm:inline">Vida Útil Aceite:</span>
                   </div>
                   <span className={`font-black ${aceiteInfo.necesitaCambio ? 'text-red-600' : 'text-slate-700'}`}>
-                    {Math.round(aceiteInfo.horasRestantes)}h
+                    {aceiteInfo.horasRestantes < 0
+                      ? `Excedido ${Math.round(Math.abs(aceiteInfo.horasRestantes))}h`
+                      : `${Math.round(aceiteInfo.horasRestantes)}h`}
                   </span>
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex items-center shadow-inner relative">
@@ -313,8 +315,12 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
                 
                 {/* Hover tooltip for Oil progress */}
                 <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none bg-slate-800 text-white text-[9px] sm:text-[10px] font-bold px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-xl whitespace-nowrap z-20 flex flex-col items-center">
-                   <span className="mb-0.5">Avance: <span className="font-black text-white">{Math.max(0, Math.round(aceiteInfo.maxHoras - aceiteInfo.horasRestantes))}h</span> / {aceiteInfo.maxHoras}h</span>
-                   <span className={aceiteInfo.necesitaCambio ? 'text-red-300' : 'text-emerald-300'}>Quedan: <span className="font-black">{Math.round(aceiteInfo.horasRestantes)}h</span></span>
+                   <span className="mb-0.5">Avance: <span className="font-black text-white">{Math.min(aceiteInfo.maxHoras, Math.round(aceiteInfo.maxHoras - aceiteInfo.horasRestantes))}h</span> / {aceiteInfo.maxHoras}h</span>
+                   {aceiteInfo.horasRestantes < 0 ? (
+                     <span className="text-red-300">Excedido: <span className="font-black">{Math.round(Math.abs(aceiteInfo.horasRestantes))}h</span></span>
+                   ) : (
+                     <span className={aceiteInfo.necesitaCambio ? 'text-red-300' : 'text-emerald-300'}>Quedan: <span className="font-black">{Math.round(aceiteInfo.horasRestantes)}h</span></span>
+                   )}
                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                 </div>
              </div>

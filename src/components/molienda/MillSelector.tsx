@@ -1,8 +1,9 @@
 import React from 'react';
-import { Factory, CheckCircle, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Factory, CheckCircle, AlertCircle, Loader2, AlertTriangle, Droplets } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useToast } from '@/hooks/useToast';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import { getMaxOilHours } from '@/utils/oilConfig';
 
 interface MolinoProceso {
     id: string;
@@ -21,6 +22,7 @@ interface MolinoProceso {
     start_time?: string;
     estimated_end?: string;
     current_mineral?: string;
+    hours_to_oil_change?: number;
 }
 
 interface MillSelectorProps {
@@ -114,6 +116,15 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                     const isDisabled = disabled || !molino.disponible;
                     const isBusy = !molino.disponible;
 
+                    // Alerta de aceite: visible en la tarjeta sin importar si
+                    // el molino está libre u ocupado, para que el operador
+                    // vea de inmediato si le toca cambio de aceite antes de
+                    // seguir usándolo.
+                    const maxOilHours = getMaxOilHours(molino.name);
+                    const horasAceite = molino.hours_to_oil_change ?? maxOilHours;
+                    const aceiteVencido = horasAceite <= 0;
+                    const aceiteProximo = !aceiteVencido && horasAceite <= (maxOilHours * 0.15);
+
                     return (
                         <div
                             key={molino.id}
@@ -124,6 +135,16 @@ export const MillSelector: React.FC<MillSelectorProps> = ({
                                     : 'border-slate-200 bg-white hover:border-slate-300'
                                 } ${isDisabled && !isBusy ? 'opacity-60' : ''}`}
                         >
+                            {(aceiteVencido || aceiteProximo) && (
+                                <div className={`flex items-center gap-1.5 mb-3 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                                    aceiteVencido ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-amber-100 text-amber-700 border border-amber-200'
+                                }`}>
+                                    <Droplets size={12} />
+                                    {aceiteVencido
+                                        ? `Aceite Vencido (excedido ${Math.abs(Math.round(horasAceite))}h)`
+                                        : `Aceite: quedan ${Math.round(horasAceite)}h`}
+                                </div>
+                            )}
                             {/* Header */}
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center overflow-hidden">

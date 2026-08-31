@@ -3,6 +3,7 @@ import { useAppStore } from './appStore';
 import { supabase } from '@/lib/supabase';
 import { Mill, Client, MillingLog, Zone, MaintenanceLog, MaintenanceUpdateData, MaintenanceRegisterData } from '@/types';
 import { logger } from '@/utils/logger';
+import { getMaxOilHours } from '@/utils/oilConfig';
 
 // Request ID tracking to prevent race conditions and loading loops on fast navigation
 let fetchMillsId = 0;
@@ -10,6 +11,12 @@ let fetchAllClientsId = 0;
 let fetchClientsId = 0;
 let fetchZonesId = 0;
 let fetchMillingLogsId = 0;
+
+// Rastrea el último nivel de alerta de aceite notificado por molino, para
+// no repetir la misma notificación cada vez que se refrescan los datos
+// (antes se re-agregaba la alerta cada ~60s sin parar, llenando la campana
+// con la misma alerta una y otra vez).
+const oilNotificationState: Record<string, 'none' | 'proximo' | 'urgente'> = {};
 let fetchMaintenanceLogsId = 0;
 
 interface SupabaseStore {
@@ -770,30 +777,34 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
               const finalDurationForOrphan = (orphanLog.duration_hours && orphanLog.duration_hours > 0)
                 ? orphanLog.duration_hours
                 : fallbackDuration;
+              // NOTA: ya NO se vuelve a sumar con updateMillHours aquí — esas
+              // horas ya se contaron al momento en que esta molienda huérfana
+              // fue creada originalmente (ver fix de arriba). Sumarlas de
+              // nuevo aquí duplicaría el conteo. Solo se corrige el estado.
               await supabase
                 .from('milling_logs')
                 .update({ status: 'FINALIZADO', duration_hours: finalDurationForOrphan })
                 .eq('id', orphanLog.id);
-              await get().updateMillHours(m.id, finalDurationForOrphan);
             }
           }
         } catch (orphanErr) {
           logger.error(`Error cerrando moliendas huérfanas del molino ${m.id}:`, orphanErr);
         }
 
-        // Calcular duración en horas
-        let hoursToAdd = 0;
-        if (data.horaInicioISO && data.horaFinISO) {
-          const start = new Date(data.horaInicioISO).getTime();
-          const end = new Date(data.horaFinISO).getTime();
-          hoursToAdd = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
+        // FIX DE FONDO: las horas se suman AL MOMENTO DE REGISTRAR, usando
+        // la duración ya elegida por el operador (finalDuration, calculada
+        // arriba). Antes, las horas solo se sumaban cuando el proceso se
+        // "cerraba" (vía 3 mecanismos distintos que dependían de que el
+        // navegador estuviera abierto en el momento exacto) — si eso nunca
+        // pasaba, las horas nunca se contaban, sin importar cuántas
+        // moliendas se registraran. Ahora es inmediato y no depende de nada
+        // que ocurra después.
+        if (finalDuration > 0) {
+          await get().updateMillHours(m.id, finalDuration);
         }
 
         // Si es una fecha pasada, asumimos que es solo un registro histórico y no ocupamos el molino hoy.
         if (isHistorical) {
-          if (hoursToAdd > 0) {
-            await get().updateMillHours(m.id, hoursToAdd);
-          }
           return Promise.resolve({ error: null });
         }
 
@@ -867,15 +878,12 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
     try {
       for (const mill of millsToLiberate) {
-        // Calcular horas trabajadas antes de liberar
-        if (mill.start_time && mill.estimated_end) {
-          const start = new Date(mill.start_time).getTime();
-          const end = new Date(mill.estimated_end).getTime();
-          const hours = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
-          if (hours > 0) {
-            await get().updateMillHours(mill.id, hours);
-          }
-        }
+        // NOTA: ya NO se suman horas aquí con updateMillHours. Desde el fix
+        // de fondo, las horas se cuentan al momento de REGISTRAR la
+        // molienda (con la duración que eligió el operador), no al
+        // liberarla. Esta función solo libera el molino y corrige el
+        // estado de la molienda a FINALIZADO — sumar horas aquí de nuevo
+        // duplicaría el conteo.
 
         // 1. Liberar el molino
         const { error: millError } = await supabase
@@ -1195,27 +1203,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const mill = get().mills.find(m => m.id === millId);
       if (!mill) return false;
 
-      let durationHours = 0;
       const nowISO = new Date().toISOString();
 
-      // Calcular horas reales trabajadas antes de liberar
-      if (mill.start_time) {
-        const start = new Date(mill.start_time).getTime();
-        const end = new Date().getTime();
-        durationHours = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
-        
-        if (durationHours > 0) {
-          await get().updateMillHours(millId, durationHours);
-        }
-      } else if (mill.estimated_end) {
-        // Fallback original
-        const start = new Date(mill.estimated_end).getTime() - (1.67 * 1000 * 60 * 60); // Aprox
-        const end = new Date(mill.estimated_end).getTime();
-        durationHours = Number(((end - start) / (1000 * 60 * 60)).toFixed(2));
-        if (durationHours > 0) {
-          await get().updateMillHours(millId, durationHours);
-        }
-      }
+      // NOTA: ya NO se calculan ni se suman horas aquí con updateMillHours.
+      // Desde el fix de fondo, las horas se cuentan al momento de REGISTRAR
+      // la molienda (con la duración que eligió el operador), no al
+      // finalizarla. Esta función solo libera el molino y corrige el
+      // estado de la molienda a FINALIZADO — sumar horas aquí de nuevo
+      // duplicaría el conteo.
 
       // 1. Liberar el molino
       const updateData = {
@@ -1246,30 +1241,29 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
       if (millError) throw millError;
 
-      // 2. Marcar el log como FINALIZADO si es el cliente actual
-      if (mill.current_client_id) {
-        const { data: existingLog } = await supabase
-          .from('milling_logs')
-          .select('id, mineral_type, duration_hours')
-          .eq('client_id', mill.current_client_id)
-          .eq('status', 'IN_PROGRESS')
-          .contains('mills_used', [{ id: millId }])
-          .maybeSingle();
+      // 2. Marcar el/los log(s) como FINALIZADO
+      // FIX ROBUSTO: consulta directo la base de datos por CUALQUIER
+      // molienda huérfana de este molino específico -sin depender de
+      // client_id (puede venir en caché desactualizada) ni asumir que hay
+      // solo un registro (.maybeSingle() fallaba en silencio si había más
+      // de uno)-, y cierra todas las que encuentre. Ya NO vuelve a sumar
+      // horas (updateMillHours) porque esas horas se contaron al momento
+      // de crear la molienda; aquí solo se corrige el estado.
+      const { data: orphanLogsToClose, error: findOrphansError } = await supabase
+        .from('milling_logs')
+        .select('id, mineral_type, duration_hours')
+        .eq('status', 'IN_PROGRESS')
+        .contains('mills_used', [{ id: millId }]);
 
-        if (existingLog) {
-          // Si el log ya tiene un duration_hours asignado (ej. manual), mantenerlo.
-          let finalDuration = existingLog.duration_hours;
-          
-          if (!finalDuration || finalDuration <= 0) {
-             finalDuration = durationHours;
-             if (finalDuration <= 0) {
-                finalDuration = existingLog.mineral_type === 'SULFURO' ? 2.5 : 1.67;
-             }
-          }
-          
+      if (!findOrphansError && orphanLogsToClose && orphanLogsToClose.length > 0) {
+        for (const existingLog of orphanLogsToClose) {
+          const finalDuration = (existingLog.duration_hours && existingLog.duration_hours > 0)
+            ? existingLog.duration_hours
+            : (existingLog.mineral_type === 'SULFURO' ? 2.5 : 1.67);
+
           const { error: logError } = await supabase
             .from('milling_logs')
-            .update({ 
+            .update({
               status: 'FINALIZADO',
               finish_time: nowISO,
               duration_hours: finalDuration
@@ -1278,6 +1272,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
           if (logError) logger.error('Error finalizing log:', logError);
         }
+      } else if (findOrphansError) {
+        logger.error('Error buscando moliendas huérfanas en finalizeMilling:', findOrphansError);
       }
 
       await get().fetchMills();
@@ -1927,29 +1923,38 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
 
   checkOilChangeNotifications: (mills: Mill[]) => {
     const appStore = useAppStore.getState();
-    const UMBRAL_ACEITE = 100;
 
     mills.forEach(mill => {
-      const horas = Number(mill.horas_trabajadas || mill.horasTrabajadas || 0);
-      const lastOilChange = (mill as any).last_oil_change || (mill as any).ultimo_cambio_aceite; // respetar campo existente
+      // FIX: antes usaba un umbral fijo de 100h para los 4 molinos por
+      // igual (ignorando que III/IV tienen 500h/1000h), y comparaba contra
+      // las horas TOTALES de toda la vida del molino en vez de las horas
+      // que le QUEDAN para el cambio -por eso la alerta de "cambio de
+      // aceite" nunca se apagaba para molinos con muchas horas acumuladas,
+      // aunque se les hubiera cambiado el aceite hace poco.
+      const maxHoras = getMaxOilHours(mill.name);
+      const horasRestantes = mill.hours_to_oil_change ?? maxHoras;
 
-      // Solo notificar cuando realmente esté cerca o pasado el umbral
-      if (horas >= UMBRAL_ACEITE - 20 && horas < UMBRAL_ACEITE) {
+      let currentLevel: 'none' | 'proximo' | 'urgente' = 'none';
+      if (horasRestantes <= 0) currentLevel = 'urgente';
+      else if (horasRestantes <= maxHoras * 0.2) currentLevel = 'proximo';
+
+      const key = mill.id;
+      const previousLevel = oilNotificationState[key] || 'none';
+
+      // Solo notifica cuando el nivel EMPEORA respecto a la última vez
+      // (evita repetir la misma alerta en cada actualización de datos).
+      if (currentLevel !== 'none' && currentLevel !== previousLevel) {
         appStore.addNotification({
           tipo: 'MANTENIMIENTO',
-          titulo: '⚠️ Cambio de Aceite Próximo',
-          mensaje: `${mill.name} tiene ${horas}h trabajadas. Cambio recomendado pronto.`,
-          link: '/mantenimiento'
-        });
-      } 
-      else if (horas >= UMBRAL_ACEITE) {
-        appStore.addNotification({
-          tipo: 'MANTENIMIENTO',
-          titulo: '🔴 Cambio de Aceite Urgente',
-          mensaje: `${mill.name} tiene ${horas}h. Realizar cambio de aceite INMEDIATAMENTE.`,
+          titulo: currentLevel === 'urgente' ? '🔴 Cambio de Aceite Urgente' : '⚠️ Cambio de Aceite Próximo',
+          mensaje: currentLevel === 'urgente'
+            ? `${mill.name}: excedido en ${Math.round(Math.abs(horasRestantes))}h. Cambiar aceite INMEDIATAMENTE.`
+            : `${mill.name}: quedan ${Math.round(horasRestantes)}h para el cambio de aceite.`,
           link: '/mantenimiento'
         });
       }
+
+      oilNotificationState[key] = currentLevel;
     });
   },
 

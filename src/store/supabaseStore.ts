@@ -1345,18 +1345,21 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         if (millData) {
           const updateData: any = {};
           
-          // Revertir horas solo si la molienda ya había sumado horas (FINALIZADO)
-          if (log.status === 'FINALIZADO' || log.status === 'COMPLETED') {
-            const actualHours = log.duration_hours && log.duration_hours > 0 
-                ? log.duration_hours 
-                : (log.mineral_type === 'SULFURO' ? 2.5 : 1.67);
-                
-            const { getMaxOilHours } = await import('@/utils/oilConfig');
-            const defaultOilCapacity = getMaxOilHours(millData.name);
-                
-            updateData.total_hours_worked = Math.max(0, Number(((millData.total_hours_worked || 0) - actualHours).toFixed(2)));
-            updateData.hours_to_oil_change = Number(((millData.hours_to_oil_change ?? defaultOilCapacity) + actualHours).toFixed(2));
-          }
+          // FIX: con la nueva arquitectura, las horas se suman AL MOMENTO
+          // DE REGISTRAR (no solo al finalizar), así que hay que revertirlas
+          // siempre que el log tenga duration_hours, sin importar su status
+          // (antes solo revertía si estaba FINALIZADO, dejando horas
+          // "fantasma" sumadas de más si se borraba algo que seguía EN
+          // PROCESO — por ejemplo, una prueba).
+          const actualHours = log.duration_hours && log.duration_hours > 0
+              ? log.duration_hours
+              : (log.mineral_type === 'SULFURO' ? 2.5 : 1.67);
+
+          const { getMaxOilHours } = await import('@/utils/oilConfig');
+          const defaultOilCapacity = getMaxOilHours(millData.name);
+
+          updateData.total_hours_worked = Math.max(0, Number(((millData.total_hours_worked || 0) - actualHours).toFixed(2)));
+          updateData.hours_to_oil_change = Number(((millData.hours_to_oil_change ?? defaultOilCapacity) + actualHours).toFixed(2));
 
           // Liberar el molino si sigue ocupado por este cliente o si el log estaba en proceso
           if (millData.current_client_id === log.client_id || log.status === 'IN_PROGRESS' || log.status === 'EN_PROCESO') {

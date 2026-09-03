@@ -402,8 +402,14 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     }, 25000);
 
     try {
-      // Clean up historical logs before fetching
-      await get().cleanupHistoricalLogs();
+      // FIX: antes se llamaba a cleanupHistoricalLogs() en cada carga, lo
+      // cual disparaba una consulta extra sobre TODA la tabla en cada
+      // cambio de filtro/búsqueda/página -algo que pasa muy seguido en la
+      // Bitácora de Moliendas en particular-, haciendo más lenta
+      // específicamente esa pantalla. Ya no hace falta: la tarea
+      // programada del servidor (cerrar_moliendas_vencidas, cada 5
+      // minutos) se encarga de esto de forma más precisa y sin costo
+      // adicional en cada carga de página.
 
       // For relationship filtering in OR clause, we use the specific PostgREST syntax for joined tables
       let query = supabase

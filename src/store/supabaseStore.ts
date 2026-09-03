@@ -171,15 +171,19 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
     const currentFetchId = ++fetchMillsId;
     set({ millsLoading: true, error: null });
 
+    // FIX: fetchMills era la única función de carga sin reintento automático
+    // -las demás (fetchClients, fetchZones, fetchMillingLogs, etc.) ya
+    // reintentan solas en silencio si tardan mucho, pero esta obligaba al
+    // usuario a apretar F5 manualmente cada vez que fallaba. Se agrega el
+    // mismo patrón, y se sube el tiempo de espera de 20 a 30 segundos para
+    // dar más margen en conexiones lentas o inestables.
     const timeoutId = setTimeout(() => {
       if (currentFetchId === fetchMillsId && get().millsLoading) {
-        set({ 
-          millsLoading: false, 
-          error: 'Tiempo de espera agotado al cargar molinos. Presiona Reintentar.' 
-        });
-        logger.warn('⚠️ Timeout en fetchMills');
+        set({ millsLoading: false });
+        logger.warn('⚠️ Timeout en fetchMills. Reintentando de forma silenciosa...');
+        setTimeout(() => get().fetchMills(), 1000);
       }
-    }, 20000);
+    }, 30000);
 
     try {
       const { data, error } = await supabase

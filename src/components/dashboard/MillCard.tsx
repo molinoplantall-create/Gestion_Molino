@@ -41,7 +41,7 @@ const MillCard: React.FC<MillCardProps> = ({ mill }) => {
     horasTrabajadas: mill?.horasTrabajadas || mill?.total_hours_worked || 0,
 
     // Mantenimiento
-    horasParaCambioAceite: mill?.horasParaCambioAceite || mill?.hours_to_oil_change || 500,
+    horasParaCambioAceite: mill?.hours_to_oil_change ?? getMaxOilHours(mill?.nombre || mill?.name),
     ultimoMantenimiento: mill?.ultimoMantenimiento || mill?.last_maintenance || '2024-01-15',
     proximoMantenimiento: mill?.proximoMantenimiento || mill?.next_maintenance || '2024-02-15',
 

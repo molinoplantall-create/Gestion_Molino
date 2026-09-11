@@ -72,6 +72,8 @@ export const MaintenanceFilters: React.FC<MaintenanceFiltersProps> = ({
                         <option value="all">Todos los tipos</option>
                         <option value="PREVENTIVO">Preventivo</option>
                         <option value="CORRECTIVO">Correctivo</option>
+                        <option value="PREDICTIVO">Predictivo</option>
+                        <option value="EMERGENCIA">Emergencia (Rotura/Falla)</option>
                     </select>
                 </div>
 

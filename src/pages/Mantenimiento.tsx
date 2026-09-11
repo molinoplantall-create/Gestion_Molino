@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  Wrench, CheckCircle, Clock, AlertTriangle, Plus, Download, History, Settings, Activity, FileText, MessageSquare, AlertOctagon, Calendar, PenTool, Droplets
+  Wrench, CheckCircle, Clock, AlertTriangle, Plus, Download, History, Settings, Activity, FileText, MessageSquare, AlertOctagon, Calendar, PenTool, Droplets, ClipboardList
 } from 'lucide-react';
 import { useSupabaseStore } from '@/store/supabaseStore';
 import { useAuthStore } from '@/store/authStore';
@@ -24,6 +24,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { MaintenanceSkeleton } from '@/components/mantenimiento/MaintenanceSkeleton';
+import { RequerimientosList } from '@/components/mantenimiento/RequerimientosList';
 import { getMaxOilHours } from '@/utils/oilConfig';
 
 interface MaintenanceRecord {
@@ -69,6 +70,7 @@ const Mantenimiento: React.FC = () => {
   const toast = useToast();
 
   // Filters
+  const [activeTab, setActiveTab] = useState<'mantenimiento' | 'requerimientos'>('mantenimiento');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -498,7 +500,11 @@ const Mantenimiento: React.FC = () => {
       Descripción: log.description,
       Técnico: log.technician_name,
       Horas: log.worked_hours,
-      Estado: log.status
+      Estado: log.status,
+      'Costo Materiales (S/)': log.cost_pen || 0,
+      'Costo Materiales ($)': log.cost_usd || 0,
+      'Mano de Obra (S/)': log.labor_cost_pen || 0,
+      'Mano de Obra ($)': log.labor_cost_usd || 0
     }));
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -735,6 +741,27 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         </div>
       </div>
 
+      {/* Switcher de pestañas */}
+      <div className="flex bg-white border border-slate-200 rounded-2xl p-1.5 w-fit shadow-sm">
+        <button
+          onClick={() => setActiveTab('mantenimiento')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'mantenimiento' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <Wrench size={16} /> Mantenimiento
+        </button>
+        <button
+          onClick={() => setActiveTab('requerimientos')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'requerimientos' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <ClipboardList size={16} /> Lista de Requerimientos
+        </button>
+      </div>
+
+      {activeTab === 'requerimientos' ? (
+        <RequerimientosList />
+      ) : (
+      <>
+
       {/* SECCIÓN 1: Monitoreo en Tiempo Real y Alertas */}
       <div className="space-y-6">
         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 px-1">
@@ -812,16 +839,18 @@ _Enviado desde el sistema de Gestión de Molinos_`;
             const isCritical = (molino.hours_to_oil_change || 0) <= 20;
             const isWarning = (molino.hours_to_oil_change || 0) <= 50;
 
-            const statusLabel = molino.status === 'libre' ? 'Disponible' :
-              molino.status === 'mantenimiento' ? 'Mantenimiento' :
+            const statusUpper = (molino.status || '').toUpperCase();
+            const statusLabel = statusUpper === 'LIBRE' ? 'Disponible' :
+              statusUpper === 'MANTENIMIENTO' ? 'Mantenimiento' :
+              statusUpper === 'OCUPADO' ? 'Operando' :
                 'Operando';
 
-            const statusColor = molino.status === 'libre' ? 'text-emerald-600' :
-              molino.status === 'mantenimiento' ? 'text-amber-600' :
+            const statusColor = statusUpper === 'LIBRE' ? 'text-emerald-600' :
+              statusUpper === 'MANTENIMIENTO' ? 'text-amber-600' :
                 'text-indigo-600';
 
-            const statusBg = molino.status === 'libre' ? 'bg-emerald-50' :
-              molino.status === 'mantenimiento' ? 'bg-amber-50' :
+            const statusBg = statusUpper === 'LIBRE' ? 'bg-emerald-50' :
+              statusUpper === 'MANTENIMIENTO' ? 'bg-amber-50' :
                 'bg-indigo-50';
 
             return (
@@ -840,7 +869,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
                     <div>
                       <h4 className="font-black text-slate-900 leading-none">{molino.name}</h4>
                       <div className={`mt-1.5 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest ${statusColor} px-2 py-0.5 rounded-full ${statusBg} w-fit border border-current/10`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${molino.status === 'libre' ? 'bg-emerald-500' : molino.status === 'mantenimiento' ? 'bg-amber-500' : 'bg-indigo-500'}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full ${statusUpper === 'LIBRE' ? 'bg-emerald-500' : statusUpper === 'MANTENIMIENTO' ? 'bg-amber-500' : 'bg-indigo-500'}`} />
                         {statusLabel}
                       </div>
                     </div>
@@ -1096,6 +1125,8 @@ _Enviado desde el sistema de Gestión de Molinos_`;
         millId={historyTimeline.millId}
         millName={historyTimeline.millName}
       />
+      </>
+      )}
     </div>
   );
 };

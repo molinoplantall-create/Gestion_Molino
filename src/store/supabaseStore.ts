@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { useAppStore } from './appStore';
 import { supabase } from '@/lib/supabase';
-import { Mill, Client, MillingLog, Zone, MaintenanceLog, MaintenanceUpdateData, MaintenanceRegisterData } from '@/types';
+import { Mill, Client, MillingLog, Zone, MaintenanceLog, MaintenanceUpdateData, MaintenanceRegisterData, MillRequirement, MillRequirementInput } from '@/types';
 import { logger } from '@/utils/logger';
 import { getMaxOilHours } from '@/utils/oilConfig';
 
@@ -134,6 +134,16 @@ interface SupabaseStore {
   notifyStockEntry: (clientName: string, cantidad: number, tipoSaco?: string) => void;
   notifyMaintenance: (millName: string, description: string) => void;
   checkOilChangeNotifications: (mills: Mill[]) => void;
+
+  // Requerimientos por Molino (lista de repuestos/piezas pendientes)
+  millRequirements: MillRequirement[];
+  requirementsLoading: boolean;
+  fetchMillRequirements: () => Promise<void>;
+  createMillRequirement: (data: MillRequirementInput) => Promise<boolean>;
+  updateMillRequirement: (id: string, data: Partial<MillRequirementInput>) => Promise<boolean>;
+  resolveMillRequirement: (id: string) => Promise<boolean>;
+  reopenMillRequirement: (id: string) => Promise<boolean>;
+  deleteMillRequirement: (id: string) => Promise<boolean>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -143,6 +153,8 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   zones: [],
   millingLogs: [],
   maintenanceLogs: [],
+  millRequirements: [],
+  requirementsLoading: false,
   maintenanceLogsCount: 0,
   clientsCount: 0,
   logsCount: 0,
@@ -2250,6 +2262,123 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return false;
     } finally {
       set({ loading: false });
+    }
+  },
+
+  // ============================================================
+  // Requerimientos por Molino (lista de repuestos/piezas pendientes)
+  // ============================================================
+  fetchMillRequirements: async () => {
+    set({ requirementsLoading: true });
+    try {
+      const { data, error } = await supabase
+        .from('mill_requirements')
+        .select('*, mills(name)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const normalized: MillRequirement[] = (data || []).map((r: any) => ({
+        ...r,
+        mill_name: r.mills?.name || 'Sin asignar'
+      }));
+
+      set({ millRequirements: normalized });
+    } catch (error) {
+      logger.error('❌ Error fetchMillRequirements:', error);
+    } finally {
+      set({ requirementsLoading: false });
+    }
+  },
+
+  createMillRequirement: async (data: MillRequirementInput) => {
+    try {
+      const { error } = await supabase
+        .from('mill_requirements')
+        .insert([{
+          mill_id: data.mill_id,
+          item_name: data.item_name,
+          model_spec: data.model_spec || null,
+          quantity: data.quantity || 1,
+          priority: data.priority || 'NORMAL',
+          estimated_cost_pen: data.estimated_cost_pen || 0,
+          estimated_cost_usd: data.estimated_cost_usd || 0,
+          provider: data.provider || null,
+          notes: data.notes || null,
+          requested_by: data.requested_by || null,
+          status: 'PENDIENTE'
+        }]);
+
+      if (error) throw error;
+      await get().fetchMillRequirements();
+      return true;
+    } catch (error) {
+      logger.error('❌ Error createMillRequirement:', error);
+      return false;
+    }
+  },
+
+  updateMillRequirement: async (id: string, data: Partial<MillRequirementInput>) => {
+    try {
+      const { error } = await supabase
+        .from('mill_requirements')
+        .update(data)
+        .eq('id', id);
+
+      if (error) throw error;
+      await get().fetchMillRequirements();
+      return true;
+    } catch (error) {
+      logger.error('❌ Error updateMillRequirement:', error);
+      return false;
+    }
+  },
+
+  resolveMillRequirement: async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('mill_requirements')
+        .update({ status: 'RESUELTO', resolved_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
+      await get().fetchMillRequirements();
+      return true;
+    } catch (error) {
+      logger.error('❌ Error resolveMillRequirement:', error);
+      return false;
+    }
+  },
+
+  reopenMillRequirement: async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('mill_requirements')
+        .update({ status: 'PENDIENTE', resolved_at: null })
+        .eq('id', id);
+
+      if (error) throw error;
+      await get().fetchMillRequirements();
+      return true;
+    } catch (error) {
+      logger.error('❌ Error reopenMillRequirement:', error);
+      return false;
+    }
+  },
+
+  deleteMillRequirement: async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('mill_requirements')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      set({ millRequirements: get().millRequirements.filter(r => r.id !== id) });
+      return true;
+    } catch (error) {
+      logger.error('❌ Error deleteMillRequirement:', error);
+      return false;
     }
   }
 }));

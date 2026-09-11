@@ -171,3 +171,34 @@ export interface MaintenanceUpdateData {
   action_taken?: string;
   created_at?: string;
 }
+
+export interface MillRequirement {
+  id: string;
+  mill_id: string | null;
+  mill_name?: string; // vía join con mills
+  item_name: string;
+  model_spec?: string;
+  quantity?: number;
+  priority: 'URGENTE' | 'NORMAL' | 'BAJA';
+  estimated_cost_pen?: number;
+  estimated_cost_usd?: number;
+  provider?: string;
+  notes?: string;
+  requested_by?: string;
+  status: 'PENDIENTE' | 'RESUELTO';
+  resolved_at?: string | null;
+  created_at: string;
+}
+
+export interface MillRequirementInput {
+  mill_id: string;
+  item_name: string;
+  model_spec?: string;
+  quantity?: number;
+  priority?: 'URGENTE' | 'NORMAL' | 'BAJA';
+  estimated_cost_pen?: number;
+  estimated_cost_usd?: number;
+  provider?: string;
+  notes?: string;
+  requested_by?: string;
+}

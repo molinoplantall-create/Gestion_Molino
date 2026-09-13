@@ -719,6 +719,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
           </p>
         </div>
 
+        {activeTab === 'mantenimiento' && (
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
@@ -739,6 +740,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
             <Download size={20} className="group-hover:-translate-y-0.5 transition-transform" />
           </button>
         </div>
+        )}
       </div>
 
       {/* Switcher de pestañas */}

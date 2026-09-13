@@ -1,9 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    Legend
-} from 'recharts';
-import { Activity, Clock, CheckCircle, TrendingUp, Calendar, Gauge, Timer, DollarSign, Info } from 'lucide-react';
+import { Clock, CheckCircle, Calendar, DollarSign, Gauge, Wrench, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface KpiIndicatorsProps {
@@ -20,22 +16,14 @@ const PERIOD_LABELS: Record<PeriodOption, string> = {
     '365': 'Último año'
 };
 
-const BAR_COLORS = {
-    mtbf: '#6366f1',  // indigo
-    mttr: '#f59e0b',  // amber
-};
-
-async function fetchMillingHoursPerMill(periodStart: Date, query: string = ''): Promise<Record<string, number>> {
+async function fetchMillingHoursPerMill(periodStart: Date): Promise<Record<string, number>> {
     const hoursMap: Record<string, number> = {};
     try {
-        const searchTerms = query.trim().split(/\s+/);
-        const formattedQuery = `%${searchTerms.join('%')}%`;
-
         const { data: millingLogs, error } = await supabase
             .from('milling_logs')
             .select('mills_used, mineral_type, total_sacks, created_at, status')
             .gte('created_at', periodStart.toISOString());
-        
+
         if (error || !millingLogs) return hoursMap;
 
         millingLogs.forEach((log: any) => {
@@ -79,7 +67,7 @@ function calculateKPIs(logs: any[], mills: any[], periodDays: number, millingHou
 
         return {
             id: mill.id,
-            name: mill.name || `M-${mill.id.substring(0,4)}`,
+            name: mill.name || `M-${mill.id.substring(0, 4)}`,
             failureCount,
             preventiveCount: allPeriodLogs.filter(log => (log.mill_id || log.molino_id) === mill.id && (log.type || log.tipo || '').toUpperCase() === 'PREVENTIVO').length,
             totalRepairHours: Math.round(totalRepairHours),
@@ -91,27 +79,24 @@ function calculateKPIs(logs: any[], mills: any[], periodDays: number, millingHou
     });
 
     const millsWithFailures = millKPIs.filter(m => m.failureCount > 0);
-    const globalAvailability = millsWithFailures.length > 0 ? millKPIs.reduce((sum, m) => sum + m.availability, 0) / millKPIs.length : 100;
+    const globalAvailability = millKPIs.length > 0 ? millKPIs.reduce((sum, m) => sum + m.availability, 0) / millKPIs.length : 100;
 
     return {
-        mills: millKPIs,
+        mills: millKPIs.sort((a, b) => b.failureCount - a.failureCount),
         global: {
-            mtbf: millsWithFailures.length > 0 ? Math.round(millKPIs.reduce((sum, m) => sum + (m.mtbf || 0), 0) / millsWithFailures.length) : null,
-            mttr: millsWithFailures.length > 0 ? Math.round(millKPIs.reduce((sum, m) => sum + (m.mttr || 0), 0) / millsWithFailures.length) : null,
             availability: Math.round(globalAvailability * 10) / 10,
             totalFailures: correctiveLogs.length,
             totalPreventive: allPeriodLogs.filter(l => (l.type || l.tipo || '').toUpperCase() === 'PREVENTIVO').length,
             totalRepairHours: Math.round(millKPIs.reduce((sum, m) => sum + m.totalRepairHours, 0)),
             totalOperativeHours: Math.round(millKPIs.reduce((sum, m) => sum + m.operativeHours, 0)),
-            totalCostPen: allPeriodLogs.reduce((sum, l) => sum + (l.cost_pen || 0), 0),
-            totalCostUsd: allPeriodLogs.reduce((sum, l) => sum + (l.cost_usd || 0), 0)
+            totalCostPen: allPeriodLogs.reduce((sum, l) => sum + (l.cost_pen || 0) + (l.labor_cost_pen || 0), 0),
+            totalCostUsd: allPeriodLogs.reduce((sum, l) => sum + (l.cost_usd || 0) + (l.labor_cost_usd || 0), 0)
         }
     };
 }
 
 function getAvailabilityColor(value: number) { return value >= 95 ? 'text-emerald-600' : value >= 85 ? 'text-amber-500' : 'text-red-600'; }
-function getAvailabilityBg(value: number) { return value >= 95 ? 'bg-emerald-100' : value >= 85 ? 'bg-amber-100' : 'bg-red-100'; }
-function getAvailabilityBarBgColor(value: number) { return value >= 95 ? '#10b981' : value >= 85 ? '#f59e0b' : '#ef4444'; }
+function getAvailabilityBg(value: number) { return value >= 95 ? 'bg-emerald-50' : value >= 85 ? 'bg-amber-50' : 'bg-red-50'; }
 
 export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, mills }) => {
     const [period, setPeriod] = useState<PeriodOption>('90');
@@ -123,18 +108,17 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
     }, [period, maintenanceLogs.length]);
 
     const kpis = useMemo(() => calculateKPIs(maintenanceLogs, mills, parseInt(period), millingHoursMap), [maintenanceLogs, mills, period, millingHoursMap]);
-    const chartData = useMemo(() => kpis.mills.map(m => ({ name: m.name, MTBF: m.mtbf || 0, MTTR: m.mttr || 0, 'Hrs Operativas': m.operativeHours })), [kpis]);
     const noFailures = kpis.global.totalFailures === 0;
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-lg font-bold text-slate-900 flex items-center">
-                        <Activity size={20} className="mr-2 text-indigo-600" />
-                        Indicadores KPIs
+                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <Gauge size={20} className="text-indigo-600" />
+                        Rendimiento y Costos
                     </h3>
-                    <p className="text-sm text-slate-500 mt-0.5">Gestión de confiabilidad y disponibilidad en tiempo real</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Qué tan bien están funcionando tus molinos y cuánto ha costado mantenerlos</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Calendar size={16} className="text-slate-400" />
@@ -144,134 +128,96 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
-                {/* Costo */}
-                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-emerald-100 shadow-sm hover:shadow-lg transition-all duration-300">
-                    <div className="flex items-center mb-4">
-                        <div className="p-3 bg-emerald-100/50 rounded-xl mr-3"><DollarSign className="text-emerald-600" size={20} /></div>
-                        <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Inversión</p><p className="text-[10px] text-slate-400 mt-1">Gasto Periodo</p></div>
+            {/* Tarjetas simples, en lenguaje llano */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white rounded-2xl p-5 border border-emerald-100 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-emerald-50 rounded-xl"><DollarSign className="text-emerald-600" size={18} /></div>
+                        <p className="text-xs font-black text-slate-500 uppercase tracking-wide">Gasto en Mantenimiento</p>
                     </div>
                     <p className="text-xl font-black text-slate-900">S/ {kpis.global.totalCostPen.toLocaleString()}</p>
-                    <p className="text-xs font-bold text-blue-500/80 mt-1">$ {kpis.global.totalCostUsd.toLocaleString()}</p>
+                    {kpis.global.totalCostUsd > 0 && <p className="text-sm font-bold text-slate-400 mt-0.5">$ {kpis.global.totalCostUsd.toLocaleString()}</p>}
+                    <p className="text-[11px] text-slate-400 mt-1">Materiales + mano de obra, {PERIOD_LABELS[period].toLowerCase()}</p>
                 </div>
 
-                {/* MTBF */}
-                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-indigo-100 shadow-sm hover:shadow-lg transition-all duration-300">
-                    <div className="flex items-center mb-4">
-                        <div className="p-3 bg-indigo-100/50 rounded-xl mr-3"><TrendingUp className="text-indigo-600" size={20} /></div>
-                        <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">MTBF</p><p className="text-[10px] text-slate-400 mt-1">T. Medio Fallas</p></div>
+                <div className="bg-white rounded-2xl p-5 border border-red-100 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-red-50 rounded-xl"><Wrench className="text-red-600" size={18} /></div>
+                        <p className="text-xs font-black text-slate-500 uppercase tracking-wide">Fallas (Correctivo)</p>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <p className="text-2xl font-black text-slate-900">{kpis.global.mtbf || '∞'}<span className="text-xs ml-1">h</span></p>
-                        <div className="group relative">
-                            <Info size={12} className="text-slate-300 cursor-help" />
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                                <strong>MTBF (Confiabilidad):</strong> Tiempo promedio que el equipo opera sin fallas. Cuanto más alto, mejor.
-                            </div>
-                        </div>
-                    </div>
-                    <p className="text-[10px] text-indigo-500 font-bold uppercase mt-1">{kpis.global.totalFailures} incidentes</p>
+                    <p className="text-2xl font-black text-slate-900">{kpis.global.totalFailures}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">{kpis.global.totalRepairHours}h reparando en total</p>
                 </div>
 
-                {/* MTTR */}
-                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-amber-100 shadow-sm hover:shadow-lg transition-all duration-300">
-                    <div className="flex items-center mb-4">
-                        <div className="p-3 bg-amber-100/50 rounded-xl mr-3"><Clock className="text-amber-600" size={20} /></div>
-                        <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">MTTR</p><p className="text-[10px] text-slate-400 mt-1">T. Reparación</p></div>
+                <div className="bg-white rounded-2xl p-5 border border-blue-100 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-blue-50 rounded-xl"><ShieldCheck className="text-blue-600" size={18} /></div>
+                        <p className="text-xs font-black text-slate-500 uppercase tracking-wide">Mantenimientos Preventivos</p>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <p className="text-2xl font-black text-slate-900">{kpis.global.mttr || '0'}<span className="text-xs ml-1">h</span></p>
-                        <div className="group relative">
-                            <Info size={12} className="text-slate-300 cursor-help" />
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                                <strong>MTTR (Mantenibilidad):</strong> Tiempo promedio de reparación. Cuanto más bajo, más rápido se recupera el equipo.
-                            </div>
-                        </div>
-                    </div>
-                    <p className="text-[10px] text-amber-500 font-bold uppercase mt-1">{kpis.global.totalRepairHours}h downtime</p>
+                    <p className="text-2xl font-black text-slate-900">{kpis.global.totalPreventive}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Hechos antes de que fallara algo</p>
                 </div>
 
-                {/* Disponibilidad */}
-                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300">
-                    <div className="flex items-center mb-4">
-                        <div className={`p-3 ${getAvailabilityBg(kpis.global.availability)} rounded-xl mr-3`}><Gauge className={getAvailabilityColor(kpis.global.availability)} size={20} /></div>
-                        <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Disponibilidad</p><p className="text-[10px] text-slate-400 mt-1">Ratio Operativo</p></div>
+                <div className={`rounded-2xl p-5 border shadow-sm ${getAvailabilityBg(kpis.global.availability)} border-current/10`}>
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-white/60 rounded-xl"><Clock className={getAvailabilityColor(kpis.global.availability)} size={18} /></div>
+                        <p className="text-xs font-black text-slate-500 uppercase tracking-wide">Disponibilidad</p>
                     </div>
-                    <p className={`text-3xl font-black ${getAvailabilityColor(kpis.global.availability)}`}>{kpis.global.availability}%</p>
-                    <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
-                        <div className="h-full transition-all duration-1000" style={{ width: `${kpis.global.availability}%`, backgroundColor: getAvailabilityBarBgColor(kpis.global.availability) }}></div>
-                    </div>
-                </div>
-
-                {/* Utilización */}
-                <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-violet-100 shadow-sm hover:shadow-lg transition-all duration-300">
-                    <div className="flex items-center mb-4">
-                        <div className="p-3 bg-violet-100/50 rounded-xl mr-3"><Timer className="text-violet-600" size={20} /></div>
-                        <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Utilización</p><p className="text-[10px] text-slate-400 mt-1">Horas Reales</p></div>
-                    </div>
-                    <p className="text-2xl font-black text-slate-900">{kpis.global.totalOperativeHours}<span className="text-xs ml-1">h</span></p>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">{kpis.global.totalPreventive} Preventivos</p>
+                    <p className={`text-2xl font-black ${getAvailabilityColor(kpis.global.availability)}`}>{kpis.global.availability}%</p>
+                    <p className="text-[11px] text-slate-500 mt-1">% del tiempo que estuvieron funcionando bien</p>
                 </div>
             </div>
 
-            {/* Metric Definitions */}
-            <div className="flex flex-wrap gap-x-6 gap-y-2 mb-4 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">MTBF (h)</span>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Tiempo Medio entre Fallas (Confiabilidad)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">MTTR (h)</span>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Tiempo Medio de Reparación (Mantenibilidad)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-violet-600 bg-violet-50 px-2 py-0.5 rounded-md">Óptimo (h)</span>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Horas Operativas de Trabajo Real</span>
-                </div>
-            </div>
-
-            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 border border-slate-200 shadow-sm">
-                <div className="mb-6">
-                    <h4 className="text-base font-black text-slate-900">Comparativa por Activo</h4>
-                    <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">Métricas de rendimiento por molino</p>
+            {/* Tabla comparativa, clara y fácil de leer */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div className="mb-5">
+                    <h4 className="text-base font-black text-slate-900">Comparación entre Molinos</h4>
+                    <p className="text-xs text-slate-400 mt-1">De mayor a menor cantidad de fallas, en el periodo seleccionado</p>
                 </div>
                 {noFailures ? (
-                    <div className="h-48 flex flex-col items-center justify-center text-slate-300"><CheckCircle size={48} className="mb-4 text-emerald-200" /><p className="font-bold">Sin fallas en periodo</p></div>
+                    <div className="h-40 flex flex-col items-center justify-center text-slate-300">
+                        <CheckCircle size={40} className="mb-3 text-emerald-200" />
+                        <p className="font-bold text-slate-400">Sin fallas en este periodo</p>
+                    </div>
                 ) : (
-                    <div className="h-80 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                <Tooltip 
-                                    cursor={{ fill: '#f8fafc' }} 
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' }} 
-                                    formatter={(value: any, name: string) => {
-                                        if (name === 'Óptimo (h)') return [value, 'Horas Operativas Totales'];
-                                        return [value, name];
-                                    }}
-                                />
-                                <Legend />
-                                <Bar dataKey="MTBF" fill={BAR_COLORS.mtbf} radius={[0, 4, 4, 0]} name="MTBF (h)" barSize={10} />
-                                <Bar dataKey="MTTR" fill={BAR_COLORS.mttr} radius={[0, 4, 4, 0]} name="MTTR (h)" barSize={10} />
-                                <Bar dataKey="Hrs Operativas" fill="#8b5cf6" radius={[0, 4, 4, 0]} name="Óptimo (h)" barSize={10} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="overflow-x-auto -mx-2">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-left text-[11px] font-black text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                                    <th className="py-2 px-2">Molino</th>
+                                    <th className="py-2 px-2 text-center">N° Fallas</th>
+                                    <th className="py-2 px-2 text-center">N° Preventivos</th>
+                                    <th className="py-2 px-2 text-center">Horas Reparando</th>
+                                    <th className="py-2 px-2 text-center">Tiempo Prom. de Reparación</th>
+                                    <th className="py-2 px-2 text-center">Disponibilidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {kpis.mills.map(mill => (
+                                    <tr key={mill.id} className="border-b border-slate-50 last:border-0">
+                                        <td className="py-3 px-2 font-bold text-slate-800">{mill.name}</td>
+                                        <td className="py-3 px-2 text-center">
+                                            <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-1 rounded-lg font-black text-xs ${mill.failureCount > 0 ? 'bg-red-50 text-red-700' : 'bg-slate-50 text-slate-400'}`}>
+                                                {mill.failureCount}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-2 text-center text-slate-600 font-medium">{mill.preventiveCount}</td>
+                                        <td className="py-3 px-2 text-center text-slate-600 font-medium">{mill.totalRepairHours}h</td>
+                                        <td className="py-3 px-2 text-center text-slate-600 font-medium">{mill.mttr !== null ? `${mill.mttr}h por falla` : '—'}</td>
+                                        <td className="py-3 px-2 text-center">
+                                            <span className={`font-black ${getAvailabilityColor(mill.availability)}`}>{mill.availability}%</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
-                
-                <div className="mt-8 overflow-x-auto">
-                    <table className="w-full text-[11px]">
-                        <thead><tr className="border-b border-slate-100"><th className="text-left pb-4 font-black text-slate-400 uppercase tracking-widest">Activo</th><th className="text-center pb-4 font-black text-slate-400 uppercase tracking-widest">Disponibilidad</th><th className="text-center pb-4 font-black text-slate-400 uppercase tracking-widest">MTBF</th><th className="text-center pb-4 font-black text-slate-400 uppercase tracking-widest">MTTR</th><th className="text-center pb-4 font-black text-slate-400 uppercase tracking-widest">Correctivos</th></tr></thead>
-                        <tbody className="divide-y divide-slate-50">{kpis.mills.map((m) => (
-                            <tr key={m.id} className="hover:bg-slate-50/50 transition-colors"><td className="py-3 font-black text-slate-700">{m.name}</td><td className={`py-3 text-center font-black ${getAvailabilityColor(m.availability)}`}>{m.availability}%</td><td className="py-3 text-center font-bold text-slate-600">{m.mtbf || '∞'}h</td><td className="py-3 text-center font-bold text-slate-600">{m.mttr || '0'}h</td><td className="py-3 text-center font-bold text-slate-400">{m.failureCount}</td></tr>
-                        ))}</tbody>
-                    </table>
-                </div>
+                <p className="text-[11px] text-slate-400 mt-4 bg-slate-50 rounded-lg p-3">
+                    <strong>Cómo leerlo:</strong> más fallas y menos disponibilidad significa que ese molino necesita más atención.
+                    "Tiempo Prom. de Reparación" es cuánto tarda en promedio en arreglarse cada vez que falla — mientras más bajo, mejor.
+                </p>
             </div>
         </div>
     );
 };
-
-export default KpiIndicators;

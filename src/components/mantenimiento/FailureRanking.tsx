@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { BarChart3, AlertTriangle, Wrench, TrendingUp, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Wrench, Calendar, CheckCircle } from 'lucide-react';
 
 interface FailureRankingProps {
   maintenanceLogs: any[];
@@ -11,67 +11,50 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
   mills
 }) => {
   const rankings = useMemo(() => {
-    if (!maintenanceLogs.length) return { byMill: [], byType: [], byMonth: [] };
+    if (!maintenanceLogs.length) return { byMill: [], byMonth: [], byType: [] };
 
-    // Ranking by Mill (most failures)
-    const millCounts: Record<string, { id: string, name: string, total: number, correctivo: number, preventivo: number, hours: number }> = {};
-    
+    const millCounts: Record<string, { id: string; name: string; fallas: number; preventivos: number }> = {};
+
     maintenanceLogs.forEach((log: any) => {
       const millId = log.mill_id || log.molino_id;
       if (!millId) return;
-      
+
       if (!millCounts[millId]) {
         const mill = mills.find(m => m.id === millId);
-        millCounts[millId] = {
-          id: millId,
-          name: mill?.name || `Molino ${millId}`,
-          total: 0,
-          correctivo: 0,
-          preventivo: 0,
-          hours: 0
-        };
+        millCounts[millId] = { id: millId, name: mill?.name || `Molino ${millId}`, fallas: 0, preventivos: 0 };
       }
-      
-      millCounts[millId].total++;
-      if (log.type === 'CORRECTIVO') millCounts[millId].correctivo++;
-      else millCounts[millId].preventivo++;
-      millCounts[millId].hours += (log.worked_hours || 0);
+
+      const tipo = (log.type || log.tipo || '').toUpperCase();
+      if (tipo === 'CORRECTIVO' || tipo === 'EMERGENCIA') millCounts[millId].fallas++;
+      else if (tipo === 'PREVENTIVO') millCounts[millId].preventivos++;
     });
 
-    const byMill = Object.values(millCounts)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 6);
+    const byMill = Object.values(millCounts).sort((a, b) => b.fallas - a.fallas);
 
-    // Monthly distribution (current year only)
     const now = new Date();
     const currentYear = now.getFullYear();
-    const byMonth: { label: string, preventivo: number, correctivo: number }[] = [];
-    
-    // Mostramos desde Enero del año actual hasta el mes actual
     const currentMonth = now.getMonth();
-    
-    for (let i = 0; i <= currentMonth; i++) {
-      const d = new Date(currentYear, i, 1);
-      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-      
-      const monthLogs = maintenanceLogs.filter((log: any) => {
-        const logDate = new Date(log.created_at);
-        return logDate.getFullYear() === currentYear && logDate.getMonth() === i;
-      });
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const byMonth: { label: string; fallas: number; preventivos: number }[] = [];
 
+    for (let i = 0; i <= currentMonth; i++) {
+      const monthLogs = maintenanceLogs.filter((log: any) => {
+        const d = new Date(log.created_at);
+        return d.getFullYear() === currentYear && d.getMonth() === i;
+      });
+      const tipos = monthLogs.map((l: any) => (l.type || l.tipo || '').toUpperCase());
       byMonth.push({
-        label: `${monthNames[i]} ${String(currentYear).slice(2)}`,
-        preventivo: monthLogs.filter((l: any) => l.type === 'PREVENTIVO').length,
-        correctivo: monthLogs.filter((l: any) => l.type === 'CORRECTIVO').length,
+        label: monthNames[i],
+        fallas: tipos.filter(t => t === 'CORRECTIVO' || t === 'EMERGENCIA').length,
+        preventivos: tipos.filter(t => t === 'PREVENTIVO').length
       });
     }
 
-    // Top failure descriptions
     const descCounts: Record<string, number> = {};
     maintenanceLogs
-      .filter((l: any) => l.type === 'CORRECTIVO')
+      .filter((l: any) => (l.type || l.tipo || '').toUpperCase() === 'CORRECTIVO')
       .forEach((log: any) => {
-        const desc = (log.description || '').substring(0, 50);
+        const desc = (log.description || '').trim().substring(0, 60);
         if (desc) descCounts[desc] = (descCounts[desc] || 0) + 1;
       });
 
@@ -80,123 +63,107 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
       .slice(0, 5)
       .map(([desc, count]) => ({ desc, count }));
 
-    return { byMill, byType, byMonth };
+    return { byMill, byMonth, byType };
   }, [maintenanceLogs, mills]);
 
   if (!maintenanceLogs.length) return null;
 
-  const maxMillTotal = Math.max(...rankings.byMill.map(m => m.total), 1);
-  const maxMonthTotal = Math.max(...rankings.byMonth.map(m => m.preventivo + m.correctivo), 1);
+  const maxMillFallas = Math.max(...rankings.byMill.map(m => m.fallas), 1);
+  const maxMonthTotal = Math.max(...rankings.byMonth.map(m => m.fallas + m.preventivos), 1);
+  const CHART_HEIGHT_PX = 140;
 
   return (
-    <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-slate-200 shadow-sm transition-all hover:shadow-md">
-      <div className="flex items-center gap-2 mb-8">
-        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
-          <BarChart3 size={20} />
+    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="p-2.5 bg-red-50 text-red-600 rounded-xl">
+          <AlertTriangle size={20} />
         </div>
         <div>
-          <h3 className="text-base font-black text-slate-900 leading-none">Análisis Predictivo de Fallas</h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Inteligencia y Frecuencia de Activos</p>
-        </div>
-        <div className="ml-auto bg-slate-100 px-3 py-1 rounded-full">
-           <span className="text-[10px] font-black text-slate-500 uppercase">{maintenanceLogs.length} Entradas</span>
+          <h3 className="text-base font-black text-slate-900 leading-none">¿Qué Molino Falla Más?</h3>
+          <p className="text-xs font-medium text-slate-400 mt-1">Cuántas veces se rompió cada molino (mantenimiento correctivo)</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Column 1: Ranking by Mill */}
         <div className="space-y-4">
-          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
-            <Wrench size={10} /> Frecuencia por Activo
+          <h4 className="text-xs font-black text-slate-500 uppercase tracking-wide flex items-center gap-2 border-b border-slate-100 pb-2">
+            <Wrench size={12} /> Fallas por Molino
           </h4>
-          <div className="flex items-center gap-3 mb-2">
-             <div className="flex items-center gap-1.5">
-               <div className="w-2 h-2 rounded-full bg-red-500 shadow-sm" />
-               <span className="text-[9px] font-black text-slate-400 uppercase">Correctivo</span>
-             </div>
-             <div className="flex items-center gap-1.5">
-               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
-               <span className="text-[9px] font-black text-slate-400 uppercase">Preventivo</span>
-             </div>
-          </div>
-          <div className="space-y-3">
-            {rankings.byMill.map((mill, idx) => (
-              <div key={mill.id} className="group cursor-default">
-                <div className="flex items-center justify-between mb-1.5 px-1">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-4 h-4 rounded-md flex items-center justify-center text-[9px] font-black text-white shrink-0 ${
-                      idx === 0 ? 'bg-red-500 animate-pulse' : idx === 1 ? 'bg-orange-500' : idx === 2 ? 'bg-amber-500' : 'bg-slate-300'
-                    }`}>{idx + 1}</span>
-                    <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">{mill.name}</span>
-                  </div>
-                  <span className="text-[10px] font-black text-slate-400">{mill.total}</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-50">
-                  <div className="h-full rounded-full flex shadow-inner">
-                    <div className="bg-gradient-to-r from-red-400 to-red-500 h-full transition-all duration-700" style={{ width: `${(mill.correctivo / maxMillTotal) * 100}%` }} />
-                    <div className="bg-gradient-to-r from-blue-400 to-blue-500 h-full transition-all duration-700" style={{ width: `${(mill.preventivo / maxMillTotal) * 100}%` }} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Column 2: Monthly Distribution */}
-        <div className="space-y-4">
-          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
-            <TrendingUp size={10} /> Frecuencia Mensual
-          </h4>
-          <div className="flex items-end gap-3 h-36 pt-4">
-            {rankings.byMonth.map((month, idx) => {
-              const total = month.preventivo + month.correctivo;
-              const heightPct = (total / maxMonthTotal) * 100;
-              const correctivoPct = total > 0 ? (month.correctivo / total) * 100 : 0;
-
-              return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
-                  <div className="relative w-full flex flex-col items-center">
-                     <span className="text-[9px] font-black text-slate-400 absolute -top-4 opacity-0 group-hover:opacity-100 transition-opacity">{total}</span>
-                     <div className="w-full rounded-t-lg overflow-hidden flex flex-col-reverse shadow-sm border border-slate-50 group-hover:shadow-md transition-all" style={{ height: `${Math.max(heightPct, 8)}%`, width: '100%' }}>
-                       <div className="bg-blue-500/80 w-full hover:brightness-110 transition-all" style={{ height: `${100 - correctivoPct}%` }} title="Preventivo" />
-                       <div className="bg-red-500/80 w-full hover:brightness-110 transition-all border-b border-white/20" style={{ height: `${correctivoPct}%` }} title="Correctivo" />
-                     </div>
-                  </div>
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter truncate w-full text-center">{month.label}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex items-center justify-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50 py-2 rounded-xl border border-slate-100">
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500 shadow-sm" /> Correctivo</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" /> Preventivo</span>
-          </div>
-        </div>
-
-        {/* Column 3: Top Failures */}
-        <div className="space-y-4">
-          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
-            <AlertTriangle size={10} /> Problemas Críticos
-          </h4>
-          {rankings.byType.length > 0 ? (
+          {rankings.byMill.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-6">Sin datos todavía.</p>
+          ) : (
             <div className="space-y-3">
-              {rankings.byType.map((item, idx) => (
-                <div key={idx} className="group relative flex items-start gap-3 bg-white hover:bg-red-50/50 rounded-xl p-3 border border-slate-100 hover:border-red-100 transition-all cursor-default shadow-sm hover:translate-x-1">
-                  <div className="mt-0.5 w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0 font-black text-xs border border-red-100 group-hover:bg-red-500 group-hover:text-white transition-all">
-                    {item.count}
+              {rankings.byMill.map((mill, idx) => (
+                <div key={mill.id}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black text-white shrink-0 ${
+                        idx === 0 && mill.fallas > 0 ? 'bg-red-500' : 'bg-slate-300'
+                      }`}>{idx + 1}</span>
+                      <span className="text-sm font-bold text-slate-700">{mill.name}</span>
+                    </div>
+                    <span className="text-sm font-black text-slate-900">{mill.fallas} {mill.fallas === 1 ? 'falla' : 'fallas'}</span>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-600 font-bold leading-tight line-clamp-2 group-hover:text-slate-900 transition-colors uppercase italic">
-                      "{item.desc.toLowerCase()}"
-                    </p>
+                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="h-full bg-red-500 rounded-full transition-all duration-700"
+                      style={{ width: `${(mill.fallas / maxMillFallas) * 100}%` }}
+                    />
                   </div>
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <h4 className="text-xs font-black text-slate-500 uppercase tracking-wide flex items-center gap-2 border-b border-slate-100 pb-2">
+            <Calendar size={12} /> Fallas por Mes ({new Date().getFullYear()})
+          </h4>
+          <div className="flex items-end gap-2" style={{ height: `${CHART_HEIGHT_PX}px` }}>
+            {rankings.byMonth.map((month, idx) => {
+              const total = month.fallas + month.preventivos;
+              const totalHeightPx = Math.max((total / maxMonthTotal) * CHART_HEIGHT_PX, total > 0 ? 6 : 2);
+              const fallasHeightPx = total > 0 ? (month.fallas / total) * totalHeightPx : 0;
+              const preventivosHeightPx = totalHeightPx - fallasHeightPx;
+
+              return (
+                <div key={idx} className="flex-1 flex flex-col items-center justify-end gap-1.5 h-full">
+                  <span className="text-[10px] font-black text-slate-400">{total > 0 ? total : ''}</span>
+                  <div className="w-full flex flex-col-reverse rounded-t-md overflow-hidden" style={{ height: `${totalHeightPx}px` }}>
+                    <div style={{ height: `${fallasHeightPx}px` }} className="w-full bg-red-500" title={`${month.fallas} fallas`} />
+                    <div style={{ height: `${preventivosHeightPx}px` }} className="w-full bg-blue-400" title={`${month.preventivos} preventivos`} />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400">{month.label}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-center gap-4 text-[10px] font-bold text-slate-400 bg-slate-50 py-2 rounded-xl">
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Fallas</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-400" /> Preventivo</span>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h4 className="text-xs font-black text-slate-500 uppercase tracking-wide flex items-center gap-2 border-b border-slate-100 pb-2">
+            <AlertTriangle size={12} /> Problemas Más Repetidos
+          </h4>
+          {rankings.byType.length > 0 ? (
+            <div className="space-y-2.5">
+              {rankings.byType.map((item, idx) => (
+                <div key={idx} className="flex items-start gap-3 bg-slate-50 rounded-xl p-3">
+                  <div className="w-7 h-7 rounded-lg bg-red-100 text-red-700 flex items-center justify-center shrink-0 font-black text-xs">
+                    {item.count}
+                  </div>
+                  <p className="text-xs text-slate-600 font-medium leading-snug pt-1">{item.desc}</p>
+                </div>
+              ))}
+            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-10 text-slate-300 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-              <CheckCircle size={32} className="mb-2 opacity-20 text-emerald-500" />
-              <p className="text-[10px] font-black uppercase tracking-widest">Operación Limpia</p>
+            <div className="flex flex-col items-center justify-center py-10 text-slate-300 bg-slate-50 rounded-2xl">
+              <CheckCircle size={32} className="mb-2 text-emerald-300" />
+              <p className="text-xs font-bold">Sin fallas registradas</p>
             </div>
           )}
         </div>

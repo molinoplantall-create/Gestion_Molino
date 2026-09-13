@@ -325,8 +325,21 @@ export const RequerimientosList: React.FC = () => {
             <input
               type="number"
               min={1}
-              value={formData.quantity}
-              onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+              value={formData.quantity === undefined || formData.quantity === null ? '' : formData.quantity}
+              onChange={(e) => {
+                const raw = e.target.value;
+                // Permite borrar el campo mientras se escribe, sin forzar
+                // "1" de inmediato (antes, al borrar para escribir otro
+                // número, saltaba a 1 y no dejaba escribir nada más).
+                setFormData(prev => ({ ...prev, quantity: raw === '' ? undefined : parseInt(raw) }));
+              }}
+              onBlur={(e) => {
+                // Al salir del campo, si quedó vacío o inválido, sí se
+                // pone 1 por defecto.
+                if (!e.target.value || parseInt(e.target.value) < 1) {
+                  setFormData(prev => ({ ...prev, quantity: 1 }));
+                }
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>

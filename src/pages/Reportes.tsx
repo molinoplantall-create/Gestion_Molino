@@ -234,7 +234,7 @@ const Reportes: React.FC = () => {
     doc.setFontSize(22);
     doc.text('REPORTE OPERATIVO DE MOLIENDA', 14, 20);
     doc.setFontSize(10);
-    doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 28);
+    doc.text(`Generado el: ${new Date().toLocaleString('es-PE')}`, 14, 28);
 
     doc.autoTable({
       startY: 35,
@@ -578,7 +578,7 @@ const Reportes: React.FC = () => {
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
     doc.text('TOTAL DE MINERAL RECIBIDO POR CLIENTE (DESDE INICIO)', 14, 28);
-    doc.text(`Fecha de Emisión: ${new Date().toLocaleString()}`, 14, 33);
+    doc.text(`Fecha de Emisión: ${new Date().toLocaleString('es-PE')}`, 14, 33);
 
     const clientRows = [...allClients]
       .filter(c => (c.cumulative_cuarzo || 0) + (c.cumulative_llampo || 0) > 0)
@@ -822,7 +822,7 @@ const Reportes: React.FC = () => {
       {/* KPI CARDS - DISEÑO INDUSTRIAL */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6 mt-4">
         {[
-          { label: 'PRODUCCIÓN DEL PERIODO', value: stats.totalSacos.toLocaleString(), icon: Box, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', trend: 'Sacos', trendUp: true },
+          { label: 'PRODUCCIÓN DEL PERIODO', value: stats.totalSacos.toLocaleString('es-PE'), icon: Box, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', trend: 'Sacos', trendUp: true },
           { label: 'CLIENTES ATENDIDOS', value: stats.clientesAtendidos, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', trend: 'En el periodo', trendUp: true },
           { label: 'PROMEDIO POR CARGA', value: stats.avgSacos.toFixed(1), icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', trend: 'Sacos/Log', trendUp: true },
           { label: 'DISPONIBILIDAD', value: `${((mills.filter(m => m.status === 'LIBRE').length / mills.length) * 100).toFixed(0)}%`, icon: Activity, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100', trend: 'Equipo', trendUp: true },
@@ -1006,7 +1006,7 @@ const Reportes: React.FC = () => {
 
                 <div className="text-right">
                   <div className="text-lg font-black text-indigo-600 group-hover:scale-110 transition-transform">
-                    {client.total.toLocaleString()}
+                    {client.total.toLocaleString('es-PE')}
                   </div>
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SACOS</div>
                 </div>

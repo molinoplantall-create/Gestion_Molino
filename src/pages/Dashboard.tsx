@@ -393,7 +393,7 @@ const Dashboard: React.FC = () => {
     doc.text('REPORTE GERENCIAL DE PRODUCCIÓN', 105, 18, { align: 'center' });
     doc.setFontSize(10);
     doc.text('PLANTA DE BENEFICIO - INMACULADA CONCEPCIÓN', 105, 27, { align: 'center' });
-    doc.text(`Generado: ${new Date().toLocaleString()}`, 105, 34, { align: 'center' });
+    doc.text(`Generado: ${new Date().toLocaleString('es-PE')}`, 105, 34, { align: 'center' });
 
     // KPIs
     doc.setTextColor(0, 0, 0);

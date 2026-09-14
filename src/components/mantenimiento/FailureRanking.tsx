@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { AlertTriangle, Wrench, Calendar, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Calendar, CheckCircle } from 'lucide-react';
 
 interface FailureRankingProps {
   maintenanceLogs: any[];
@@ -68,7 +68,6 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
 
   if (!maintenanceLogs.length) return null;
 
-  const maxMillFallas = Math.max(...rankings.byMill.map(m => m.fallas), 1);
   const maxMonthTotal = Math.max(...rankings.byMonth.map(m => m.fallas + m.preventivos), 1);
   const CHART_HEIGHT_PX = 140;
 
@@ -79,43 +78,12 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
           <AlertTriangle size={20} />
         </div>
         <div>
-          <h3 className="text-base font-black text-slate-900 leading-none">¿Qué Molino Falla Más?</h3>
-          <p className="text-xs font-medium text-slate-400 mt-1">Cuántas veces se rompió cada molino (mantenimiento correctivo)</p>
+          <h3 className="text-base font-black text-slate-900 leading-none">Tendencia de Fallas</h3>
+          <p className="text-xs font-medium text-slate-400 mt-1">Para el ranking exacto por molino, mira "Comparación entre Molinos" más abajo</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="space-y-4">
-          <h4 className="text-xs font-black text-slate-500 uppercase tracking-wide flex items-center gap-2 border-b border-slate-100 pb-2">
-            <Wrench size={12} /> Fallas por Molino
-          </h4>
-          {rankings.byMill.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-6">Sin datos todavía.</p>
-          ) : (
-            <div className="space-y-3">
-              {rankings.byMill.map((mill, idx) => (
-                <div key={mill.id}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black text-white shrink-0 ${
-                        idx === 0 && mill.fallas > 0 ? 'bg-red-500' : 'bg-slate-300'
-                      }`}>{idx + 1}</span>
-                      <span className="text-sm font-bold text-slate-700">{mill.name}</span>
-                    </div>
-                    <span className="text-sm font-black text-slate-900">{mill.fallas} {mill.fallas === 1 ? 'falla' : 'fallas'}</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="h-full bg-red-500 rounded-full transition-all duration-700"
-                      style={{ width: `${(mill.fallas / maxMillFallas) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-4">
           <h4 className="text-xs font-black text-slate-500 uppercase tracking-wide flex items-center gap-2 border-b border-slate-100 pb-2">
             <Calendar size={12} /> Fallas por Mes ({new Date().getFullYear()})

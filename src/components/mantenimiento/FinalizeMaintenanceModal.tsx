@@ -18,18 +18,18 @@ export const FinalizeMaintenanceModal: React.FC<FinalizeMaintenanceModalProps> =
     isLoading = false
 }) => {
     const [actionTaken, setActionTaken] = useState('');
-    const [workedHours, setWorkedHours] = useState<number>(record?.worked_hours || 4);
+    const [workedHours, setWorkedHours] = useState<number | ''>(record?.worked_hours || 4);
     const [completedAt, setCompletedAt] = useState(new Date().toISOString().split('T')[0]);
 
     const handleSubmit = () => {
         onConfirm({
             action_taken: actionTaken,
-            worked_hours: workedHours,
+            worked_hours: workedHours === '' ? 0 : workedHours,
             completed_at: `${completedAt.split('T')[0]}T12:00:00`
         });
     };
 
-    const isValid = actionTaken.trim().length > 0 && workedHours > 0;
+    const isValid = actionTaken.trim().length > 0 && Number(workedHours) > 0;
 
     return (
         <FormModal
@@ -72,7 +72,13 @@ export const FinalizeMaintenanceModal: React.FC<FinalizeMaintenanceModalProps> =
                             <input
                                 type="number"
                                 value={workedHours}
-                                onChange={(e) => setWorkedHours(Number(e.target.value))}
+                                onChange={(e) => {
+                                    const raw = e.target.value;
+                                    setWorkedHours(raw === '' ? '' : Number(raw));
+                                }}
+                                onBlur={(e) => {
+                                    if (!e.target.value || Number(e.target.value) < 1) setWorkedHours(1);
+                                }}
                                 className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all shadow-sm"
                                 min="1"
                                 required

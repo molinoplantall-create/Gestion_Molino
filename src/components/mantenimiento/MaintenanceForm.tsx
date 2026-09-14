@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FormModal } from '../ui/FormModal';
-import { Wrench, Plus, X } from 'lucide-react';
+import { Wrench, Plus, X, Settings2, Trash2 } from 'lucide-react';
+import { useSupabaseStore } from '@/store/supabaseStore';
 
 export interface MaintenanceFormData {
     molinoId: string;
@@ -47,6 +48,22 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     const isIncidentMode = formData.tipo === 'CORRECTIVO' || formData.estado === 'COMPLETADO';
     const currency = formData.currency || 'PEN';
     const currencySymbol = currency === 'PEN' ? 'S/' : '$';
+
+    // Catálogo de fallas comunes: accesos rápidos + gestor (agregar/quitar)
+    const { failureCatalog, fetchFailureCatalog, addFailureCatalogItem, deleteFailureCatalogItem } = useSupabaseStore();
+    const [showCatalogManager, setShowCatalogManager] = useState(false);
+    const [newCatalogItem, setNewCatalogItem] = useState('');
+
+    useEffect(() => {
+        if (isOpen) fetchFailureCatalog();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
+
+    const handleAddCatalogItem = async () => {
+        if (!newCatalogItem.trim()) return;
+        await addFailureCatalogItem(newCatalogItem.trim());
+        setNewCatalogItem('');
+    };
 
     const handleAddTask = () => {
         const newTask = { id: crypto.randomUUID(), text: '', completed: false };
@@ -161,8 +178,16 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     </label>
                     <input
                         type="number"
-                        value={formData.horasEstimadas}
-                        onChange={(e) => onChange('horasEstimadas', Number(e.target.value))}
+                        value={formData.horasEstimadas === undefined || formData.horasEstimadas === null ? '' : formData.horasEstimadas}
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            onChange('horasEstimadas', raw === '' ? undefined : Number(raw));
+                        }}
+                        onBlur={(e) => {
+                            if (!e.target.value || Number(e.target.value) < 1) {
+                                onChange('horasEstimadas', 1);
+                            }
+                        }}
                         min="1"
                         max="24"
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -202,9 +227,74 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
                 {/* Descripción */}
                 <div className="sm:col-span-2 lg:col-span-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Descripción del Problema <span className="text-red-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                            Descripción del Problema <span className="text-red-500">*</span>
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => setShowCatalogManager(!showCatalogManager)}
+                            className="flex items-center gap-1 text-xs font-bold text-indigo-500 hover:text-indigo-700"
+                        >
+                            <Settings2 size={13} /> Gestionar lista
+                        </button>
+                    </div>
+
+                    {/* Accesos rápidos: fallas comunes previamente guardadas */}
+                    {failureCatalog.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            {failureCatalog.map((item) => (
+                                <button
+                                    key={item}
+                                    type="button"
+                                    onClick={() => onChange('descripcion', item)}
+                                    className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold transition-colors"
+                                >
+                                    {item}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Gestor: agregar/quitar items de la lista */}
+                    {showCatalogManager && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3 space-y-2">
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newCatalogItem}
+                                    onChange={(e) => setNewCatalogItem(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCatalogItem())}
+                                    placeholder="Ej. Cambio de rodamiento"
+                                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleAddCatalogItem}
+                                    className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700"
+                                >
+                                    <Plus size={14} />
+                                </button>
+                            </div>
+                            {failureCatalog.length > 0 && (
+                                <div className="max-h-32 overflow-y-auto space-y-1">
+                                    {failureCatalog.map((item) => (
+                                        <div key={item} className="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-slate-100">
+                                            <span className="text-xs text-slate-600 font-medium">{item}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => deleteFailureCatalogItem(item)}
+                                                className="text-red-400 hover:text-red-600"
+                                            >
+                                                <Trash2 size={13} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <textarea
                         value={formData.descripcion}
                         onChange={(e) => onChange('descripcion', e.target.value)}

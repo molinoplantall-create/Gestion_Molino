@@ -650,26 +650,26 @@ const Stock: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-6 text-center bg-amber-50/10">
-                      <span className="text-lg font-black text-amber-600">{(client.stock_cuarzo || 0).toLocaleString()}</span>
+                      <span className="text-lg font-black text-amber-600">{(client.stock_cuarzo || 0).toLocaleString('es-PE')}</span>
                     </td>
                     <td className="px-6 py-6 text-center bg-indigo-50/10">
-                      <span className="text-lg font-black text-indigo-600">{(client.stock_llampo || 0).toLocaleString()}</span>
+                      <span className="text-lg font-black text-indigo-600">{(client.stock_llampo || 0).toLocaleString('es-PE')}</span>
                     </td>
                     <td className="px-6 py-6 text-center">
                       <div className="flex flex-col items-center">
                         <span className="text-[10px] font-black text-slate-900 mb-1" title="Total Histórico (Cuarzo + Llampo)">
-                          TOTAL: {((client.cumulative_cuarzo || 0) + (client.cumulative_llampo || 0)).toLocaleString()}
+                          TOTAL: {((client.cumulative_cuarzo || 0) + (client.cumulative_llampo || 0)).toLocaleString('es-PE')}
                         </span>
                         <div className="flex gap-2">
-                          <span className="text-[9px] font-black text-amber-600/60" title="Total Cuarzo histórico">H. Cu: {(client.cumulative_cuarzo || 0).toLocaleString()}</span>
-                          <span className="text-[9px] font-black text-indigo-600/60" title="Total Llampo histórico">H. Ll: {(client.cumulative_llampo || 0).toLocaleString()}</span>
+                          <span className="text-[9px] font-black text-amber-600/60" title="Total Cuarzo histórico">H. Cu: {(client.cumulative_cuarzo || 0).toLocaleString('es-PE')}</span>
+                          <span className="text-[9px] font-black text-indigo-600/60" title="Total Llampo histórico">H. Ll: {(client.cumulative_llampo || 0).toLocaleString('es-PE')}</span>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-6 text-center">
                       <div className="inline-flex flex-col items-center">
                         <span className="text-xl font-black text-slate-900 leading-none">
-                          {((client.stock_cuarzo || 0) + (client.stock_llampo || 0)).toLocaleString()}
+                          {((client.stock_cuarzo || 0) + (client.stock_llampo || 0)).toLocaleString('es-PE')}
                         </span>
                         <span className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest">Sacos</span>
                       </div>
@@ -1001,7 +1001,7 @@ const Stock: React.FC = () => {
               </div>
               <span className="font-bold text-white uppercase text-xs tracking-widest">Total a Ingresar</span>
             </div>
-            <span className="text-3xl font-black text-white">{nuevoIngreso.total.toLocaleString()} <span className="text-xs">SACOS</span></span>
+            <span className="text-3xl font-black text-white">{nuevoIngreso.total.toLocaleString('es-PE')} <span className="text-xs">SACOS</span></span>
           </div>
         </div>
       </FormModal>
@@ -1037,8 +1037,14 @@ const Stock: React.FC = () => {
               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Cant. Inicial</label>
               <input
                 type="number"
-                value={editFormData.initial_quantity}
-                onChange={(e) => setEditFormData({ ...editFormData, initial_quantity: parseInt(e.target.value) || 0 })}
+                value={editFormData.initial_quantity === undefined || editFormData.initial_quantity === null ? '' : editFormData.initial_quantity}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setEditFormData({ ...editFormData, initial_quantity: raw === '' ? undefined : parseInt(raw) });
+                }}
+                onBlur={(e) => {
+                  if (!e.target.value) setEditFormData({ ...editFormData, initial_quantity: 0 });
+                }}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-black text-xl outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -1046,8 +1052,14 @@ const Stock: React.FC = () => {
               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Cant. Restante</label>
               <input
                 type="number"
-                value={editFormData.remaining_quantity}
-                onChange={(e) => setEditFormData({ ...editFormData, remaining_quantity: parseInt(e.target.value) || 0 })}
+                value={editFormData.remaining_quantity === undefined || editFormData.remaining_quantity === null ? '' : editFormData.remaining_quantity}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setEditFormData({ ...editFormData, remaining_quantity: raw === '' ? undefined : parseInt(raw) });
+                }}
+                onBlur={(e) => {
+                  if (!e.target.value) setEditFormData({ ...editFormData, remaining_quantity: 0 });
+                }}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-black text-xl outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>

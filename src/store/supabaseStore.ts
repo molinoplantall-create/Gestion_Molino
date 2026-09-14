@@ -144,6 +144,12 @@ interface SupabaseStore {
   resolveMillRequirement: (id: string) => Promise<boolean>;
   reopenMillRequirement: (id: string) => Promise<boolean>;
   deleteMillRequirement: (id: string) => Promise<boolean>;
+
+  // Catálogo de descripciones de fallas comunes (editable)
+  failureCatalog: string[];
+  fetchFailureCatalog: () => Promise<void>;
+  addFailureCatalogItem: (description: string) => Promise<boolean>;
+  deleteFailureCatalogItem: (description: string) => Promise<boolean>;
 }
 
 export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
@@ -155,6 +161,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
   maintenanceLogs: [],
   millRequirements: [],
   requirementsLoading: false,
+  failureCatalog: [],
   maintenanceLogsCount: 0,
   clientsCount: 0,
   logsCount: 0,
@@ -2378,6 +2385,56 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       return true;
     } catch (error) {
       logger.error('❌ Error deleteMillRequirement:', error);
+      return false;
+    }
+  },
+
+  // ============================================================
+  // Catálogo de descripciones de fallas comunes (editable)
+  // ============================================================
+  fetchFailureCatalog: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('failure_catalog')
+        .select('description')
+        .order('description', { ascending: true });
+
+      if (error) throw error;
+      set({ failureCatalog: (data || []).map((r: any) => r.description) });
+    } catch (error) {
+      logger.error('❌ Error fetchFailureCatalog:', error);
+    }
+  },
+
+  addFailureCatalogItem: async (description: string) => {
+    try {
+      const trimmed = description.trim();
+      if (!trimmed) return false;
+      const { error } = await supabase
+        .from('failure_catalog')
+        .insert([{ description: trimmed }]);
+
+      if (error) throw error;
+      await get().fetchFailureCatalog();
+      return true;
+    } catch (error) {
+      logger.error('❌ Error addFailureCatalogItem:', error);
+      return false;
+    }
+  },
+
+  deleteFailureCatalogItem: async (description: string) => {
+    try {
+      const { error } = await supabase
+        .from('failure_catalog')
+        .delete()
+        .eq('description', description);
+
+      if (error) throw error;
+      set({ failureCatalog: get().failureCatalog.filter(d => d !== description) });
+      return true;
+    } catch (error) {
+      logger.error('❌ Error deleteFailureCatalogItem:', error);
       return false;
     }
   }

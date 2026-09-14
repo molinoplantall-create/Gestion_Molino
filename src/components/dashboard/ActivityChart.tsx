@@ -198,7 +198,7 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
             <span className={`text-[11px] font-bold ${entry.name === 'sacos' ? 'text-indigo-600' : 'text-emerald-600'}`}>
               {entry.name === 'sacos' ? '⚙ Prod.' : '📦 Ing.'}
             </span>
-            <span className="text-[11px] font-black text-slate-900">{(entry.value || 0).toLocaleString()}</span>
+            <span className="text-[11px] font-black text-slate-900">{(entry.value || 0).toLocaleString('es-PE')}</span>
           </div>
         ))}
       </div>
@@ -238,14 +238,14 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
           <Factory size={13} className="text-indigo-500 shrink-0" />
           <div className="min-w-0">
             <p className="text-[7px] sm:text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none truncate" title="Producción">Producción</p>
-            <p className="text-xs sm:text-sm font-black text-indigo-700 leading-tight truncate">{totalSacos.toLocaleString()} <span className="text-[8px] sm:text-[9px] font-bold">scs</span></p>
+            <p className="text-xs sm:text-sm font-black text-indigo-700 leading-tight truncate">{totalSacos.toLocaleString('es-PE')} <span className="text-[8px] sm:text-[9px] font-bold">scs</span></p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-2 sm:px-3 py-2 flex-1 min-w-0">
           <Package size={13} className="text-emerald-500 shrink-0" />
           <div className="min-w-0">
             <p className="text-[7px] sm:text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none truncate" title="Ingresos">Ingresos</p>
-            <p className="text-xs sm:text-sm font-black text-emerald-700 leading-tight truncate">{totalIngresos.toLocaleString()} <span className="text-[8px] sm:text-[9px] font-bold">scs</span></p>
+            <p className="text-xs sm:text-sm font-black text-emerald-700 leading-tight truncate">{totalIngresos.toLocaleString('es-PE')} <span className="text-[8px] sm:text-[9px] font-bold">scs</span></p>
           </div>
         </div>
         {selectedClient !== 'all' && (
@@ -340,14 +340,14 @@ const ActivityChart: React.FC<ActivityChartProps> = ({
                   return (
                     <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-white transition-colors">
                       <td className="py-2.5 px-3 text-[11px] font-bold text-slate-700">{row.fullLabel || row.label}</td>
-                      <td className="py-2.5 px-3 text-[11px] font-black text-emerald-600 text-right">{row.ingresos.toLocaleString()}</td>
-                      <td className="py-2.5 px-3 text-[11px] font-black text-indigo-600 text-right">{row.sacos.toLocaleString()}</td>
+                      <td className="py-2.5 px-3 text-[11px] font-black text-emerald-600 text-right">{row.ingresos.toLocaleString('es-PE')}</td>
+                      <td className="py-2.5 px-3 text-[11px] font-black text-indigo-600 text-right">{row.sacos.toLocaleString('es-PE')}</td>
                       <td className="py-2.5 px-3 text-right">
                         <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-black ${
                           saldo > 0 ? 'bg-emerald-100 text-emerald-700' : 
                           saldo < 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'
                         } ${isHighDiff ? 'ring-2 ring-offset-1 ring-amber-300' : ''}`}>
-                          {saldo > 0 ? '+' : ''}{saldo.toLocaleString()}
+                          {saldo > 0 ? '+' : ''}{saldo.toLocaleString('es-PE')}
                         </span>
                       </td>
                     </tr>

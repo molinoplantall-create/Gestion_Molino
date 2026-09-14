@@ -19,6 +19,7 @@ export interface MaintenanceFormData {
     currency?: 'PEN' | 'USD';
     tasks_checklist?: { id: string, text: string, completed: boolean }[];
     action_taken?: string;
+    completedAt?: string;
 }
 
 interface MaintenanceFormProps {
@@ -208,6 +209,21 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     />
                     {errors.fechaProgramada && <p className="text-xs text-red-500 mt-1">{errors.fechaProgramada}</p>}
                 </div>
+
+                {/* Fecha de Cierre Editable (solo al editar completados) */}
+                {isEditing && formData.estado === 'COMPLETADO' && (
+                    <div className="sm:col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Fecha de Cierre (Resolución)
+                        </label>
+                        <input
+                            type="date"
+                            value={formData.completedAt || ''}
+                            onChange={(e) => onChange('completedAt', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                    </div>
+                )}
 
                 {/* Técnico Asignado */}
                 <div className="sm:col-span-2 lg:col-span-3">

@@ -92,6 +92,12 @@ const Mantenimiento: React.FC = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
+  
+  const historialRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    historialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [currentPage]);
 
   // Modals
   const createModal = useModal();
@@ -342,7 +348,8 @@ const Mantenimiento: React.FC = () => {
       labor_cost: (record as any).labor_cost || 0,
       currency: ((record as any).currency as 'PEN' | 'USD') || 'PEN',
       tasks_checklist: record.tasks_checklist || [],
-      action_taken: record.action_taken || ''
+      action_taken: record.action_taken || '',
+      completedAt: record.completed_at ? record.completed_at.split('T')[0] : ''
     });
     editModal.open(record);
   };
@@ -373,7 +380,10 @@ const Mantenimiento: React.FC = () => {
       currency: formData.currency,
       tasks_checklist: formData.tasks_checklist,
       action_taken: formData.action_taken,
-      created_at: formData.fechaProgramada ? `${formData.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
+      created_at: formData.fechaProgramada ? `${formData.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString(),
+      ...(formData.estado === 'COMPLETADO' && formData.completedAt 
+          ? { completed_at: `${formData.completedAt.split('T')[0]}T12:00:00` } 
+          : {})
     });
 
     setIsSubmitting(false);
@@ -988,7 +998,7 @@ _Enviado desde el sistema de Gestión de Molinos_`;
       </div>
 
       {/* SECCIÓN 2: Historial y Órdenes de Mantenimiento */}
-      <div className="space-y-6">
+      <div className="space-y-6" ref={historialRef}>
         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 px-1 mt-4">
           <History size={20} className="text-indigo-600" />
           Historial y Órdenes de Trabajo

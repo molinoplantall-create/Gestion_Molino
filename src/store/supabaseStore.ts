@@ -543,18 +543,18 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         `, { count: 'exact' });
 
       if (millId && millId !== 'all') {
-        query = query.or(`mill_id.eq.${millId},molino_id.eq.${millId}`);
+        query = query.eq('mill_id', millId);
       }
 
       if (type && type !== 'all') {
-        query = query.or(`type.eq.${type},tipo.eq.${type}`);
+        query = query.eq('type', type);
       } else {
         // Hide automatic oil changes from general history to avoid cluttering
         query = query.neq('type', 'ACEITE');
       }
 
       if (status && status !== 'all') {
-        query = query.or(`status.eq.${status.toUpperCase()},estado.eq.${status.toUpperCase()}`);
+        query = query.eq('status', status.toUpperCase());
       }
 
       if (search) {
@@ -565,13 +565,16 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         );
         const millIds = matchingMills.map(m => m.id);
         
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(searchLower);
+        const idFilter = isUUID ? `,id.eq.${searchLower}` : '';
+        
         if (millIds.length > 0) {
           query = query.or(
-            `description.ilike.%${search}%,descripcion_falla.ilike.%${search}%,technician_name.ilike.%${search}%,mill_id.in.(${millIds.join(',')})`
+            `description.ilike.%${search}%,technician_name.ilike.%${search}%,mill_id.in.(${millIds.join(',')})${idFilter}`
           );
         } else {
           query = query.or(
-            `description.ilike.%${search}%,descripcion_falla.ilike.%${search}%,technician_name.ilike.%${search}%`
+            `description.ilike.%${search}%,technician_name.ilike.%${search}%${idFilter}`
           );
         }
       }
@@ -2036,7 +2039,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const { data, error } = await supabase
         .from('maintenance_logs')
         .select('*')
-        .or(`mill_id.eq.${millId},molino_id.eq.${millId}`)
+        .eq('mill_id', millId)
         .order('created_at', { ascending: false })
         .limit(100);
 

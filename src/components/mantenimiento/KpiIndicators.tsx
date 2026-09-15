@@ -272,7 +272,7 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
                                     <th className="py-2 px-2 text-center">Correctivo</th>
                                     <th className="py-2 px-2 text-center">Predictivo</th>
                                     <th className="py-2 px-2 text-center">Emergencia</th>
-                                    <th className="py-2 px-2 text-center">Tiempo Prom. de Reparación</th>
+                                    <th className="py-2 px-2 text-center" title="MTTR: Mean Time To Repair (tiempo medio de reparación)">Tiempo Prom. de Reparación <span className="text-slate-300 normal-case">(MTTR)</span></th>
                                     <th className="py-2 px-2 text-center">Disponibilidad</th>
                                 </tr>
                             </thead>
@@ -308,7 +308,9 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
                     </div>
                 )}
                 <p className="text-[11px] text-slate-400 mt-4 bg-slate-50 rounded-lg p-3">
-                    <strong>Cómo leerlo:</strong> más Correctivo/Emergencia y menos disponibilidad significa que ese molino necesita más atención.
+                    <strong>Cómo leerlo:</strong> más Correctivo/Emergencia y menos disponibilidad significa que ese molino necesita más atención.<br />
+                    <strong>MTTR</strong> (Mean Time To Repair — tiempo medio de reparación): cuánto tarda en promedio en arreglarse cada vez que falla. Mientras más bajo, mejor.<br />
+                    <strong>MTBF</strong> (Mean Time Between Failures — tiempo medio entre fallas): cuántas horas de trabajo pasan, en promedio, entre una falla y la siguiente. Mientras más alto, mejor — significa que el molino aguanta más tiempo sin romperse.
                     Un número en un círculo de color se puede tocar para ver el detalle de esos registros.
                 </p>
             </div>
@@ -317,12 +319,12 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
             {detailModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setDetailModal(null)}>
                     <div className="bg-white rounded-3xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between p-5 border-b border-slate-100">
-                            <div>
-                                <h4 className="font-black text-slate-900">{detailModal.millName} — {TIPO_LABELS[detailModal.tipo]}</h4>
+                        <div className="flex items-center justify-between gap-3 p-5 border-b border-slate-100">
+                            <div className="min-w-0">
+                                <h4 className="font-black text-slate-900 break-words">{detailModal.millName} — {TIPO_LABELS[detailModal.tipo]}</h4>
                                 <p className="text-xs text-slate-400 font-medium">{detailModal.logs.length} registro{detailModal.logs.length !== 1 ? 's' : ''} en este periodo</p>
                             </div>
-                            <button onClick={() => setDetailModal(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                            <button onClick={() => setDetailModal(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors shrink-0">
                                 <X size={18} className="text-slate-500" />
                             </button>
                         </div>
@@ -330,17 +332,17 @@ export const KpiIndicators: React.FC<KpiIndicatorsProps> = ({ maintenanceLogs, m
                             {detailModal.logs
                                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                                 .map((log, idx) => (
-                                <div key={idx} className="bg-slate-50 rounded-2xl p-4">
+                                <div key={idx} className="bg-slate-50 rounded-2xl p-4 min-w-0">
                                     <div className="flex items-center justify-between mb-1.5">
                                         <span className="text-xs font-black text-slate-500">{formatFecha(log.created_at)}</span>
-                                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${getEstado(log) === 'COMPLETADO' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${getEstado(log) === 'COMPLETADO' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                                             {getEstado(log) === 'COMPLETADO' ? 'Completado' : 'En curso'}
                                         </span>
                                     </div>
-                                    <p className="text-sm font-bold text-slate-800">{log.description || 'Sin descripción'}</p>
+                                    <p className="text-sm font-bold text-slate-800 break-words">{log.description || 'Sin descripción'}</p>
                                     {log.technician_name && (
-                                        <p className="text-xs text-slate-400 font-medium mt-1 flex items-center gap-1">
-                                            <User size={11} /> {log.technician_name}
+                                        <p className="text-xs text-slate-400 font-medium mt-1 flex items-center gap-1 break-words">
+                                            <User size={11} className="shrink-0" /> {log.technician_name}
                                         </p>
                                     )}
                                     {log.worked_hours > 0 && <p className="text-xs text-slate-400 font-medium mt-0.5">{log.worked_hours}h trabajadas</p>}

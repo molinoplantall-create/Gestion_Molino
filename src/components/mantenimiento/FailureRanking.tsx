@@ -35,7 +35,7 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
     const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    const byMonth: { label: string; fallas: number; preventivos: number }[] = [];
+    const byMonth: { label: string; fallas: number; predictivos: number; preventivos: number }[] = [];
 
     for (let i = 0; i <= currentMonth; i++) {
       const monthLogs = maintenanceLogs.filter((log: any) => {
@@ -45,7 +45,10 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
       const tipos = monthLogs.map((l: any) => (l.type || l.tipo || '').toUpperCase());
       byMonth.push({
         label: monthNames[i],
+        // "Fallas" = Correctivo + Emergencia juntos: ambos representan que
+        // el molino se rompió, uno de forma más urgente que el otro.
         fallas: tipos.filter(t => t === 'CORRECTIVO' || t === 'EMERGENCIA').length,
+        predictivos: tipos.filter(t => t === 'PREDICTIVO').length,
         preventivos: tipos.filter(t => t === 'PREVENTIVO').length
       });
     }
@@ -68,7 +71,7 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
 
   if (!maintenanceLogs.length) return null;
 
-  const maxMonthTotal = Math.max(...rankings.byMonth.map(m => m.fallas + m.preventivos), 1);
+  const maxMonthTotal = Math.max(...rankings.byMonth.map(m => m.fallas + m.predictivos + m.preventivos), 1);
   const CHART_HEIGHT_PX = 140;
 
   return (
@@ -90,16 +93,18 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
           </h4>
           <div className="flex items-end gap-2" style={{ height: `${CHART_HEIGHT_PX}px` }}>
             {rankings.byMonth.map((month, idx) => {
-              const total = month.fallas + month.preventivos;
+              const total = month.fallas + month.predictivos + month.preventivos;
               const totalHeightPx = Math.max((total / maxMonthTotal) * CHART_HEIGHT_PX, total > 0 ? 6 : 2);
               const fallasHeightPx = total > 0 ? (month.fallas / total) * totalHeightPx : 0;
-              const preventivosHeightPx = totalHeightPx - fallasHeightPx;
+              const predictivosHeightPx = total > 0 ? (month.predictivos / total) * totalHeightPx : 0;
+              const preventivosHeightPx = totalHeightPx - fallasHeightPx - predictivosHeightPx;
 
               return (
                 <div key={idx} className="flex-1 flex flex-col items-center justify-end gap-1.5 h-full">
                   <span className="text-[10px] font-black text-slate-400">{total > 0 ? total : ''}</span>
                   <div className="w-full flex flex-col-reverse rounded-t-md overflow-hidden" style={{ height: `${totalHeightPx}px` }}>
-                    <div style={{ height: `${fallasHeightPx}px` }} className="w-full bg-red-500" title={`${month.fallas} fallas`} />
+                    <div style={{ height: `${fallasHeightPx}px` }} className="w-full bg-red-500" title={`${month.fallas} fallas (Correctivo + Emergencia)`} />
+                    <div style={{ height: `${predictivosHeightPx}px` }} className="w-full bg-violet-400" title={`${month.predictivos} predictivos`} />
                     <div style={{ height: `${preventivosHeightPx}px` }} className="w-full bg-blue-400" title={`${month.preventivos} preventivos`} />
                   </div>
                   <span className="text-[10px] font-bold text-slate-400">{month.label}</span>
@@ -107,8 +112,9 @@ export const FailureRanking: React.FC<FailureRankingProps> = ({
               );
             })}
           </div>
-          <div className="flex items-center justify-center gap-4 text-[10px] font-bold text-slate-400 bg-slate-50 py-2 rounded-xl">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Fallas</span>
+          <div className="flex items-center justify-center gap-4 text-[10px] font-bold text-slate-400 bg-slate-50 py-2 rounded-xl flex-wrap">
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Fallas (Correctivo + Emergencia)</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-violet-400" /> Predictivo</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-400" /> Preventivo</span>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FormModal } from '../ui/FormModal';
 import { CheckCircle, Clock, Wrench } from 'lucide-react';
 
@@ -20,6 +20,29 @@ export const FinalizeMaintenanceModal: React.FC<FinalizeMaintenanceModalProps> =
     const [actionTaken, setActionTaken] = useState('');
     const [workedHours, setWorkedHours] = useState<number | ''>(record?.worked_hours || 4);
     const [completedAt, setCompletedAt] = useState(new Date().toISOString().split('T')[0]);
+    const [autoCalculated, setAutoCalculated] = useState(false);
+
+    // FIX: antes esto siempre partía de un número fijo (4) que había que
+    // recordar corregir a mano. Ahora, si la orden tiene fecha real de
+    // inicio de falla (failure_start_time), se calculan las horas reales
+    // transcurridas desde entonces -así un molino que lleva varios días
+    // parado no se cierra con un número chico por accidente-. Se puede
+    // seguir ajustando a mano si hace falta.
+    useEffect(() => {
+        if (isOpen && record) {
+            if (record.failure_start_time) {
+                const elapsedHours = (Date.now() - new Date(record.failure_start_time).getTime()) / (1000 * 3600);
+                setWorkedHours(Math.max(1, Math.round(elapsedHours)));
+                setAutoCalculated(true);
+            } else {
+                setWorkedHours(record.worked_hours || 4);
+                setAutoCalculated(false);
+            }
+            setActionTaken('');
+            setCompletedAt(new Date().toISOString().split('T')[0]);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, record?.id]);
 
     const handleSubmit = () => {
         onConfirm({
@@ -67,6 +90,11 @@ export const FinalizeMaintenanceModal: React.FC<FinalizeMaintenanceModalProps> =
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
                             Horas Trabajadas <span className="text-red-500">*</span>
                         </label>
+                        {autoCalculated && (
+                            <p className="text-[10px] text-indigo-500 font-bold mb-1.5 ml-1">
+                                Calculado automáticamente desde que se reportó la falla. Puedes ajustarlo si hace falta.
+                            </p>
+                        )}
                         <div className="relative">
                             <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                             <input
@@ -75,6 +103,7 @@ export const FinalizeMaintenanceModal: React.FC<FinalizeMaintenanceModalProps> =
                                 onChange={(e) => {
                                     const raw = e.target.value;
                                     setWorkedHours(raw === '' ? '' : Number(raw));
+                                    setAutoCalculated(false);
                                 }}
                                 onBlur={(e) => {
                                     if (!e.target.value || Number(e.target.value) < 1) setWorkedHours(1);

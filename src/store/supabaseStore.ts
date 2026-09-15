@@ -543,18 +543,18 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         `, { count: 'exact' });
 
       if (millId && millId !== 'all') {
-        query = query.eq('mill_id', millId);
+        query = query.or(`mill_id.eq.${millId},molino_id.eq.${millId}`);
       }
 
       if (type && type !== 'all') {
-        query = query.eq('type', type);
+        query = query.or(`type.eq.${type},tipo.eq.${type}`);
       } else {
         // Hide automatic oil changes from general history to avoid cluttering
         query = query.neq('type', 'ACEITE');
       }
 
       if (status && status !== 'all') {
-        query = query.eq('status', status.toUpperCase());
+        query = query.or(`status.eq.${status.toUpperCase()},estado.eq.${status.toUpperCase()}`);
       }
 
       if (search) {
@@ -565,16 +565,13 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         );
         const millIds = matchingMills.map(m => m.id);
         
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(searchLower);
-        const idFilter = isUUID ? `,id.eq.${searchLower}` : '';
-        
         if (millIds.length > 0) {
           query = query.or(
-            `description.ilike.%${search}%,technician_name.ilike.%${search}%,mill_id.in.(${millIds.join(',')})${idFilter}`
+            `description.ilike.%${search}%,descripcion_falla.ilike.%${search}%,technician_name.ilike.%${search}%,mill_id.in.(${millIds.join(',')})`
           );
         } else {
           query = query.or(
-            `description.ilike.%${search}%,technician_name.ilike.%${search}%${idFilter}`
+            `description.ilike.%${search}%,descripcion_falla.ilike.%${search}%,technician_name.ilike.%${search}%`
           );
         }
       }
@@ -1007,8 +1004,11 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
         created_at: data.fechaProgramada ? `${data.fechaProgramada.split('T')[0]}T12:00:00` : new Date().toISOString()
       };
 
-      // MTBF/MTTR: Registrar momento de falla para mantenimientos CORRECTIVOS
-      if (data.type === 'CORRECTIVO') {
+      // MTBF/MTTR: Registrar momento de falla para mantenimientos
+      // CORRECTIVOS y de EMERGENCIA (ambos representan que el molino está
+      // parado/fallando; antes solo se registraba para CORRECTIVO, dejando
+      // sin seguimiento de tiempo real a las órdenes de Emergencia).
+      if (data.type === 'CORRECTIVO' || data.type === 'EMERGENCIA') {
         insertData.failure_start_time = new Date().toISOString();
       }
 
@@ -2039,7 +2039,7 @@ export const useSupabaseStore = create<SupabaseStore>((set, get) => ({
       const { data, error } = await supabase
         .from('maintenance_logs')
         .select('*')
-        .eq('mill_id', millId)
+        .or(`mill_id.eq.${millId},molino_id.eq.${millId}`)
         .order('created_at', { ascending: false })
         .limit(100);
 
